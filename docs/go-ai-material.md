@@ -231,38 +231,53 @@ response, _ := model.Predict("What is robotics?",
 
 ## Hardware Acceleration
 
+> **Note:** Gorai targets Linux-based systems. Hardware acceleration support varies by platform.
+
 ### Google Coral Edge TPU
 
-**Status:** No official Go bindings exist.
+**Status:** No Go bindings exist. This is **aspirational** for Gorai.
 
-The [libedgetpu](https://github.com/google-coral/libedgetpu) C library would require custom CGo bindings.
+The [libedgetpu](https://github.com/google-coral/libedgetpu) C library provides the runtime driver but has no official Go bindings. The [edgetpu_c.h](https://github.com/google-coral/edgetpu/blob/master/libedgetpu/edgetpu_c.h) header could be used for CGo bindings.
 
-**Workarounds:**
-- Create CGo bindings to libedgetpu
-- Use RPC bridge to Python SDK
-- Use TFLite Go bindings with EdgeTPU delegate (requires investigation)
+**What would be required:**
+- Create CGo bindings to libedgetpu C API
+- Or use RPC/subprocess bridge to Python SDK
+- TFLite Go bindings do not currently support EdgeTPU delegate
+
+**Hardware:** USB Accelerator (~$60), M.2/PCIe Accelerator (~$25), Dev Board
 
 ### Raspberry Pi AI Kit (Hailo NPU)
 
-**Status:** No Go bindings exist.
+**Status:** No Go bindings exist. This is **aspirational** for Gorai.
 
-The Hailo-8L (13 TOPS) NPU uses the HailoRT SDK with Python/C++ interfaces.
+The Hailo-8L (13 TOPS) NPU uses the [HailoRT](https://github.com/hailo-ai/hailort) SDK with C/C++ and Python interfaces only.
 
-**Workaround:** Would require CGo bindings to HailoRT.
+**What would be required:**
+- Create CGo bindings to HailoRT C API
+- The SDK is well-documented but no community Go bindings exist
+
+**Hardware:** Hailo-8L M.2 module (~$70), Raspberry Pi AI Kit
 
 ### Rockchip RK3588 NPU
 
-[go-rknnlite](https://github.com/swdee/go-rknnlite) - CGo bindings for RKNN-Toolkit2.
+**Status:** Working Go bindings exist. This is **production-ready** for Gorai.
+
+[go-rknnlite](https://github.com/swdee/go-rknnlite) provides CGo bindings for RKNN-Toolkit2, announced April 2024 and actively maintained.
 
 **Supported Chips:** RK3562, RK3566, RK3568, RK3576, RK3582, RK3588
 
 **Key Features:**
 - Full RKNN C API bindings
-- Multi-core NPU support (RK3588 has 3 NPU cores)
+- Multi-core NPU support (RK3588 has 3 NPU cores, 6 TOPS total)
 - Runtime pooling for parallel inference
 - CPU affinity optimization for performance
+- Tested on Radxa Rock 5B and other RK3588 SBCs
 
-**Performance:** Single runtime ~7.9ms, Pool of 9 runtimes ~1.65ms per image
+**Performance:** Single runtime ~7.9ms, Pool of 9 runtimes ~1.65ms per image (EfficientNet-Lite0)
+
+**Requirements:**
+- Linux (tested on Armbian, Radxa OS)
+- RKNN-Toolkit2 installed (`/usr/include/rknn_api.h`, `/usr/lib/librknnrt.so`)
 
 **Example:**
 ```go
@@ -274,26 +289,46 @@ defer runtime.Close()
 outputs, _ := runtime.Inference(inputData)
 ```
 
+**Hardware:** Orange Pi 5, Radxa Rock 5B, Khadas Edge 2, and other RK3588 boards (~$80-150)
+
 ### Intel OpenVINO
 
-GoCV includes OpenVINO support via the `gocv.io/x/gocv/openvino/ie` package.
+**Status:** Partial Go support via GoCV. May need updates for latest OpenVINO.
+
+GoCV includes OpenVINO support via the `gocv.io/x/gocv/openvino/ie` package, but the integration was built against **OpenVINO 2022.1 LTS** and **OpenCV 4.5.5**. Current OpenVINO is 2024.x.
 
 ```go
 net.SetPreferableBackend(gocv.NetBackendOpenVINO)
-net.SetPreferableTarget(gocv.NetTargetVPU)  // For NCS2 (discontinued)
+net.SetPreferableTarget(gocv.NetTargetCPU)  // Or NetTargetOpenCLFP16 for GPU
 ```
 
-**Note:** Intel Neural Compute Stick 2 support ended in OpenVINO 2023.0. GPU plugin still supported.
+**Limitations:**
+- Intel Neural Compute Stick 2 (VPU) support ended in OpenVINO 2023.0
+- GoCV's OpenVINO integration may not support latest OpenVINO 2024.x features
+- Requires building OpenCV from source with OpenVINO support
+
+**Hardware:** Intel CPUs, Intel Arc GPUs, Intel integrated graphics
 
 ### NVIDIA CUDA
 
-Multiple libraries support CUDA:
-- **GoCV** - CUDA backend for DNN
+**Status:** Working Go support via multiple libraries. This is **production-ready** for Gorai.
+
+Multiple libraries support CUDA on Linux:
+- **[onnxruntime_go](https://github.com/yalue/onnxruntime_go)** - CUDA 12.x execution provider (requires CUDA 12.x, cuDNN 9.x, and CUDA-enabled onnxruntime library)
+- **[GoCV](https://gocv.io/)** - CUDA backend for DNN module
 - **Gorgonia** - CUDA tensor operations
-- **onnxruntime_go** - CUDA 12.x execution provider
 - **llama-go** - CUDA for LLM inference
 
+**Requirements:**
+- Linux with NVIDIA GPU
+- CUDA 12.x and cuDNN 9.x (for onnxruntime_go v1.12.0+)
+- CUDA-enabled shared libraries (not included by default in onnxruntime_go)
+
+**Note:** The default onnxruntime_go package does not include CUDA support. You must obtain CUDA-enabled onnxruntime libraries separately.
+
 ### Apple Metal
+
+**Status:** Experimental. macOS is **not a primary target** for Gorai (Linux-focused).
 
 [go-metal](https://github.com/tsawler/go-metal) - Deep learning library for Apple Silicon.
 
@@ -305,6 +340,8 @@ Multiple libraries support CUDA:
 **Other Options:**
 - [green-aloe/metal](https://pkg.go.dev/github.com/green-aloe/metal) - GPGPU compute
 - [dmitri.shuralyov.com/gpu/mtl](https://pkg.go.dev/dmitri.shuralyov.com/gpu/mtl) - Low-level Metal bindings
+
+**Note:** While Go code can run on macOS for development, Gorai's primary deployment targets are Linux-based robots and embedded systems.
 
 ---
 
@@ -390,47 +427,57 @@ RAG (Retrieval Augmented Generation) for robot knowledge bases, semantic search 
 
 ## Assessment and Recommendations
 
+> **Platform:** Gorai targets Linux-based systems for deployment. macOS may be used for development.
+
 ### Strengths of Go AI Ecosystem
 
-| Area | Maturity | Key Libraries |
-|------|----------|---------------|
-| ONNX Inference | Strong | onnxruntime_go |
-| OpenCV/Vision | Strong | GoCV |
-| LLM Inference | Growing | go-llama.cpp, ollama |
-| Numerical Computing | Solid | Gonum |
-| Embedded/IoT | Strong | TinyGo, Gobot |
-| RK3588 NPU | Good | go-rknnlite |
+| Area | Maturity | Key Libraries | Status |
+|------|----------|---------------|--------|
+| ONNX Inference | Strong | onnxruntime_go | Production-ready |
+| OpenCV/Vision | Strong | GoCV | Production-ready |
+| RK3588 NPU | Good | go-rknnlite | Production-ready |
+| NVIDIA CUDA | Good | onnxruntime_go, GoCV | Production-ready (requires setup) |
+| LLM Inference | Growing | go-llama.cpp, ollama | Production-ready |
+| Numerical Computing | Solid | Gonum | Production-ready |
+| Embedded/IoT | Strong | TinyGo, Gobot | Production-ready |
 
 ### Gaps and Challenges
 
-| Area | Status | Workaround |
-|------|--------|------------|
-| Google Coral TPU | No Go bindings | CGo wrapper needed |
-| Hailo NPU | No Go bindings | CGo wrapper needed |
-| Apple Metal ML | Experimental | Use CPU or external service |
-| Full SLAM | Limited | Use C++ via CGo or external service |
-| Training on GPU | Limited | GoMLX (CUDA), Gorgonia |
+| Area | Status | Effort Required |
+|------|--------|-----------------|
+| Google Coral TPU | **No Go bindings exist** | High - CGo wrapper to libedgetpu |
+| Hailo NPU | **No Go bindings exist** | High - CGo wrapper to HailoRT |
+| Intel OpenVINO | Partial (GoCV uses 2022.1) | Medium - may need updates |
+| Apple Metal ML | Experimental | N/A - not a target platform |
+| Full SLAM | Limited | High - use C++ via CGo or service |
+| Training on GPU | Limited | Medium - GoMLX (CUDA), Gorgonia |
 
 ### Recommended Strategy for Gorai
 
 1. **Primary Inference Path:** Use ONNX Runtime for model inference - widest model compatibility
-2. **Edge Acceleration:**
-   - RK3588: Use go-rknnlite (ready now)
-   - Coral/Hailo: Develop CGo bindings or use external service
-3. **Computer Vision:** GoCV for full OpenCV functionality, Pigo for lightweight face detection
-4. **LLM Integration:** go-llama.cpp or Ollama API for local LLMs
-5. **ML Framework:** GoMLX for any Go-native training needs
-6. **Embedded:** TinyGo for microcontroller targets, Gobot for robotics abstractions
+2. **Edge Acceleration (working today):**
+   - RK3588: Use go-rknnlite (production-ready)
+   - NVIDIA: Use onnxruntime_go with CUDA (production-ready, requires setup)
+3. **Edge Acceleration (future work):**
+   - Coral TPU: Requires developing CGo bindings to libedgetpu
+   - Hailo NPU: Requires developing CGo bindings to HailoRT
+4. **Computer Vision:** GoCV for full OpenCV functionality, Pigo for lightweight face detection
+5. **LLM Integration:** go-llama.cpp or Ollama API for local LLMs
+6. **ML Framework:** GoMLX for any Go-native training needs
+7. **Embedded:** TinyGo for microcontroller targets, Gobot for robotics abstractions
 
 ### Hardware Acceleration Priority
 
-For robotics AI workloads, prioritize:
+For Linux-based robotics AI workloads, prioritize by Go support availability:
 
-1. **RK3588** - Best Go support via go-rknnlite, excellent price/performance
-2. **NVIDIA Jetson** - CUDA support through onnxruntime_go
-3. **x86 with OpenVINO** - GoCV integration
-4. **Coral Edge TPU** - Requires CGo wrapper development
-5. **Hailo** - Requires CGo wrapper development
+| Priority | Platform | Status | Notes |
+|----------|----------|--------|-------|
+| 1 | **RK3588 NPU** | Ready | Best Go support via go-rknnlite, 6 TOPS, $80-150 boards |
+| 2 | **NVIDIA GPU** | Ready | CUDA via onnxruntime_go, requires CUDA 12.x setup |
+| 3 | **x86 CPU** | Ready | onnxruntime_go or GoCV, no special hardware |
+| 4 | **Intel GPU** | Partial | GoCV OpenVINO may need updates |
+| 5 | **Coral TPU** | Not ready | CGo wrapper development needed |
+| 6 | **Hailo NPU** | Not ready | CGo wrapper development needed |
 
 ---
 

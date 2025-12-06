@@ -195,21 +195,28 @@ Gorai provides first-class support for edge AI with a focus on hardware accelera
 - **SLAM**: Localization and mapping
 - **Navigation**: Waypoint and geospatial navigation
 
+### Platform
+
+Gorai targets **Linux-based systems** including:
+- x86_64 servers and workstations
+- ARM64 single-board computers (Raspberry Pi, Rockchip, NVIDIA Jetson)
+- Microcontrollers via TinyGo
+
 ### Hardware Acceleration
 
-| Platform | Go Support | Library |
-|----------|------------|---------|
-| NVIDIA CUDA | Strong | onnxruntime_go, GoCV |
-| Rockchip RK3588 NPU | Good | go-rknnlite |
-| Intel OpenVINO | Good | GoCV |
-| Google Coral TPU | Planned | CGo bindings needed |
-| Hailo NPU | Planned | CGo bindings needed |
+| Platform | Status | Library | Notes |
+|----------|--------|---------|-------|
+| Rockchip RK3588 NPU | **Working** | [go-rknnlite](https://github.com/swdee/go-rknnlite) | 6 TOPS, tested on Radxa Rock 5B |
+| NVIDIA CUDA | **Working** | [onnxruntime_go](https://github.com/yalue/onnxruntime_go) | Requires CUDA 12.x, cuDNN 9.x |
+| Intel OpenVINO | Partial | [GoCV](https://gocv.io/) | GoCV uses OpenVINO 2022.1; may need updates |
+| Google Coral TPU | **No Go bindings** | - | CGo bindings to libedgetpu needed |
+| Hailo NPU | **No Go bindings** | - | CGo bindings to HailoRT needed |
 
 ### Inference Runtimes
 
-- **ONNX Runtime**: Primary path for PyTorch/TensorFlow models via [onnxruntime_go](https://github.com/yalue/onnxruntime_go)
+- **ONNX Runtime**: Primary path for PyTorch/TensorFlow models via [onnxruntime_go](https://github.com/yalue/onnxruntime_go) (CUDA support requires separate library build)
 - **TensorFlow Lite**: Edge inference via [tflitego](https://github.com/nbortolotti/tflitego)
-- **GoCV DNN**: OpenCV's neural network module with CUDA/OpenVINO backends
+- **GoCV DNN**: OpenCV's neural network module (CUDA backend available)
 
 ### Model Licensing
 

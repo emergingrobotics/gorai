@@ -22,3 +22,5 @@ We aim to become the robotics platform of choice for:
 - who want more than python but not the complexity of C++
 - who value extensability and performance
 - who want to use AI assisted development
+- who want the more powerful parts of the robot to be Linux-based
+- who want to use Go, and for microcontrollers, use tinygo

@@ -32,9 +32,21 @@ Gorai is a robotics framework providing:
 - **NATS-based messaging** for pub/sub, request/reply, and persistence
 - **Protocol Buffer serialization** for type-safe, efficient communication
 - **Resource-centric architecture** with unified component/service abstraction
-- **First-class AI/ML support** with TPU/NPU acceleration
+- **First-class AI/ML support** with hardware acceleration (RK3588 NPU, NVIDIA CUDA)
 - **Hot reconfiguration** without restart
 - **TinyGo compatibility** for microcontroller deployment
+
+### Target Platform
+
+Gorai targets **Linux-based systems**:
+
+| Platform | Support Level |
+|----------|---------------|
+| Linux x86_64 | Primary |
+| Linux ARM64 (Raspberry Pi, Rockchip, Jetson) | Primary |
+| Microcontrollers via TinyGo | Primary |
+| macOS | Development only |
+| Windows | Not supported |
 
 ---
 
@@ -62,8 +74,8 @@ block-beta
     end
 
     block:accel["Acceleration Layer"]
-        columns 5
-        CoralTPU["Coral TPU"] HailoNPU["Hailo NPU"] RockchipNPU["Rockchip NPU"] CUDA["GPU/CUDA"] CPU
+        columns 4
+        RockchipNPU["Rockchip NPU ✓"] CUDA["GPU/CUDA ✓"] CoralTPU["Coral TPU*"] HailoNPU["Hailo NPU*"]
     end
 
     block:hw["Hardware Layer"]
@@ -2118,14 +2130,60 @@ type Model interface {
 }
 ```
 
-### TPU Support (Google Coral)
+### NPU Support (Rockchip RK3588) - WORKING
+
+**Status:** Production-ready via [go-rknnlite](https://github.com/swdee/go-rknnlite)
+
+```go
+package npu
+
+import "github.com/swdee/go-rknnlite"
+
+// RK3588 has 3 NPU cores, 6 TOPS total
+// Supported chips: RK3562, RK3566, RK3568, RK3576, RK3582, RK3588
+
+runtime, _ := rknnlite.NewRuntime(modelPath, rknnlite.NPUCoreAuto)
+defer runtime.Close()
+
+outputs, _ := runtime.Inference(inputData)
+```
+
+**Requirements:**
+- Linux (Armbian, Radxa OS, etc.)
+- RKNN-Toolkit2 installed
+
+### GPU Support (NVIDIA CUDA) - WORKING
+
+**Status:** Production-ready via [onnxruntime_go](https://github.com/yalue/onnxruntime_go)
+
+```go
+package gpu
+
+import ort "github.com/yalue/onnxruntime_go"
+
+// Requires CUDA 12.x and cuDNN 9.x
+// Requires CUDA-enabled onnxruntime library (not included by default)
+
+cudaOpts, _ := ort.NewCUDAProviderOptions()
+defer cudaOpts.Destroy()
+
+sessionOpts, _ := ort.NewSessionOptions()
+sessionOpts.AppendExecutionProviderCUDA(cudaOpts)
+
+session, _ := ort.NewSessionWithOptions(modelPath, sessionOpts)
+```
+
+### TPU Support (Google Coral) - ASPIRATIONAL
+
+**Status:** No Go bindings exist. CGo bindings to [libedgetpu](https://github.com/google-coral/libedgetpu) required.
 
 ```go
 package tpu
 
+// FUTURE: Requires CGo bindings to libedgetpu C API
 // Available Coral TPU implementations:
-// - USB Accelerator
-// - M.2/Mini PCIe Accelerator
+// - USB Accelerator (~$60)
+// - M.2/Mini PCIe Accelerator (~$25)
 // - Dev Board
 
 type CoralAccelerator struct {
@@ -2140,66 +2198,43 @@ func NewCoralAccelerator(device string) (*CoralAccelerator, error)
 // - ""      - Auto-detect
 ```
 
-### NPU Support
+### NPU Support (Hailo) - ASPIRATIONAL
+
+**Status:** No Go bindings exist. CGo bindings to [HailoRT](https://github.com/hailo-ai/hailort) required.
 
 ```go
 package npu
 
-// Supported NPU platforms:
-// - Rockchip RK3588 NPU (6 TOPS)
-// - Hailo-8 (26 TOPS)
-// - Amlogic A311D NPU (5 TOPS)
-// - Intel Movidius (1 TOPS)
+// FUTURE: Requires CGo bindings to HailoRT C API
+// Hailo-8L: 13 TOPS (Raspberry Pi AI Kit)
+// Hailo-8: 26 TOPS
 
 type HailoAccelerator struct {
     // ...
 }
 
 func NewHailoAccelerator(device string) (*HailoAccelerator, error)
-
-type RockchipNPUAccelerator struct {
-    // ...
-}
-
-func NewRockchipNPUAccelerator() (*RockchipNPUAccelerator, error)
 ```
 
-### GPU Support
+### Acceleration Status Summary
 
-```go
-package gpu
-
-// CUDA support for NVIDIA GPUs
-
-type CUDAAccelerator struct {
-    // ...
-}
-
-func NewCUDAAccelerator(deviceID int) (*CUDAAccelerator, error)
-
-// Check available GPUs
-func AvailableDevices() []DeviceInfo
-
-type DeviceInfo struct {
-    ID          int
-    Name        string
-    MemoryMB    int
-    ComputeCapability string
-}
-```
+| Platform | Go Support | Status | Library/Notes |
+|----------|------------|--------|---------------|
+| Rockchip RK3588 NPU | **Working** | Production | go-rknnlite |
+| NVIDIA CUDA | **Working** | Production | onnxruntime_go (requires CUDA 12.x) |
+| Intel OpenVINO | Partial | May need updates | GoCV (uses OpenVINO 2022.1) |
+| Google Coral TPU | **None** | Aspirational | CGo bindings needed |
+| Hailo NPU | **None** | Aspirational | CGo bindings needed |
 
 ### Model Format Support
 
-| Format | CPU | Coral TPU | Hailo NPU | Rockchip NPU | CUDA |
-|--------|-----|-----------|-----------|--------------|------|
-| TFLite | Yes | Yes | Via conversion | Via RKNN | Via TensorRT |
-| ONNX | Yes | Via conversion | Via conversion | Via RKNN | Via TensorRT |
-| TensorFlow SavedModel | Yes | Via conversion | No | No | Yes |
-| PyTorch | Via ONNX | Via conversion | Via conversion | No | Yes |
-| OpenVINO IR | Yes (Intel) | No | No | No | No |
-| TensorRT | No | No | No | No | Yes |
-| RKNN | No | No | No | Yes | No |
-| HEF | No | No | Yes | No | No |
+| Format | CPU | Rockchip NPU | CUDA | Coral TPU* | Hailo NPU* |
+|--------|-----|--------------|------|------------|------------|
+| ONNX | Yes | Via RKNN | Yes | N/A | N/A |
+| TFLite | Yes | Via RKNN | Via TensorRT | N/A | N/A |
+| RKNN | No | Yes | No | N/A | N/A |
+
+*Coral TPU and Hailo NPU require CGo bindings to be developed before model support is available.
 
 ### Model Conversion Utilities
 
