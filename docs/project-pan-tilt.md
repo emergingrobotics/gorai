@@ -412,7 +412,7 @@ gorai/
 ├── examples/
 │   └── sentinel/
 │       ├── README.md
-│       ├── docker-compose.yaml
+│       ├── docker-compose.json
 │       └── launch.sh
 │
 └── docs/
@@ -555,7 +555,7 @@ Generalize and extend.
 - [ ] Bag recording/playback (JetStream)
 - [ ] Shared memory transport for local nodes
 - [ ] WebSocket bridge for browser visualization
-- [ ] Launch system (YAML-based node graph)
+- [ ] Launch system (JSON-based node graph)
 - [ ] More drivers (IMU, LIDAR, Dynamixel)
 - [ ] Python bindings (optional)
 

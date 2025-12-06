@@ -382,7 +382,7 @@ SDKs across languages:
 1. **Resource-centric model** (Viam): Unified abstraction for components and services
 2. **Named addressing** (All): Hierarchical, human-readable identifiers
 3. **Transport abstraction** (YARP philosophy): NATS as unified transport
-4. **Configuration-driven** (Viam): JSON/YAML config with hot reload
+4. **Configuration-driven** (Viam): JSON config with hot reload
 5. **Device interfaces** (All): Clean hardware abstraction
 6. **First-class AI/ML** (Viam): Built-in services, not afterthought
 7. **Simple build** (Viam): Go modules, no complex toolchain

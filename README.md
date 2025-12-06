@@ -30,7 +30,7 @@ Drawing from [our analysis](docs/general-designs.md) of ROS 2, Viam, and YARP:
 - **Resource-centric model** (from Viam): Unified abstraction for components and services
 - **Named addressing** (from all): Hierarchical, human-readable identifiers
 - **Transport abstraction** (from YARP): NATS as unified transport for pub/sub and request/reply
-- **Configuration-driven** (from Viam): YAML/JSON config with hot reload
+- **Configuration-driven** (from Viam): JSON config with hot reload
 - **Device interfaces** (from all): Clean separation of hardware from logic
 - **NWS/NWC pattern** (from YARP): Transparent local/remote resource access
 
@@ -122,15 +122,20 @@ type Resource interface {
 
 Update robot configuration without restart:
 
-```yaml
-# robot.yaml
-components:
-  - name: left_motor
-    type: motor
-    model: gpio
-    config:
-      pin: 18
-      frequency: 1000
+```json
+{
+  "components": [
+    {
+      "name": "left_motor",
+      "type": "motor",
+      "model": "gpio",
+      "config": {
+        "pin": 18,
+        "frequency": 1000
+      }
+    }
+  ]
+}
 ```
 
 ### Device Interfaces
@@ -157,6 +162,7 @@ First-class support for edge AI:
 
 ## Documentation
 
+- [Framework Specification](specs/gorai-framework-specification.md) - Complete technical specification
 - [Design Comparison](docs/general-designs.md) - Analysis of ROS 2, Viam, and YARP
 - [ROS 2 Design](docs/ros2-design.md) - ROS 2 architecture summary
 - [Viam Design](docs/viam-design.md) - Viam architecture summary

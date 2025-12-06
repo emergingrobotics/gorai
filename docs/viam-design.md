@@ -551,7 +551,7 @@ Key patterns from Viam that align with Gorai's goals:
 | Resource-centric design | Core abstraction for components/services |
 | gRPC + Protocol Buffers | Consider NATS + Protocol Buffers or NATS + JSON |
 | Module system (external processes) | Plugin architecture via NATS microservices |
-| Configuration-driven | YAML/JSON config with hot reload |
+| Configuration-driven | JSON config with hot reload |
 | Go-first implementation | Aligned with Gorai's Go focus |
 | AI/ML services | First-class AI integration goal |
 | Hot reconfiguration | Dynamic robot updates |
