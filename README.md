@@ -253,12 +253,12 @@ For commercial robotics applications, prefer Apache 2.0, MIT, or BSD licensed mo
 
 ## Example Projects
 
-### [Gorai-Sentinel](docs/project-pan-tilt.md)
+### [Gorai-Sentinel](projects/project-pan-tilt.md)
 Pan-tilt sensor fusion platform with camera, ToF depth sensor, and servo control. Validates multi-sensor synchronization, real-time control loops, and the action/service patterns.
 
 **Hardware**: ~$150-350 | **Complexity**: Beginner
 
-### [Gorai-Skimmer](docs/project-simple-boat.md)
+### [Gorai-Skimmer](projects/project-simple-boat.md)
 Autonomous surface vehicle for bathymetry and water monitoring. Differential thrust propulsion, GPS navigation, Open Echo sonar, and optional underwater camera/hydrophone.
 
 **Hardware**: ~$530 | **Complexity**: Intermediate
