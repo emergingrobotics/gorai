@@ -1,8 +1,6 @@
 # Gort
 
-<p align="center">
-  <img src="./images/gort.png" width="25%">
-</p>
+<img src="./images/gort.png" width="25%">
 
 **A modern robotics framework built on Go and NATS**
 
