@@ -43,16 +43,36 @@ This document outlines the framework architecture and proposes **Gort-Sentinel**
 - Smaller ecosystem and driver support
 
 **Viam**
+- Licensed under AGPL-3.0, which has significant implications for commercial use:
+  - AGPL's "viral" nature requires derivative works to be licensed under AGPL
+  - Network protection clause requires anyone running modified software as a service to release source code
+  - Integration with proprietary robotics systems may trigger copyleft obligations
+  - Commercial users often avoid AGPL due to legal complexity and disclosure requirements
 - Cloud-centric architecture raises data sovereignty concerns
-- Commercial interests may diverge from open-source community needs
+- Founded by MongoDB co-founder, who previously navigated contentious licensing debates
 - Relatively young, API still evolving
 
-### Why NATS + Go?
+### Why Go for Robotics?
+
+Go occupies a compelling middle ground in the robotics language landscape:
+
+| Challenge | Go's Answer |
+|-----------|-------------|
+| **Performance vs. Simplicity** | Compiled, statically typed, garbage collected—approaches C++ performance without the complexity burden |
+| **Concurrency** | Goroutines and channels make concurrent programming tractable; compare to C++'s mutex-heavy approach requiring expert-level skill |
+| **Deployment** | Single-binary deployment with easy cross-compilation and strong ARM support—critical for robotics hardware |
+| **AI Integration** | Emerging ecosystem (TensorFlow, ONNX runtime bindings) enables a unified language stack rather than Python-to-C++ context switching |
+| **Build Simplicity** | No CMake, no ABI compatibility nightmares, no dependency hell |
+
+**Why not Python?** While accessible for prototyping, Python struggles with real-time performance requirements. Most performance-critical work relies on C/C++ dependencies under the hood.
+
+**Why not C++?** Production-ready but carries significant complexity—build systems, dependency management, and ABI compatibility issues. Modern AI coding assistance is also weaker in C++ compared to Go.
+
+### Why NATS?
 
 | Aspect | Benefit |
 |--------|---------|
 | **NATS messaging** | Production-proven pub/sub, request/reply, persistence (JetStream), service discovery—all built in |
-| **Go language** | Fast compilation, single-binary deployment, excellent concurrency, memory safety |
 | **Operational simplicity** | NATS server is a single ~15MB binary; no configuration hell |
 | **Edge-native** | Leaf nodes for edge deployment, low resource footprint |
 | **Cloud-ready** | NATS already used in Kubernetes, Synadia Cloud available |
@@ -1229,7 +1249,8 @@ Open source and grow.
 | **Learning curve** | Low | High | Moderate | Low |
 | **Ecosystem** | New | Massive | Niche | Growing |
 | **Real-time** | Soft | Soft/Hard | Soft | Soft |
-| **License** | Apache 2.0 | Apache 2.0 | LGPL | AGPL |
+| **License** | Apache 2.0 | Apache 2.0 | LGPL | **AGPL** (copyleft) |
+| **Commercial friendly** | Yes | Yes | Yes | **Caution** (AGPL viral clause) |
 | **Cloud integration** | Native (NATS) | Limited | Limited | Native |
 
 ---
