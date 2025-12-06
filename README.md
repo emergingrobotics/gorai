@@ -51,34 +51,67 @@ Drawing from [our analysis](docs/general-designs.md) of ROS 2, Viam, and YARP:
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Application Layer                       │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────────────┐ │
-│  │ Nodes   │  │ Actions │  │Services │  │ AI/ML Services  │ │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                     Communication Layer                      │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │                    NATS Messaging                        ││
-│  │  • Topics (pub/sub)  • Request/Reply  • JetStream       ││
-│  └─────────────────────────────────────────────────────────┘│
-├─────────────────────────────────────────────────────────────┤
-│                      Resource Layer                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │  Motor   │  │  Camera  │  │  Sensor  │  │   Generic   │  │
-│  └──────────┘  └──────────┘  └──────────┘  └─────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│                      Hardware Layer                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │   GPIO   │  │   I2C    │  │   SPI    │  │   Serial    │  │
-│  └──────────┘  └──────────┘  └──────────┘  └─────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+
+    block:app["Application Layer"]
+        columns 4
+        Nodes Actions Services AI["AI/ML Services"]
+    end
+
+    block:comm["Communication Layer"]
+        columns 1
+        NATS["NATS Messaging: Topics • Request/Reply • JetStream"]
+    end
+
+    block:resource["Resource Layer"]
+        columns 4
+        Motor Camera Sensor Generic
+    end
+
+    block:hw["Hardware Layer"]
+        columns 4
+        GPIO I2C SPI Serial
+    end
+
+    app --> comm
+    comm --> resource
+    resource --> hw
 ```
 
 ## Communication Patterns
 
 Gorai uses NATS to provide three core patterns (similar to ROS 2):
+
+```mermaid
+flowchart LR
+    subgraph Topics["Topics (Pub/Sub)"]
+        direction LR
+        P1[Publisher] -->|sensor data| T((Topic))
+        T --> S1[Subscriber 1]
+        T --> S2[Subscriber 2]
+    end
+```
+
+```mermaid
+flowchart LR
+    subgraph Services["Services (Request/Reply)"]
+        direction LR
+        C[Client] -->|request| SRV[Server]
+        SRV -->|response| C
+    end
+```
+
+```mermaid
+flowchart LR
+    subgraph Actions["Actions (Long-running)"]
+        direction LR
+        AC[Client] -->|goal| AS[Server]
+        AS -.->|feedback| AC
+        AS -->|result| AC
+    end
+```
 
 | Pattern | NATS Primitive | Use Case |
 |---------|----------------|----------|
@@ -151,18 +184,61 @@ type Motor interface {
 }
 ```
 
-### AI/ML Services (Planned)
+## AI/ML Integration
 
-First-class support for edge AI:
+Gorai provides first-class support for edge AI with a focus on hardware acceleration and the Go ecosystem. See the [Go AI Ecosystem Reference](docs/go-ai-material.md) for a comprehensive overview.
+
+### Services
 
 - **Vision**: Object detection, classification, segmentation
 - **ML Model**: Generic tensor inference with TPU/NPU acceleration
 - **SLAM**: Localization and mapping
 - **Navigation**: Waypoint and geospatial navigation
 
+### Hardware Acceleration
+
+| Platform | Go Support | Library |
+|----------|------------|---------|
+| NVIDIA CUDA | Strong | onnxruntime_go, GoCV |
+| Rockchip RK3588 NPU | Good | go-rknnlite |
+| Intel OpenVINO | Good | GoCV |
+| Google Coral TPU | Planned | CGo bindings needed |
+| Hailo NPU | Planned | CGo bindings needed |
+
+### Inference Runtimes
+
+- **ONNX Runtime**: Primary path for PyTorch/TensorFlow models via [onnxruntime_go](https://github.com/yalue/onnxruntime_go)
+- **TensorFlow Lite**: Edge inference via [tflitego](https://github.com/nbortolotti/tflitego)
+- **GoCV DNN**: OpenCV's neural network module with CUDA/OpenVINO backends
+
+### Model Licensing
+
+**Be as certain of model licenses as you are of software licenses.** Many popular models have restrictive licenses that may conflict with your project:
+
+| Model Family | License | Commercial Use |
+|--------------|---------|----------------|
+| YOLOv3/v4/v5/v7/v8 | GPL-3.0 | Requires open-sourcing your code |
+| YOLOX | Apache 2.0 | Permissive |
+| YOLOv9/v10 | GPL-3.0 | Requires open-sourcing your code |
+| MobileNet | Apache 2.0 | Permissive |
+| EfficientNet | Apache 2.0 | Permissive |
+| ResNet | BSD | Permissive |
+| CLIP | MIT | Permissive |
+| Stable Diffusion | CreativeML Open RAIL-M | Restrictive |
+| LLaMA/LLaMA 2 | Custom Meta License | Conditional |
+| Mistral | Apache 2.0 | Permissive |
+
+Always verify the license of:
+1. The model architecture (original paper/implementation)
+2. The pretrained weights (training data may have separate terms)
+3. Any fine-tuned versions you use
+
+For commercial robotics applications, prefer Apache 2.0, MIT, or BSD licensed models like YOLOX, MobileNet, and EfficientNet.
+
 ## Documentation
 
 - [Framework Specification](specs/gorai-framework-specification.md) - Complete technical specification
+- [Go AI Ecosystem](docs/go-ai-material.md) - ML frameworks, inference runtimes, and hardware acceleration
 - [Design Comparison](docs/general-designs.md) - Analysis of ROS 2, Viam, and YARP
 - [ROS 2 Design](docs/ros2-design.md) - ROS 2 architecture summary
 - [Viam Design](docs/viam-design.md) - Viam architecture summary

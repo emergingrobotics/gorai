@@ -42,56 +42,63 @@ Gorai is a robotics framework providing:
 
 ### Layer Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Application Layer                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │   Nodes     │  │   Actions   │  │  Services   │  │   AI/ML Services    │ │
-│  │             │  │             │  │             │  │  Vision | MLModel   │ │
-│  │             │  │             │  │             │  │  SLAM | Navigation  │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                          Communication Layer                                 │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │                          NATS Messaging                                  ││
-│  │  • Topics (Pub/Sub)  • Request/Reply  • JetStream  • KV Store           ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-├─────────────────────────────────────────────────────────────────────────────┤
-│                           Resource Layer                                     │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐ │
-│  │   Motor   │  │  Camera   │  │  Sensor   │  │    Arm    │  │  Generic  │ │
-│  └───────────┘  └───────────┘  └───────────┘  └───────────┘  └───────────┘ │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                         Acceleration Layer                                   │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐ │
-│  │ Coral TPU │  │ Hailo NPU │  │ RockchipNPU│  │  GPU/CUDA │  │    CPU    │ │
-│  └───────────┘  └───────────┘  └───────────┘  └───────────┘  └───────────┘ │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                           Hardware Layer                                     │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐ │
-│  │   GPIO    │  │    I2C    │  │    SPI    │  │  Serial   │  │    USB    │ │
-│  └───────────┘  └───────────┘  └───────────┘  └───────────┘  └───────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+
+    block:app["Application Layer"]
+        columns 4
+        Nodes Actions Services AI["AI/ML Services<br/>Vision | MLModel<br/>SLAM | Navigation"]
+    end
+
+    block:comm["Communication Layer"]
+        columns 1
+        NATS["NATS Messaging<br/>• Topics (Pub/Sub) • Request/Reply • JetStream • KV Store"]
+    end
+
+    block:resource["Resource Layer"]
+        columns 5
+        Motor Camera Sensor Arm Generic
+    end
+
+    block:accel["Acceleration Layer"]
+        columns 5
+        CoralTPU["Coral TPU"] HailoNPU["Hailo NPU"] RockchipNPU["Rockchip NPU"] CUDA["GPU/CUDA"] CPU
+    end
+
+    block:hw["Hardware Layer"]
+        columns 5
+        GPIO I2C SPI Serial USB
+    end
 ```
 
 ### Component Interaction
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Camera Node  │────▶│ Vision Node  │────▶│  Nav Node    │
-│              │     │ (ML Infer)   │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌─────────────────────────────────────────────────────────┐
-│                    NATS Server                          │
-│  JetStream: sensor.image, vision.detections, nav.goal  │
-└─────────────────────────────────────────────────────────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Motor Node   │     │ SLAM Node    │     │ Logging Node │
-└──────────────┘     └──────────────┘     └──────────────┘
+```mermaid
+flowchart TB
+    subgraph top["Processing Pipeline"]
+        Camera["Camera Node"]
+        Vision["Vision Node<br/>(ML Infer)"]
+        Nav["Nav Node"]
+        Camera --> Vision --> Nav
+    end
+
+    subgraph nats["NATS Server"]
+        JS["JetStream: sensor.image, vision.detections, nav.goal"]
+    end
+
+    subgraph bottom["Consumers"]
+        Motor["Motor Node"]
+        SLAM["SLAM Node"]
+        Logging["Logging Node"]
+    end
+
+    Camera --> nats
+    Vision --> nats
+    Nav --> nats
+    nats --> Motor
+    nats --> SLAM
+    nats --> Logging
 ```
 
 ---
