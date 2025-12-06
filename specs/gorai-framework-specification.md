@@ -35,6 +35,7 @@ Gorai is a robotics framework providing:
 - **First-class AI/ML support** with hardware acceleration (RK3588 NPU, NVIDIA CUDA)
 - **Hot reconfiguration** without restart
 - **TinyGo compatibility** for microcontroller deployment
+- **OCI container support** with Podman as the reference runtime
 
 ### Target Platform
 
@@ -47,6 +48,22 @@ Gorai targets **Linux-based systems**:
 | Microcontrollers via TinyGo | Primary |
 | macOS | Development only |
 | Windows | Not supported |
+
+### Container Support
+
+Gorai supports deployment via OCI-compliant containers:
+
+| Runtime | Support Level | Notes |
+|---------|---------------|-------|
+| Podman | Reference | Daemonless, rootless-capable |
+| Docker | Compatible | Via OCI compliance |
+| Kubernetes | Compatible | Via OCI compliance |
+
+Podman is the reference container runtime for Gorai due to:
+- **Daemonless architecture**: No background service required
+- **Rootless operation**: Run containers without root privileges
+- **OCI compliance**: Images work with any OCI-compliant runtime
+- **Pod support**: Native multi-container pod support
 
 ---
 
@@ -2637,8 +2654,8 @@ go install github.com/nats-io/nats-server/v2@latest
 # Run with JetStream
 nats-server -js
 
-# Docker
-docker run -p 4222:4222 -p 8222:8222 nats:latest -js
+# Podman (OCI container)
+podman run -p 4222:4222 -p 8222:8222 docker.io/library/nats:latest -js
 ```
 
 ### NATS CLI

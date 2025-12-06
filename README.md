@@ -202,6 +202,17 @@ Gorai targets **Linux-based systems** including:
 - ARM64 single-board computers (Raspberry Pi, Rockchip, NVIDIA Jetson)
 - Microcontrollers via TinyGo
 
+### Containers
+
+Gorai supports deployment via **OCI-compliant containers**. We use [Podman](https://podman.io/) as our reference container runtime:
+
+- **Daemonless**: No background service required
+- **Rootless**: Run containers without root privileges
+- **OCI-compliant**: Images work with Docker, Kubernetes, and other OCI runtimes
+- **Pod support**: Native support for multi-container pods
+
+See [nats/nats-setup.md](nats/nats-setup.md) for container-based NATS deployment.
+
 ### Hardware Acceleration
 
 | Platform | Status | Library | Notes |

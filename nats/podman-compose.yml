@@ -1,0 +1,25 @@
+# Gorai NATS Podman Compose Configuration
+# Run with: podman-compose up -d
+
+version: '3.8'
+
+services:
+  nats:
+    image: docker.io/library/nats:latest
+    container_name: gorai-nats
+    ports:
+      - "4222:4222"   # Client
+      - "8222:8222"   # Monitoring
+    volumes:
+      - nats-data:/data:Z
+      - ./nats.conf:/etc/nats/nats.conf:ro,Z
+    command: ["-c", "/etc/nats/nats.conf"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  nats-data:
