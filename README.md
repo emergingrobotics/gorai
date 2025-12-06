@@ -1,8 +1,8 @@
-# Gort
+# Gorai
 
 <img src="./images/gort.png" width="25%">
 
-**A modern robotics framework built on Go and NATS**
+**A modern robotics framework built on Go and NATS with a focus on AI**
 
 Gort provides the essential capabilities of ROS 2 without the complexity of DDS, the legacy baggage of YARP, or the licensing concerns of Viam. Single-binary deployment, type-safe messaging, and battle-tested infrastructure.
 
