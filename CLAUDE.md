@@ -14,4 +14,11 @@ This project aims to be an alternative to ROS2 or YARP.  We aim to have the foll
 - take the lessons from distributed cloud software and apply it
 - HAVE FUN!
 
-We aim to
+We aim to become the robotics platform of choice for:
+
+- people interested in building new, modern robotics
+- who do not need interoperability with other platforms
+- who are open to experimentation
+- who want more than python but not the complexity of C++
+- who value extensability and performance
+- who want to use AI assisted development
