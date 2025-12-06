@@ -1,6 +1,6 @@
 # Gort
 
-![Gort](./images/gort.png)
+<img src="./images/gort.png" width="50%">
 
 **A modern robotics framework built on Go and NATS**
 
