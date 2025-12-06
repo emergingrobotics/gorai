@@ -1,18 +1,18 @@
-# Gort-Sentinel: Pan-Tilt Sensor Fusion Platform
+# Gorai-Sentinel: Pan-Tilt Sensor Fusion Platform
 
-**First reference implementation for the Gort robotics framework**
+**First reference implementation for the Gorai robotics framework**
 
 ---
 
 ## Overview
 
-Gort-Sentinel is a pan-tilt sensor fusion platform that combines:
+Gorai-Sentinel is a pan-tilt sensor fusion platform that combines:
 
 - **Camera**: RGB imaging (USB webcam or CSI camera)
 - **ToF Sensor**: Time-of-Flight depth measurement (VL53L5CX 8x8 array)
 - **Pan-Tilt Mount**: Two-axis servo control (hobby servos or Dynamixel)
 
-The platform provides a constrained but complete robotics problem: synchronized multi-sensor data acquisition, real-time motor control, and sensor fusion—all core challenges that validate the Gort framework.
+The platform provides a constrained but complete robotics problem: synchronized multi-sensor data acquisition, real-time motor control, and sensor fusion—all core challenges that validate the Gorai framework.
 
 ---
 
@@ -47,7 +47,7 @@ The platform provides a constrained but complete robotics problem: synchronized 
 
 ```mermaid
 flowchart TB
-    subgraph Sentinel["Gort-Sentinel"]
+    subgraph Sentinel["Gorai-Sentinel"]
         subgraph Drivers["Hardware Drivers"]
             CamDriver["Camera Driver"]
             ToFDriver["ToF Driver"]
@@ -179,7 +179,7 @@ func (c *CameraNode) Run(ctx context.Context) error {
 ```protobuf
 // sensor.proto (addition)
 message DepthGrid {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 rows = 2;           // 8 for VL53L5CX
     uint32 cols = 3;           // 8 for VL53L5CX
     float field_of_view = 4;   // radians (45° for VL53L5CX)
@@ -322,7 +322,7 @@ message ScanResult {
 ```protobuf
 // sensor.proto (addition)
 message RGBD {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     Image rgb = 2;
     Image depth = 3;         // 16-bit depth in mm
     CameraInfo camera_info = 4;
@@ -349,7 +349,7 @@ message RGBD {
 
 ## Transform Tree
 
-Gort-Sentinel uses a simple static transform tree:
+Gorai-Sentinel uses a simple static transform tree:
 
 ```mermaid
 graph TB
@@ -397,7 +397,7 @@ func (s *StaticTransformPublisher) Run(ctx context.Context) error {
 ## Project Directory Structure
 
 ```
-gort/
+gorai/
 ├── cmd/
 │   └── sentinel/                # Sentinel nodes
 │       ├── camera/
@@ -444,7 +444,7 @@ gort/
 - [ ] `driver/camera`: Camera interface
 - [ ] `drivers/v4l2`: V4L2 implementation
 - [ ] `cmd/sentinel/camera`: Camera node
-- [ ] `cmd/gort`: Basic CLI with `topic list`, `topic echo`
+- [ ] `cmd/gorai`: Basic CLI with `topic list`, `topic echo`
 - [ ] Verify ~30 fps image streaming
 
 **Deliverable**: Camera node running, viewable via CLI
@@ -506,7 +506,7 @@ gort/
 - [ ] `docs/getting-started.md`
 - [ ] `docs/tutorials/sentinel.md`
 - [ ] Demo video / GIF
-- [ ] Clean up CLI (`gort topic pub`, `gort service call`, `gort param`)
+- [ ] Clean up CLI (`gorai topic pub`, `gorai service call`, `gorai param`)
 
 **Deliverable**: Public-ready repository
 
@@ -514,13 +514,13 @@ gort/
 
 ## Development Roadmap
 
-### Phase 1: Gort-Sentinel
+### Phase 1: Gorai-Sentinel
 
 Prove the concept with a working robot.
 
 ```mermaid
 gantt
-    title Gort-Sentinel Development
+    title Gorai-Sentinel Development
     dateFormat  YYYY-MM-DD
     section Framework
     Core framework      :a1, 2024-01-01, 14d
@@ -611,5 +611,5 @@ SCL (pin 5)    -->   SCL
 
 - [VL53L5CX Datasheet](https://www.st.com/resource/en/datasheet/vl53l5cx.pdf)
 - [PCA9685 Datasheet](https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf)
-- [Gort Framework Specification](gort-framework-specification.md)
-- [Distributed Architecture Options](distributed-option.md)
+- [Gorai Framework Specification](gorai-framework-specification.md)
+- [Distributed Architecture Options](project-pan-tilt-distributed-option.md)

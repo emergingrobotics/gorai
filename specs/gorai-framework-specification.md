@@ -1,12 +1,12 @@
-# Gort: A Modern Robotics Framework
+# Gorai: A Modern Robotics Framework
 
-**A lightweight, Go-based alternative to ROS 2, YARP, and Viam**
+**A lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI**
 
 ---
 
 ## Executive Summary
 
-Gort is a modern robotics framework built on NATS.io, designed to provide the essential capabilities of ROS 2 without the complexity of DDS, the legacy baggage of YARP, or the licensing concerns of Viam. By leveraging NATS's battle-tested messaging infrastructure, Gort offers a clean, Go-idiomatic approach to building distributed robot systems.
+Gorai is a modern robotics framework built on NATS.io, designed to provide the essential capabilities of ROS 2 without the complexity of DDS, the legacy baggage of YARP, or the licensing concerns of Viam. By leveraging NATS's battle-tested messaging infrastructure, Gorai offers a clean, Go-idiomatic approach to building distributed robot systems.
 
 ---
 
@@ -82,7 +82,7 @@ Go occupies a compelling middle ground in the robotics language landscape:
 
 ```mermaid
 graph TB
-    subgraph Application["Gort Application"]
+    subgraph Application["Gorai Application"]
         subgraph Nodes["Application Nodes"]
             Camera["Camera Node"]
             ToF["ToF Node"]
@@ -90,7 +90,7 @@ graph TB
             Fusion["Fusion Node"]
         end
 
-        subgraph Core["Gort Core Library"]
+        subgraph Core["Gorai Core Library"]
             Node["Node"]
             PubSub["Pub/Sub"]
             Service["Service"]
@@ -120,25 +120,25 @@ graph TB
 
 ### Subject Namespace Convention
 
-Gort uses a hierarchical subject naming scheme:
+Gorai uses a hierarchical subject naming scheme:
 
 ```
-gort.{robot}.{node}.{topic}
+gorai.{robot}.{node}.{topic}
 
 Examples:
-gort.sentinel.camera.image
-gort.sentinel.tof.pointcloud
-gort.sentinel.pantilt.state
-gort.sentinel.fusion.depth_image
+gorai.sentinel.camera.image
+gorai.sentinel.tof.pointcloud
+gorai.sentinel.pantilt.state
+gorai.sentinel.fusion.depth_image
 ```
 
 Service and action subjects follow the same pattern with suffixes:
 
 ```
-gort.sentinel.pantilt.move_to.goal      # action goal
-gort.sentinel.pantilt.move_to.feedback  # action feedback
-gort.sentinel.pantilt.home.request      # service request
-gort.sentinel.pantilt.home.response     # service response
+gorai.sentinel.pantilt.move_to.goal      # action goal
+gorai.sentinel.pantilt.move_to.feedback  # action feedback
+gorai.sentinel.pantilt.home.request      # service request
+gorai.sentinel.pantilt.home.response     # service response
 ```
 
 ---
@@ -154,7 +154,7 @@ package main
 
 import (
     "context"
-    "github.com/gort-robotics/gort/pkg/node"
+    "github.com/gorai-robotics/gorai/pkg/node"
 )
 
 func main() {
@@ -190,7 +190,7 @@ func main() {
 Type-safe message publishing with generics.
 
 ```go
-import "github.com/gort-robotics/gort/pkg/pub"
+import "github.com/gorai-robotics/gorai/pkg/pub"
 
 publisher := pub.New[sensor.Image](n, "camera.image",
     pub.WithQoS(pub.Reliable),
@@ -218,7 +218,7 @@ publisher.Publish(ctx, img)
 Type-safe message subscription with callbacks.
 
 ```go
-import "github.com/gort-robotics/gort/pkg/sub"
+import "github.com/gorai-robotics/gorai/pkg/sub"
 
 sub.New[geometry.Twist](n, "cmd_vel", func(msg *geometry.Twist) {
     log.Printf("Received velocity command: linear=%.2f, angular=%.2f",
@@ -239,7 +239,7 @@ sub.New[geometry.Twist](n, "cmd_vel", func(msg *geometry.Twist) {
 Synchronous request/reply pattern.
 
 ```go
-import "github.com/gort-robotics/gort/pkg/srv"
+import "github.com/gorai-robotics/gorai/pkg/srv"
 
 // Server side
 srv.NewServer[HomeRequest, HomeResponse](n, "pantilt.home",
@@ -259,7 +259,7 @@ resp, err := client.Call(ctx, &HomeRequest{}, srv.WithTimeout(5*time.Second))
 Long-running tasks with feedback and cancellation.
 
 ```go
-import "github.com/gort-robotics/gort/pkg/action"
+import "github.com/gorai-robotics/gorai/pkg/action"
 
 // Server side
 action.NewServer[MoveToGoal, MoveToFeedback, MoveToResult](n, "pantilt.move_to",
@@ -292,7 +292,7 @@ result, err := handle.Result()
 Configuration backed by NATS KV.
 
 ```go
-import "github.com/gort-robotics/gort/pkg/param"
+import "github.com/gorai-robotics/gorai/pkg/param"
 
 store := param.NewStore(n)
 
@@ -315,12 +315,12 @@ store.Watch("camera.*", func(key string, value any) {
 
 ### Standard Messages
 
-Gort defines a minimal set of robotics primitives using Protocol Buffers.
+Gorai defines a minimal set of robotics primitives using Protocol Buffers.
 
 ```protobuf
 // std.proto
 syntax = "proto3";
-package gort.std;
+package gorai.std;
 
 message Header {
     int64 timestamp_ns = 1;    // nanoseconds since Unix epoch
@@ -342,7 +342,7 @@ message Duration {
 ```protobuf
 // geometry.proto
 syntax = "proto3";
-package gort.geometry;
+package gorai.geometry;
 
 import "std.proto";
 
@@ -365,7 +365,7 @@ message Pose {
 }
 
 message PoseStamped {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     Pose pose = 2;
 }
 
@@ -375,7 +375,7 @@ message Twist {
 }
 
 message TwistStamped {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     Twist twist = 2;
 }
 
@@ -385,7 +385,7 @@ message Transform {
 }
 
 message TransformStamped {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     string child_frame_id = 2;
     Transform transform = 3;
 }
@@ -394,12 +394,12 @@ message TransformStamped {
 ```protobuf
 // sensor.proto
 syntax = "proto3";
-package gort.sensor;
+package gorai.sensor;
 
 import "std.proto";
 
 message Image {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 height = 2;
     uint32 width = 3;
     string encoding = 4;       // "rgb8", "bgr8", "mono8", "depth16", etc.
@@ -409,7 +409,7 @@ message Image {
 }
 
 message CompressedImage {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     string format = 2;         // "jpeg", "png", "h264"
     bytes data = 3;
 }
@@ -422,7 +422,7 @@ message PointField {
 }
 
 message PointCloud2 {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 height = 2;
     uint32 width = 3;
     repeated PointField fields = 4;
@@ -434,7 +434,7 @@ message PointCloud2 {
 }
 
 message Range {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 radiation_type = 2; // ULTRASOUND=0, INFRARED=1
     float field_of_view = 3;   // radians
     float min_range = 4;
@@ -443,14 +443,14 @@ message Range {
 }
 
 message Imu {
-    gort.std.Header header = 1;
-    gort.geometry.Quaternion orientation = 2;
-    gort.geometry.Vector3 angular_velocity = 3;
-    gort.geometry.Vector3 linear_acceleration = 4;
+    gorai.std.Header header = 1;
+    gorai.geometry.Quaternion orientation = 2;
+    gorai.geometry.Vector3 angular_velocity = 3;
+    gorai.geometry.Vector3 linear_acceleration = 4;
 }
 
 message JointState {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     repeated string name = 2;
     repeated double position = 3;
     repeated double velocity = 4;
@@ -461,12 +461,12 @@ message JointState {
 ```protobuf
 // control.proto
 syntax = "proto3";
-package gort.control;
+package gorai.control;
 
 import "std.proto";
 
 message JointCommand {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     repeated string name = 2;
     repeated double position = 3;    // desired position (optional)
     repeated double velocity = 4;    // desired velocity (optional)
@@ -474,13 +474,13 @@ message JointCommand {
 }
 
 message PanTiltCommand {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     double pan = 2;                  // radians
     double tilt = 3;                 // radians
 }
 
 message PanTiltState {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     double pan = 2;
     double tilt = 3;
     double pan_velocity = 4;
@@ -498,10 +498,10 @@ Many-to-many streaming data.
 
 ```mermaid
 flowchart LR
-    Camera[Camera Node] -->|gort.sentinel.camera.image| Fusion[Fusion Node]
-    Camera -->|gort.sentinel.camera.image| Logging[Logging Node]
-    ToF[ToF Node] -->|gort.sentinel.tof.depth| Fusion
-    ToF -->|gort.sentinel.tof.depth| Logging
+    Camera[Camera Node] -->|gorai.sentinel.camera.image| Fusion[Fusion Node]
+    Camera -->|gorai.sentinel.camera.image| Logging[Logging Node]
+    ToF[ToF Node] -->|gorai.sentinel.tof.depth| Fusion
+    ToF -->|gorai.sentinel.tof.depth| Logging
 ```
 
 ### Service (Request/Reply)
@@ -556,7 +556,7 @@ sequenceDiagram
 
 ### QoS Mapping to NATS
 
-| Gort QoS | NATS Implementation |
+| Gorai QoS | NATS Implementation |
 |----------|---------------------|
 | BestEffort | Core NATS pub/sub |
 | Reliable | JetStream with ack |
@@ -642,7 +642,7 @@ func TestPublisherSubscriber(t *testing.T) {
 
 ## Comparison with Alternatives
 
-| Feature | Gort | ROS 2 | YARP | Viam |
+| Feature | Gorai | ROS 2 | YARP | Viam |
 |---------|------|-------|------|------|
 | **Language** | Go | C++/Python | C++ | Go |
 | **Middleware** | NATS | DDS | Custom | Custom |
@@ -659,7 +659,7 @@ func TestPublisherSubscriber(t *testing.T) {
 ## Directory Structure
 
 ```
-gort/
+gorai/
 ├── go.mod
 ├── go.sum
 ├── README.md
@@ -667,7 +667,7 @@ gort/
 │
 ├── api/                         # Protocol buffer definitions
 │   └── proto/
-│       ├── gort/
+│       ├── gorai/
 │       │   ├── std/
 │       │   │   └── std.proto
 │       │   ├── geometry/
@@ -721,7 +721,7 @@ gort/
 │       └── servo.go
 │
 ├── cmd/
-│   └── gort/                    # CLI tool
+│   └── gorai/                    # CLI tool
 │       └── main.go
 │
 └── docs/
@@ -733,19 +733,19 @@ gort/
 
 ---
 
-## CLI Tool: `gort`
+## CLI Tool: `gorai`
 
 Minimal command-line interface for introspection and debugging.
 
 ```bash
 # List active topics
-$ gort topic list
-gort.sentinel.camera.image         [sensor.Image]      29.8 Hz
-gort.sentinel.tof.depth_grid       [sensor.DepthGrid]  15.0 Hz
-gort.sentinel.pantilt.state        [control.PanTiltState]  49.7 Hz
+$ gorai topic list
+gorai.sentinel.camera.image         [sensor.Image]      29.8 Hz
+gorai.sentinel.tof.depth_grid       [sensor.DepthGrid]  15.0 Hz
+gorai.sentinel.pantilt.state        [control.PanTiltState]  49.7 Hz
 
 # Echo messages
-$ gort topic echo gort.sentinel.pantilt.state
+$ gorai topic echo gorai.sentinel.pantilt.state
 header:
   timestamp_ns: 1699574932123456789
   frame_id: "tilt_link"
@@ -757,26 +757,26 @@ tilt_velocity: 0.0
 ---
 
 # Measure rate
-$ gort topic hz gort.sentinel.camera.image
+$ gorai topic hz gorai.sentinel.camera.image
 average rate: 29.97 Hz
 min: 32.1ms, max: 34.8ms, std: 0.8ms
 
 # Publish a message
-$ gort topic pub gort.sentinel.pantilt.command '{"pan": 0.5, "tilt": -0.2}'
+$ gorai topic pub gorai.sentinel.pantilt.command '{"pan": 0.5, "tilt": -0.2}'
 
 # Call a service
-$ gort service call gort.sentinel.pantilt.home '{}'
+$ gorai service call gorai.sentinel.pantilt.home '{}'
 success: true
 
 # List parameters
-$ gort param list
-gort.sentinel.camera.exposure: -1
-gort.sentinel.camera.fps: 30
-gort.sentinel.pantilt.pan.home: 0.0
+$ gorai param list
+gorai.sentinel.camera.exposure: -1
+gorai.sentinel.camera.fps: 30
+gorai.sentinel.pantilt.pan.home: 0.0
 ...
 
 # Set parameter
-$ gort param set gort.sentinel.camera.exposure 50
+$ gorai param set gorai.sentinel.camera.exposure 50
 ```
 
 ---
@@ -803,17 +803,17 @@ docker run -p 4222:4222 -p 8222:8222 nats:latest -js
 go install github.com/nats-io/natscli/nats@latest
 
 # Subscribe
-nats sub "gort.>"
+nats sub "gorai.>"
 
 # Publish
-nats pub gort.test "hello"
+nats pub gorai.test "hello"
 
 # Request/reply
-nats request gort.service.test '{"foo": "bar"}'
+nats request gorai.service.test '{"foo": "bar"}'
 
 # JetStream streams
 nats stream ls
-nats stream info GORT
+nats stream info GORAI
 
 # KV store
 nats kv add PARAMS

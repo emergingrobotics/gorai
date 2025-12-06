@@ -1,4 +1,4 @@
-# Gort-Skimmer: Autonomous Surface Vehicle
+# Gorai-Skimmer: Autonomous Surface Vehicle
 
 **A boogie-board sized surface craft for bathymetry, water monitoring, and aquatic research**
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-Gort-Skimmer is a small autonomous surface vehicle (ASV) built on a boogie-board sized platform. It uses differential thrust for propulsion and steering, with integrated sonar for depth measurement, GPS for navigation, and water temperature sensing for environmental monitoring.
+Gorai-Skimmer is a small autonomous surface vehicle (ASV) built on a boogie-board sized platform. It uses differential thrust for propulsion and steering, with integrated sonar for depth measurement, GPS for navigation, and water temperature sensing for environmental monitoring.
 
 **Key Features:**
 - **Differential thrust**: Two brushless thrusters for propulsion and steering
@@ -14,7 +14,7 @@ Gort-Skimmer is a small autonomous surface vehicle (ASV) built on a boogie-board
 - **Environmental sensors**: Water temperature, GPS positioning
 - **Optional**: Underwater camera, hydrophone for ambient audio recording
 
-The platform validates Gort's ability to handle:
+The platform validates Gorai's ability to handle:
 - Real-time motor control with feedback
 - Multi-sensor fusion (GPS + sonar + temperature)
 - Waypoint navigation and path planning
@@ -58,7 +58,7 @@ The platform validates Gort's ability to handle:
 
 ```mermaid
 flowchart TB
-    subgraph Skimmer["Gort-Skimmer"]
+    subgraph Skimmer["Gorai-Skimmer"]
         subgraph Brain["Main Controller (RPi)"]
             NATS["NATS Server"]
             Nav["Navigation Node"]
@@ -195,7 +195,7 @@ The [Open Echo](https://github.com/Neumi/open_echo) project provides open-source
 ```protobuf
 // sensor.proto (additions)
 message NavSatFix {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 status = 2;         // STATUS_NO_FIX=0, FIX=1, SBAS=2, DGPS=3
     double latitude = 3;       // degrees
     double longitude = 4;      // degrees
@@ -272,7 +272,7 @@ func (g *GPSNode) Run(ctx context.Context) error {
 ```protobuf
 // sensor.proto (additions)
 message EchoData {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 sample_count = 2;
     uint32 sample_interval_us = 3;  // microseconds per sample
     float speed_of_sound = 4;       // m/s (temperature compensated)
@@ -345,7 +345,7 @@ func (s *SonarNode) Run(ctx context.Context) error {
 ```protobuf
 // sensor.proto (additions)
 message Temperature {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     double temperature = 2;    // Celsius
     double variance = 3;       // uncertainty
 }
@@ -384,13 +384,13 @@ message Temperature {
 ```protobuf
 // control.proto (additions)
 message ThrustCommand {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     float left = 2;            // -1.0 to 1.0
     float right = 3;           // -1.0 to 1.0
 }
 
 message ThrustState {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     float left = 2;
     float right = 3;
     float battery_voltage = 4;
@@ -398,7 +398,7 @@ message ThrustState {
 }
 
 message DifferentialDrive {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     float throttle = 2;        // -1.0 to 1.0 (forward/reverse)
     float steering = 3;        // -1.0 to 1.0 (left/right)
 }
@@ -501,7 +501,7 @@ func thrustToPulse(thrust float64) int {
 ```protobuf
 // nav.proto
 syntax = "proto3";
-package gort.nav;
+package gorai.nav;
 
 import "std.proto";
 import "sensor.proto";
@@ -554,7 +554,7 @@ message SurveyResult {
 }
 
 message NavigationStatus {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 state = 2;          // IDLE=0, WAYPOINT=1, HOLD=2, MANUAL=3
     float cross_track_error = 3;
     float distance_to_goal = 4;
@@ -795,7 +795,7 @@ func generateLawnmowerPath(bounds SurveyGoal) []Waypoint {
 ```protobuf
 // sensor.proto (additions)
 message Audio {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 sample_rate = 2;
     uint32 channels = 3;
     uint32 bits_per_sample = 4;
@@ -803,7 +803,7 @@ message Audio {
 }
 
 message Spectrum {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     float frequency_min = 2;
     float frequency_max = 3;
     uint32 bins = 4;
@@ -881,7 +881,7 @@ message Spectrum {
 ## Project Directory Structure
 
 ```
-gort/
+gorai/
 ├── cmd/
 │   └── skimmer/
 │       ├── gps/
@@ -901,7 +901,7 @@ gort/
 │       └── hydrophone/       # optional
 │           └── main.go
 │
-├── api/proto/gort/
+├── api/proto/gorai/
 │   └── nav/
 │       └── nav.proto
 │
@@ -967,5 +967,5 @@ func (t *ThrusterNode) watchdog(ctx context.Context) {
 - [BlueRobotics T100/T200 Thrusters](https://bluerobotics.com/store/thrusters/)
 - [u-blox NEO-M8 GPS](https://www.u-blox.com/en/product/neo-m8-series)
 - [DS18B20 Temperature Sensor](https://www.analog.com/media/en/technical-documentation/data-sheets/DS18B20.pdf)
-- [Gort Framework Specification](gort-framework-specification.md)
-- [Distributed Architecture Options](distributed-option.md)
+- [Gorai Framework Specification](gorai-framework-specification.md)
+- [Distributed Architecture Options](project-pan-tilt-distributed-option.md)

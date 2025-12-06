@@ -1,14 +1,14 @@
 # Gorai
 
-<img src="./images/gort.png" width="25%">
+<img src="./images/gorai.png" width="25%">
 
-**A modern robotics framework built on Go and NATS with a focus on AI**
+**A lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI**
 
-Gort provides the essential capabilities of ROS 2 without the complexity of DDS, the legacy baggage of YARP, or the licensing concerns of Viam. Single-binary deployment, type-safe messaging, and battle-tested infrastructure.
+Gorai provides the essential capabilities of ROS 2 without the complexity of DDS, the legacy baggage of YARP, or the licensing concerns of Viam. Single-binary deployment, type-safe messaging, and battle-tested infrastructure.
 
-## Why Gort?
+## Why Gorai?
 
-| | Gort | ROS 2 | Viam |
+| | Gorai | ROS 2 | Viam |
 |--|------|-------|------|
 | **Language** | Go | C++/Python | Go |
 | **Middleware** | NATS | DDS | Custom |
@@ -35,16 +35,16 @@ n.Spin(ctx)
 
 ## Documentation
 
-- [Framework Specification](gort-framework-specification.md) - Core architecture, components, and message types
+- [Framework Specification](docs/gorai-framework-specification.md) - Core architecture, components, and message types
 
 ## Example Projects
 
-### [Gort-Sentinel](project-pan-tilt.md)
+### [Gorai-Sentinel](docs/project-pan-tilt.md)
 Pan-tilt sensor fusion platform with camera, ToF depth sensor, and servo control. Validates multi-sensor synchronization, real-time control loops, and the action/service patterns.
 
 **Hardware**: ~$150-350 | **Complexity**: Beginner
 
-### [Gort-Skimmer](project-simple-boat.md)
+### [Gorai-Skimmer](docs/project-simple-boat.md)
 Autonomous surface vehicle for bathymetry and water monitoring. Differential thrust propulsion, GPS navigation, Open Echo sonar, and optional underwater camera/hydrophone.
 
 **Hardware**: ~$530 | **Complexity**: Intermediate

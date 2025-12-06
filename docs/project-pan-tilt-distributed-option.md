@@ -1,12 +1,12 @@
-# Gort-Sentinel: Distributed Architecture Options
+# Gorai-Sentinel: Distributed Architecture Options
 
-This document evaluates distributed hardware architectures for Gort-Sentinel, with a focus on separation of concerns, modularity, and the addition of ML inference capabilities.
+This document evaluates distributed hardware architectures for Gorai-Sentinel, with a focus on separation of concerns, modularity, and the addition of ML inference capabilities.
 
 ---
 
 ## The Problem with Centralized Architecture
 
-The baseline Gort-Sentinel design runs everything on a single Raspberry Pi 5:
+The baseline Gorai-Sentinel design runs everything on a single Raspberry Pi 5:
 
 ```
 ┌────────────────────────────────────────────────┐
@@ -194,21 +194,21 @@ The [Luckfox Pico Ultra](https://www.luckfox.com/EN-Luckfox-Pico-Ultra) variant 
 
 ```
 Sensor Node publishes:
-  gort.sentinel.camera.image          → 30 Hz, H.264 compressed via RV1106
-  gort.sentinel.camera.image/raw      → On-demand raw frames
-  gort.sentinel.tof.depth_grid        → 15 Hz
-  gort.sentinel.fusion.detections     → Object detection results (RV1106 NPU)
+  gorai.sentinel.camera.image          → 30 Hz, H.264 compressed via RV1106
+  gorai.sentinel.camera.image/raw      → On-demand raw frames
+  gorai.sentinel.tof.depth_grid        → 15 Hz
+  gorai.sentinel.fusion.detections     → Object detection results (RV1106 NPU)
 
 Motor Node subscribes:
-  gort.sentinel.pantilt.command       → Position commands
-  gort.sentinel.pantilt.track         → Track detection (from coordinator)
+  gorai.sentinel.pantilt.command       → Position commands
+  gorai.sentinel.pantilt.track         → Track detection (from coordinator)
 
 Motor Node publishes:
-  gort.sentinel.pantilt.state         → 50 Hz position feedback
+  gorai.sentinel.pantilt.state         → 50 Hz position feedback
 
 Coordinator (RPi5) subscribes to all, publishes:
-  gort.sentinel.planning.target       → High-level goals
-  gort.sentinel.ml.inference          → Heavy ML results (via Hailo-8L)
+  gorai.sentinel.planning.target       → High-level goals
+  gorai.sentinel.ml.inference          → Heavy ML results (via Hailo-8L)
 ```
 
 ### Node Distribution Strategy
@@ -311,7 +311,7 @@ Week 13-16: Add Luckfox Pico Pro for pan-tilt
 
 ### Migration Path
 
-The Gort node abstraction enables this migration:
+The Gorai node abstraction enables this migration:
 
 ```go
 // Node doesn't care where NATS server is
@@ -437,7 +437,7 @@ Camera Node
   ├─► H.264 encode (RV1106 VPU)
   │     720p @ 30fps, ~3 Mbps
   │
-  └─────────────────────────────────────► gort.sentinel.camera.h264
+  └─────────────────────────────────────► gorai.sentinel.camera.h264
                                               │
                                               ▼
                                           Decode (CPU/VPU)
@@ -449,14 +449,14 @@ Camera Node
                                           └─► Segmentation
                                               │
                                               ▼
-                                          gort.sentinel.ml.detections
+                                          gorai.sentinel.ml.detections
 
 Radar Node
   │
   ├─► Parse UART @ 100 Hz
   │     Range + velocity data
   │
-  └─────────────────────────────────────► gort.sentinel.radar.range
+  └─────────────────────────────────────► gorai.sentinel.radar.range
                                               │
                                               ▼
                                           Fusion Node
@@ -465,13 +465,13 @@ Radar Node
                                           └─► Estimate velocities
                                               │
                                               ▼
-                                          gort.sentinel.fusion.tracks
+                                          gorai.sentinel.fusion.tracks
 
-PanTilt Node ◄───────────────────────────── gort.sentinel.pantilt.command
+PanTilt Node ◄───────────────────────────── gorai.sentinel.pantilt.command
   │
   ├─► Servo control @ 50 Hz
   │
-  └─────────────────────────────────────► gort.sentinel.pantilt.state
+  └─────────────────────────────────────► gorai.sentinel.pantilt.state
 ```
 
 ### Message Types
@@ -479,12 +479,12 @@ PanTilt Node ◄─────────────────────�
 ```protobuf
 // radar.proto
 syntax = "proto3";
-package gort.sensor;
+package gorai.sensor;
 
 import "std.proto";
 
 message RadarRange {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     float range = 2;           // meters
     float velocity = 3;        // m/s (if supported)
     float snr = 4;             // signal-to-noise ratio
@@ -492,7 +492,7 @@ message RadarRange {
 }
 
 message RadarTrack {
-    gort.std.Header header = 1;
+    gorai.std.Header header = 1;
     uint32 track_id = 2;
     float range = 3;
     float azimuth = 4;         // radians
