@@ -38,7 +38,6 @@ n.Spin(ctx)
 ## Documentation
 
 - [Framework Specification](gort-framework-specification.md) - Core architecture, components, and message types
-- [Distributed Architecture Options](distributed-option.md) - Hardware configurations for edge deployment
 
 ## Example Projects
 
