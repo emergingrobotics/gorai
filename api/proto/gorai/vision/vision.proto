@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package gorai.vision;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/vision";
+
+import "gorai/std/std.proto";
+import "gorai/geometry/geometry.proto";
+
+// Detection represents a detected object.
+message Detection {
+  // Bounding box in image coordinates.
+  BoundingBox2D bbox = 1;
+  // Class ID of the detected object.
+  int32 class_id = 2;
+  // Class name/label.
+  string class_name = 3;
+  // Confidence score (0.0 to 1.0).
+  float confidence = 4;
+  // Optional 3D pose if available.
+  gorai.geometry.Pose pose_3d = 5;
+}
+
+// Detections contains multiple detections from a single image.
+message Detections {
+  gorai.std.Header header = 1;
+  repeated Detection detections = 2;
+}
+
+// BoundingBox2D represents a 2D bounding box.
+message BoundingBox2D {
+  // Center coordinates.
+  float center_x = 1;
+  float center_y = 2;
+  // Dimensions.
+  float width = 3;
+  float height = 4;
+}
+
+// BoundingBox3D represents a 3D bounding box.
+message BoundingBox3D {
+  gorai.geometry.Pose center = 1;
+  gorai.geometry.Vector3 size = 2;
+}
+
+// Classification represents a classification result.
+message Classification {
+  int32 class_id = 1;
+  string class_name = 2;
+  float confidence = 3;
+}
+
+// Classifications contains classification results.
+message Classifications {
+  gorai.std.Header header = 1;
+  repeated Classification classifications = 2;
+}
+
+// SegmentationMask represents a segmentation result.
+message SegmentationMask {
+  gorai.std.Header header = 1;
+  uint32 height = 2;
+  uint32 width = 3;
+  // Pixel-wise class IDs.
+  bytes mask = 4;
+  // Class ID to name mapping.
+  map<int32, string> class_names = 5;
+}
+
+// PointsOfInterest represents detected keypoints or features.
+message PointsOfInterest {
+  gorai.std.Header header = 1;
+  repeated PointOfInterest points = 2;
+}
+
+// PointOfInterest represents a single keypoint.
+message PointOfInterest {
+  float x = 1;
+  float y = 2;
+  float confidence = 3;
+  string label = 4;
+}

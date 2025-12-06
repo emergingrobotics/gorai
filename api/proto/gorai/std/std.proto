@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package gorai.std;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/std";
+
+// Header contains metadata common to all messages.
+message Header {
+  // Timestamp when the message was created.
+  Timestamp stamp = 1;
+  // Frame ID for coordinate frame reference.
+  string frame_id = 2;
+  // Sequence number for ordering.
+  uint64 seq = 3;
+}
+
+// Timestamp represents a point in time.
+message Timestamp {
+  // Seconds since epoch.
+  int64 seconds = 1;
+  // Nanoseconds within the second.
+  int32 nanos = 2;
+}
+
+// Duration represents a time span.
+message Duration {
+  // Seconds component.
+  int64 seconds = 1;
+  // Nanoseconds component.
+  int32 nanos = 2;
+}

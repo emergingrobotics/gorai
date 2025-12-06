@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package gorai.nav;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/nav";
+
+import "gorai/std/std.proto";
+import "gorai/geometry/geometry.proto";
+
+// Path represents a sequence of poses to follow.
+message Path {
+  gorai.std.Header header = 1;
+  repeated gorai.geometry.PoseStamped poses = 2;
+}
+
+// Waypoint represents a navigation waypoint.
+message Waypoint {
+  string id = 1;
+  gorai.geometry.Pose pose = 2;
+  map<string, string> properties = 3;
+}
+
+// Waypoints is a collection of waypoints.
+message Waypoints {
+  repeated Waypoint waypoints = 1;
+}
+
+// GeoPoint represents a geographic location.
+message GeoPoint {
+  double latitude = 1;
+  double longitude = 2;
+  double altitude = 3;
+}
+
+// GeoPath represents a path in geographic coordinates.
+message GeoPath {
+  gorai.std.Header header = 1;
+  repeated GeoPoint points = 2;
+}
+
+// OccupancyGrid represents a 2D occupancy map.
+message OccupancyGrid {
+  gorai.std.Header header = 1;
+  MapMetaData info = 2;
+  // Occupancy data: 0-100 probability, -1 unknown
+  bytes data = 3;
+}
+
+// MapMetaData describes an occupancy grid.
+message MapMetaData {
+  gorai.std.Timestamp map_load_time = 1;
+  float resolution = 2;  // Meters per cell
+  uint32 width = 3;
+  uint32 height = 4;
+  gorai.geometry.Pose origin = 5;
+}
+
+// Costmap represents a costmap for navigation planning.
+message Costmap {
+  gorai.std.Header header = 1;
+  MapMetaData info = 2;
+  bytes data = 3;  // Cost values 0-255
+}
+
+// NavigationGoal represents a navigation goal.
+message NavigationGoal {
+  gorai.geometry.PoseStamped target_pose = 1;
+  string behavior = 2;  // Optional: behavior mode
+}
+
+// NavigationStatus represents navigation progress.
+message NavigationStatus {
+  gorai.std.Header header = 1;
+  Status status = 2;
+  gorai.geometry.PoseStamped current_pose = 3;
+  float distance_remaining = 4;
+  gorai.std.Duration estimated_time_remaining = 5;
+}
+
+// Status represents navigation state.
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_IDLE = 1;
+  STATUS_NAVIGATING = 2;
+  STATUS_SUCCEEDED = 3;
+  STATUS_FAILED = 4;
+  STATUS_CANCELED = 5;
+}

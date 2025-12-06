@@ -1,61 +1,139 @@
-# Gorai Code Organization Recommendation
+# Gorai Code Organization Specification
 
-## Executive Summary
+**Version 0.1.0**
 
-**My strong recommendation: Hybrid monorepo with satellite modules.**
-
-- One core monorepo (`github.com/gorai/gorai`) containing interfaces, core libraries, and reference implementations
-- Separate repos for hardware-specific drivers, accelerator backends, and complex services
-- Clear naming convention: `gorai-{category}-{name}`
-- Self-registration pattern for extensibility
+This specification defines the mandatory code organization structure for the Gorai framework and all associated modules.
 
 ---
 
-## The Core Question: Monorepo vs Multi-repo
+## Table of Contents
 
-### Why Not Pure Monorepo
+1. [Overview](#overview)
+2. [Repository Structure](#repository-structure)
+3. [Core Repository Layout](#core-repository-layout)
+4. [Satellite Repository Naming](#satellite-repository-naming)
+5. [Registration Pattern](#registration-pattern)
+6. [Placement Rules](#placement-rules)
+7. [TinyGo Module](#tinygo-module)
+8. [Versioning](#versioning)
+9. [Discovery](#discovery)
+10. [Prohibited Patterns](#prohibited-patterns)
 
-A pure monorepo (everything in one repo) would be problematic for Gorai:
+---
 
-1. **Dependency bloat**: Users who only need GPIO motor control would pull in Coral TPU dependencies, CUDA libraries, SLAM algorithms, etc.
+## Overview
 
-2. **Build complexity**: CGo dependencies for hardware (libedgetpu, HailoRT, OpenCV) would make the build matrix nightmarish
+Gorai is a **Linux-based robotics platform**. Every robot running Gorai **SHALL** have at least one network-capable Linux board as the primary compute node. This board runs the Gorai core, connects to the NATS bus, and coordinates all robot functionality.
 
-3. **Platform fragmentation**: Coral TPU only works on certain platforms; CUDA only on NVIDIA; Hailo only on specific SBCs. One repo means everyone deals with everyone's platform issues.
+Gorai uses a **hybrid monorepo architecture** consisting of:
 
-4. **Contribution friction**: Someone contributing a new I2C sensor driver shouldn't need to understand the SLAM service code
+- **One core monorepo** (`github.com/gorai/gorai`) containing all interfaces, core libraries, and reference implementations — **always standard Go**
+- **Satellite repositories** for hardware-specific drivers, accelerator backends, and complex services with heavy dependencies — **standard Go**
+- **TinyGo satellite repositories** for microcontroller peripherals — **TinyGo only**
 
-### Why Not Pure Multi-repo
+This structure is **mandatory**. All contributions must follow this organization.
 
-A pure multi-repo (everything separate) would also be problematic:
+### Platform Requirements
 
-1. **Version hell**: Coordinating compatible versions across 50+ repos is a nightmare (see early ROS2)
+| Node Type | Platform | Language | Role |
+|-----------|----------|----------|------|
+| Primary compute | Linux SBC/server | Standard Go | Core framework, NATS, AI/ML |
+| Secondary nodes | Linux SBC | Standard Go | Distributed sensors, actuators |
+| Microcontroller peripherals | Bare metal/RTOS | TinyGo | Low-level sensors, motor control |
 
-2. **API drift**: Interfaces defined in separate repos tend to diverge
+See [Linux Boards Specification](linux-boards.md) for supported hardware. The **Raspberry Pi 5** is the reference platform for initial testing and verification.
 
-3. **Discovery problem**: Hard for users to find what exists
+### Language Requirements
 
-4. **Testing gaps**: Integration testing across repos is painful
+| Repository Type | Language | Target |
+|-----------------|----------|--------|
+| Core (`gorai`) | Standard Go | Linux servers, workstations, SBCs |
+| Satellites (`gorai-driver-*`, `gorai-accel-*`) | Standard Go | Linux servers, workstations, SBCs |
+| TinyGo satellites (`gorai-tiny-*`) | TinyGo | Microcontrollers, ultra-low-power devices |
 
-### The Hybrid Answer
+**Standard Go** is required for:
+- All core framework code
+- All drivers running on Linux-based systems
+- All accelerator backends
+- All services
 
-**Core monorepo** for things that must stay in sync:
-- All interfaces (component, service, accelerator)
-- Core libraries (node, pub/sub, NATS integration)
-- Protocol buffers
+**TinyGo** is exclusively for:
+- Microcontrollers (Arduino, ESP32, RP2040, STM32, etc.)
+- Ultra-low-power embedded devices
+- Hardware that cannot run Linux
+
+Microcontroller nodes communicate with Linux nodes via serial using the Gorai Serial Protocol (GSP). A Linux node runs a serial-to-NATS gateway that proxies messages between the microcontroller and the NATS bus. See [Serial Interfaces Specification](serial-interfaces.md) for details.
+
+```mermaid
+flowchart TB
+    subgraph core["Core Monorepo: github.com/gorai/gorai (Standard Go)"]
+        API["api/ - Protocol Buffers"]
+        PKG["pkg/ - Core Libraries"]
+        COMP["component/ - Interfaces"]
+        SVC["service/ - Interfaces"]
+        ACCEL["accel/ - CPU Reference"]
+        DRV["driver/ - Pure Go Drivers"]
+        CMD["cmd/ - CLI"]
+    end
+
+    subgraph satellites["Standard Go Satellite Repositories"]
+        DRV_V4L2["gorai-driver-v4l2"]
+        DRV_RS["gorai-driver-realsense"]
+        ACCEL_CORAL["gorai-accel-coral"]
+        ACCEL_CUDA["gorai-accel-cuda"]
+        SVC_SLAM["gorai-service-slam"]
+    end
+
+    subgraph tinygo["TinyGo Satellite Repositories (Microcontrollers)"]
+        TINY_CORE["gorai-tiny-core"]
+        TINY_DRV["gorai-tiny-driver"]
+        TINY_SENSOR["gorai-tiny-sensor"]
+    end
+
+    DRV_V4L2 --> |implements| COMP
+    DRV_RS --> |implements| COMP
+    ACCEL_CORAL --> |implements| ACCEL
+    ACCEL_CUDA --> |implements| ACCEL
+    SVC_SLAM --> |implements| SVC
+    TINY_CORE -.-> |serial bridge| PKG
+```
+
+---
+
+## Repository Structure
+
+### Core Repository
+
+The core repository **SHALL** be located at `github.com/gorai/gorai`.
+
+The core repository **SHALL** contain:
+- All interface definitions
+- All Protocol Buffer definitions
+- Core libraries (node, pub/sub, service, action)
+- Reference implementations without CGo dependencies
 - CLI tool
-- Reference implementations (CPU accelerator, basic drivers)
 - Examples
 
-**Satellite repos** for things that benefit from independence:
-- Hardware-specific drivers requiring CGo/external deps
-- Accelerator backends (TPU, NPU, CUDA)
-- Complex services (SLAM, navigation with large dependencies)
-- Community contributions
+The core repository **SHALL NOT** contain:
+- CGo dependencies to external C libraries
+- Platform-specific code that cannot compile on all supported platforms
+- Large binary assets (models, maps, datasets)
+
+### Satellite Repositories
+
+Satellite repositories **SHALL** be used for:
+- Drivers requiring CGo bindings to external libraries
+- Accelerator backends with platform-specific dependencies
+- Services with large dependency trees
+- Community-contributed implementations
+
+Satellite repositories **SHALL** be located at `github.com/gorai/gorai-{category}-{name}`.
 
 ---
 
-## Recommended Core Repository Structure
+## Core Repository Layout
+
+The following directory structure is **mandatory** for the core repository:
 
 ```
 github.com/gorai/gorai/
@@ -64,97 +142,102 @@ github.com/gorai/gorai/
 ├── README.md
 ├── LICENSE                         # Apache 2.0
 │
-├── api/                            # Protocol Buffers (THE contract)
+├── api/                            # Protocol Buffer definitions
 │   ├── proto/
 │   │   └── gorai/
 │   │       ├── std/
+│   │       │   └── std.proto
 │   │       ├── geometry/
+│   │       │   └── geometry.proto
 │   │       ├── sensor/
+│   │       │   └── sensor.proto
 │   │       ├── control/
+│   │       │   └── control.proto
 │   │       ├── vision/
+│   │       │   └── vision.proto
 │   │       ├── ml/
+│   │       │   └── ml.proto
 │   │       ├── nav/
+│   │       │   └── nav.proto
 │   │       └── action/
+│   │           └── action.proto
 │   ├── gen/                        # Generated Go code (committed)
 │   │   └── gorai/
 │   └── buf.yaml
 │
-├── pkg/                            # Core implementation (stable)
+├── pkg/                            # Core libraries
 │   ├── node/                       # Node lifecycle
-│   ├── nats/                       # NATS abstraction layer
+│   ├── nats/                       # NATS abstraction
 │   ├── pub/                        # Publisher
 │   ├── sub/                        # Subscriber
 │   ├── service/                    # Service server/client
 │   ├── action/                     # Action server/client
-│   ├── param/                      # Parameter store (NATS KV)
+│   ├── param/                      # Parameter store
 │   ├── tf/                         # Transform tree
-│   ├── config/                     # Configuration loading
+│   ├── config/                     # Configuration
 │   ├── registry/                   # Component/service registry
 │   └── log/                        # Structured logging
 │
-├── component/                      # Component INTERFACES + base implementations
-│   ├── component.go                # Base Component interface
+├── component/                      # Component interfaces
+│   ├── component.go                # Base interface
 │   ├── motor/
 │   │   ├── motor.go                # Motor interface
-│   │   └── fake/                   # Fake motor for testing
+│   │   └── fake/                   # Fake implementation
 │   ├── camera/
 │   │   ├── camera.go               # Camera interface
-│   │   └── fake/                   # Fake camera for testing
+│   │   └── fake/                   # Fake implementation
 │   ├── sensor/
+│   │   └── sensor.go
 │   ├── base/
+│   │   └── base.go
 │   ├── arm/
+│   │   └── arm.go
 │   └── gripper/
+│       └── gripper.go
 │
-├── service/                        # Service INTERFACES + simple implementations
-│   ├── service.go                  # Base Service interface
+├── service/                        # Service interfaces
+│   ├── service.go                  # Base interface
 │   ├── vision/
-│   │   ├── vision.go               # Vision service interface
-│   │   └── simple/                 # Simple OpenCV-free implementation
+│   │   └── vision.go
 │   ├── mlmodel/
-│   │   ├── mlmodel.go              # ML model interface
-│   │   └── onnx/                   # ONNX runtime (if deps are reasonable)
+│   │   └── mlmodel.go
 │   ├── slam/
-│   │   └── slam.go                 # SLAM interface only (impl separate)
+│   │   └── slam.go
 │   ├── navigation/
-│   │   └── navigation.go           # Navigation interface only
+│   │   └── navigation.go
 │   └── motion/
-│       └── motion.go               # Motion planning interface
+│       └── motion.go
 │
-├── accel/                          # Acceleration INTERFACES + CPU impl
+├── accel/                          # Acceleration layer
 │   ├── accel.go                    # Accelerator interface
 │   ├── tensor/                     # Tensor types
-│   │   ├── tensor.go
-│   │   └── tensor_test.go
+│   │   └── tensor.go
 │   └── cpu/                        # CPU reference implementation
 │       └── cpu.go
 │
-├── driver/                         # Driver INTERFACES + pure-Go implementations
-│   ├── driver.go                   # Base driver interface
-│   ├── gpio/                       # GPIO (pure Go, no CGo)
-│   │   ├── gpio.go
-│   │   └── periph/                 # periph.io based impl
-│   ├── i2c/
-│   ├── spi/
-│   └── serial/
+├── driver/                         # Pure Go drivers
+│   ├── driver.go                   # Base interface
+│   ├── gpio/                       # GPIO (periph.io)
+│   ├── i2c/                        # I2C
+│   ├── spi/                        # SPI
+│   └── serial/                     # Serial/UART
 │
-├── nws/                            # Network Wrapper Server/Client
-│   ├── nws.go                      # NWS base
-│   ├── nwc.go                      # NWC base
-│   └── grpc/                       # gRPC-based wrappers
+├── nws/                            # Network wrappers
+│   ├── nws.go
+│   └── nwc.go
 │
 ├── cmd/
-│   └── gorai/                      # CLI tool
-│       ├── main.go
-│       └── commands/
+│   └── gorai/                      # CLI
+│       └── main.go
 │
-├── examples/                       # Reference examples (always tested)
+├── examples/                       # Reference examples
 │   ├── minimal/
 │   ├── pubsub/
 │   ├── motor/
 │   ├── camera/
 │   └── vision/
 │
-├── internal/                       # Internal packages (not importable)
+├── internal/                       # Internal packages
 │   ├── testutil/
 │   └── proto/
 │
@@ -164,71 +247,109 @@ github.com/gorai/gorai/
     └── contributing.md
 ```
 
+### Directory Purposes
+
+| Directory | Purpose | Contents |
+|-----------|---------|----------|
+| `api/` | Protocol Buffer definitions | `.proto` files and generated Go code |
+| `pkg/` | Core libraries | Node, messaging, configuration |
+| `component/` | Component interfaces | Motor, camera, sensor interfaces + fakes |
+| `service/` | Service interfaces | Vision, SLAM, navigation interfaces |
+| `accel/` | Acceleration layer | Accelerator interface + CPU reference |
+| `driver/` | Hardware drivers | Pure Go drivers only |
+| `nws/` | Network transparency | Network wrapper server/client |
+| `cmd/` | CLI tool | `gorai` command |
+| `examples/` | Reference examples | Always-tested examples |
+| `internal/` | Internal packages | Not importable by external code |
+
 ---
 
-## Satellite Repository Naming Convention
+## Satellite Repository Naming
 
-Use a **prefix-based naming scheme** for discoverability:
+### Naming Convention
 
-### Pattern: `gorai-{category}-{name}`
+All satellite repositories **SHALL** follow this naming pattern:
 
-| Category | Pattern | Examples |
-|----------|---------|----------|
-| Drivers | `gorai-driver-{name}` | `gorai-driver-v4l2`, `gorai-driver-realsense`, `gorai-driver-rplidar` |
-| Accelerators | `gorai-accel-{name}` | `gorai-accel-coral`, `gorai-accel-hailo`, `gorai-accel-cuda`, `gorai-accel-rockchip` |
-| Services | `gorai-service-{name}` | `gorai-service-slam-cartographer`, `gorai-service-nav-movebase` |
-| Components | `gorai-component-{name}` | `gorai-component-dynamixel`, `gorai-component-roboclaw` |
-| Robots | `gorai-robot-{name}` | `gorai-robot-turtlebot`, `gorai-robot-mycobot` |
-| Examples | `gorai-example-{name}` | `gorai-example-warehouse-bot` |
-
-### Why Prefix Over Suffix
-
-- `gorai-driver-*` sorts together in GitHub org listing
-- Easy to search: `org:gorai driver-` finds all drivers
-- Clear categorization at a glance
-- Matches successful patterns (terraform-provider-*, prometheus-*-exporter)
-
-### Module Names
-
-Each satellite repo is its own Go module:
-
-```go
-// github.com/gorai/gorai-driver-v4l2/go.mod
-module github.com/gorai/gorai-driver-v4l2
-
-require github.com/gorai/gorai v0.1.0
+```
+gorai-{category}-{name}
 ```
 
-Import paths are clean:
+### Categories
+
+| Category | Pattern | Purpose |
+|----------|---------|---------|
+| `driver` | `gorai-driver-{name}` | Hardware drivers with CGo |
+| `accel` | `gorai-accel-{name}` | Accelerator backends |
+| `service` | `gorai-service-{name}` | Complex services |
+| `component` | `gorai-component-{name}` | Specialized components |
+| `robot` | `gorai-robot-{name}` | Complete robot configurations |
+| `example` | `gorai-example-{name}` | Complex examples |
+
+### Required Repositories
+
+The following satellite repositories **SHALL** be created:
+
+| Repository | Purpose | Dependencies |
+|------------|---------|--------------|
+| `gorai-driver-v4l2` | Video4Linux2 camera driver | v4l2 CGo bindings |
+| `gorai-driver-realsense` | Intel RealSense cameras | librealsense2 |
+| `gorai-accel-coral` | Google Coral TPU | libedgetpu |
+| `gorai-accel-cuda` | NVIDIA CUDA | CUDA toolkit |
+| `gorai-accel-rockchip` | Rockchip NPU | RKNN-Toolkit2 |
+| `gorai-service-slam` | SLAM implementations | Various |
+| `gorai-service-nav` | Navigation stack | Various |
+
+### Module Declaration
+
+Each satellite repository **SHALL** declare its module as:
+
 ```go
-import (
-    "github.com/gorai/gorai/component/camera"
-    "github.com/gorai/gorai-driver-v4l2"
-)
+// go.mod
+module github.com/gorai/gorai-driver-v4l2
+
+go 1.21
+
+require github.com/gorai/gorai v0.1.0
 ```
 
 ---
 
 ## Registration Pattern
 
-Use self-registration via `init()` for plugin-like extensibility:
+All implementations **SHALL** use the self-registration pattern via `init()`.
 
-### In the core repo (interface + registry):
+### Registry (Core)
+
+The core repository **SHALL** provide a registry:
 
 ```go
-// github.com/gorai/gorai/pkg/registry/registry.go
+// pkg/registry/registry.go
 package registry
 
-import "sync"
+import (
+    "context"
+    "sync"
+)
+
+type Dependencies interface {
+    Get(name string) (any, error)
+}
+
+type Config struct {
+    Attributes map[string]any
+    Raw        []byte
+}
 
 type Constructor func(ctx context.Context, deps Dependencies, conf Config) (any, error)
 
 var (
     mu         sync.RWMutex
-    components = make(map[string]map[string]Constructor) // subtype -> model -> constructor
+    components = make(map[string]map[string]Constructor)
 )
 
-// RegisterComponent registers a component implementation.
+// RegisterComponent registers a component constructor.
+// subtype: component type (e.g., "camera", "motor")
+// model: implementation model (e.g., "v4l2", "gpio")
 func RegisterComponent(subtype, model string, ctor Constructor) {
     mu.Lock()
     defer mu.Unlock()
@@ -238,7 +359,7 @@ func RegisterComponent(subtype, model string, ctor Constructor) {
     components[subtype][model] = ctor
 }
 
-// Lookup finds a registered constructor.
+// Lookup returns a registered constructor.
 func Lookup(subtype, model string) (Constructor, bool) {
     mu.RLock()
     defer mu.RUnlock()
@@ -250,13 +371,17 @@ func Lookup(subtype, model string) (Constructor, bool) {
 }
 ```
 
-### In a satellite repo (implementation):
+### Implementation Registration (Satellite)
+
+Satellite implementations **SHALL** register in `init()`:
 
 ```go
 // github.com/gorai/gorai-driver-v4l2/v4l2.go
 package v4l2
 
 import (
+    "context"
+
     "github.com/gorai/gorai/component/camera"
     "github.com/gorai/gorai/pkg/registry"
 )
@@ -265,215 +390,383 @@ func init() {
     registry.RegisterComponent("camera", "v4l2", New)
 }
 
-// New creates a new V4L2 camera.
 func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) (any, error) {
-    // ... implementation
+    // Implementation
 }
+
+// Ensure interface compliance
+var _ camera.Camera = (*V4L2Camera)(nil)
 ```
 
-### User code:
+### Usage
+
+Users **SHALL** import satellite packages with blank identifier:
 
 ```go
 package main
 
 import (
     "github.com/gorai/gorai/pkg/node"
-    _ "github.com/gorai/gorai-driver-v4l2"  // Register V4L2 driver
-    _ "github.com/gorai/gorai-accel-coral"  // Register Coral TPU
+
+    _ "github.com/gorai/gorai-driver-v4l2"   // Registers v4l2 camera
+    _ "github.com/gorai/gorai-accel-coral"   // Registers Coral TPU
 )
 
 func main() {
-    // Config references "model": "v4l2" and it just works
+    // Configuration references "model": "v4l2"
+    // Registry resolves automatically
     node.Run("robot.json")
 }
 ```
 
 ---
 
-## What Goes Where: Decision Framework
+## Placement Rules
 
-### Put in CORE repo if:
+### Core Repository Placement
 
-1. It's an **interface** that others implement
-2. It's **required** by most users (node, pub/sub, config)
-3. It has **no CGo dependencies** or only optional ones
-4. It's the **reference implementation** (CPU accelerator, fake components)
-5. It's an **example** that should always be tested
+Code **SHALL** be placed in the core repository if it:
 
-### Put in SATELLITE repo if:
+1. Defines an interface that others implement
+2. Is required by most users
+3. Has no CGo dependencies
+4. Is a reference implementation for testing
+5. Is an example that must always compile
 
-1. It has **heavy CGo dependencies** (OpenCV, libedgetpu, CUDA)
-2. It's **platform-specific** (Coral only works on certain platforms)
-3. It's **large** (SLAM algorithms, navigation stacks)
-4. It could have **different maintainers** (community drivers)
-5. It has **different release cadence** than core
+### Satellite Repository Placement
 
-### Concrete Examples:
+Code **SHALL** be placed in a satellite repository if it:
+
+1. Requires CGo bindings to external C/C++ libraries
+2. Is platform-specific and cannot compile everywhere
+3. Has a large dependency tree (>10MB compiled)
+4. Has a different release cadence than core
+5. Has dedicated maintainers
+
+### Placement Matrix
 
 | Component | Location | Reason |
 |-----------|----------|--------|
 | Motor interface | Core | Interface definition |
 | Fake motor | Core | Testing, no deps |
-| GPIO motor (periph.io) | Core | Pure Go, common |
-| Dynamixel motor | Satellite | Specific protocol, niche |
+| GPIO motor | Core | Pure Go (periph.io) |
+| Dynamixel motor | Satellite | Specific protocol |
 | Camera interface | Core | Interface definition |
 | V4L2 camera | Satellite | CGo, Linux-specific |
-| RealSense camera | Satellite | Heavy deps (librealsense) |
+| RealSense camera | Satellite | librealsense2 |
 | Vision interface | Core | Interface definition |
-| Simple vision | Core | Minimal deps |
-| YOLO vision | Satellite | Requires model files, ONNX |
-| CPU accelerator | Core | Reference impl, no deps |
-| Coral TPU | Satellite | libedgetpu CGo |
-| CUDA | Satellite | NVIDIA-specific |
-| ONNX runtime | Core or Satellite | Depends on dep weight |
+| Vision with YOLO | Satellite | Model files, ONNX |
+| CPU accelerator | Core | Reference, no deps |
+| Coral TPU | Satellite | libedgetpu |
+| CUDA | Satellite | NVIDIA toolkit |
+| RK3588 NPU | Satellite | RKNN-Toolkit2 |
+| SLAM interface | Core | Interface definition |
+| Cartographer SLAM | Satellite | Large deps |
 
 ---
 
-## TinyGo Compatibility
+## TinyGo Modules
 
-For microcontroller targets, two approaches:
+### Purpose
 
-### Option A: Build Tags in Core
+TinyGo repositories exist exclusively for code that runs on **microcontrollers** and **extremely low-powered devices** that cannot run Linux. This includes:
 
-```go
-// +build !tinygo
+- Arduino boards (AVR, SAMD)
+- ESP32/ESP8266
+- Raspberry Pi Pico (RP2040)
+- STM32 microcontrollers
+- Nordic nRF series
+- Other bare-metal or RTOS-based devices
 
-package node
+TinyGo code **SHALL NOT** be used for:
 
-// Full implementation with reflection, etc.
+- Raspberry Pi (runs Linux — use standard Go)
+- NVIDIA Jetson (runs Linux — use standard Go)
+- Any single-board computer running Linux
+- Any device capable of running standard Go
+
+### Satellite Requirement
+
+All TinyGo code **SHALL** be placed in satellite repositories, never in the core repository.
+
+The core repository (`github.com/gorai/gorai`) **SHALL** always be standard Go only.
+
+TinyGo repositories **SHALL** use the naming pattern:
+
+```
+gorai-tiny-{name}
 ```
 
-```go
-// +build tinygo
+### Required TinyGo Repositories
 
-package node
+| Repository | Purpose | Example Use Cases |
+|------------|---------|-------------------|
+| `gorai-tiny-core` | Node, pub/sub, serial protocol client | MCU-to-host communication |
+| `gorai-tiny-driver` | GPIO, I2C, SPI, UART drivers | Hardware interfacing on MCU |
+| `gorai-tiny-sensor` | Common sensor implementations | IMU, temperature, distance sensors |
 
-// Minimal implementation without reflection
+### Architecture: Standard Go Core with TinyGo Peripherals
+
+TinyGo devices communicate with the main Gorai system (running standard Go on Linux) via the Gorai Serial Protocol (GSP). A Linux board (which may be the primary compute node or a dedicated small gateway board) runs a serial-to-NATS gateway that acts as a proxy, translating GSP messages to/from NATS topics.
+
+See [Linux Boards Specification](linux-boards.md) for gateway board options (e.g., Milk-V Duo, Pi Zero 2 W).
+
+See [Serial Interfaces Specification](serial-interfaces.md) for the GSP protocol and gateway implementation.
+
+```mermaid
+flowchart LR
+    subgraph linux["Linux Board (Standard Go)"]
+        GORAI["Gorai Core"]
+        GW["Serial Gateway"]
+    end
+
+    subgraph mcu["Microcontroller (TinyGo)"]
+        TINY["gorai-tiny-core"]
+        SENSORS["Sensors/Actuators"]
+    end
+
+    GORAI <--> |NATS| GW
+    GW <--> |UART/GSP| TINY
+    TINY <--> SENSORS
 ```
 
-**Pros**: Single repo
-**Cons**: Complexity, easy to break TinyGo compat
+The serial gateway:
+- Receives GSP frames from the microcontroller over UART
+- Decodes the frames and publishes messages to NATS topics
+- Subscribes to NATS topics and sends commands to the microcontroller as GSP frames
+- Handles framing, CRC validation, and error recovery
 
-### Option B: Separate TinyGo Module
+### Structure
 
 ```
-github.com/gorai/gorai-tiny/
-├── go.mod           # module github.com/gorai/gorai-tiny
-├── node/            # TinyGo-compatible node
-├── pub/             # TinyGo-compatible publisher
-└── driver/
-    └── gpio/        # TinyGo GPIO
+github.com/gorai/gorai-tiny-core/
+├── go.mod                  # module github.com/gorai/gorai-tiny-core
+├── node/                   # TinyGo-compatible node
+├── pub/                    # TinyGo-compatible publisher
+├── sub/                    # TinyGo-compatible subscriber
+└── serial/                 # Serial protocol client
+    └── gsp/                # Gorai Serial Protocol
+
+github.com/gorai/gorai-tiny-driver/
+├── go.mod                  # module github.com/gorai/gorai-tiny-driver
+├── gpio/                   # TinyGo GPIO
+├── i2c/                    # TinyGo I2C
+├── spi/                    # TinyGo SPI
+└── uart/                   # TinyGo UART
 ```
 
-**Pros**: Clean separation, explicit compatibility
-**Cons**: Potential code duplication
+### Why TinyGo is Separate
 
-**My recommendation**: Start with Option B. TinyGo has significant limitations (no reflection, limited stdlib). Trying to share code leads to constant breakage. A dedicated tiny module, even with some duplication, is more maintainable.
+TinyGo code **SHALL NOT** be placed in the core repository because:
+
+1. **Different runtime**: TinyGo has no reflection, limited stdlib, and different memory model
+2. **Different targets**: TinyGo compiles for MCUs; core compiles for Linux
+3. **Build complexity**: Mixed TinyGo/Go builds with build tags are error-prone
+4. **Maintenance burden**: Core changes can silently break TinyGo compatibility
+5. **Different optimization**: TinyGo requires aggressive size optimization
+
+### TinyGo Module Requirements
+
+All TinyGo repositories **SHALL**:
+
+1. Not use reflection (`reflect` package)
+2. Not import `encoding/json` (use `tinygo.org/x/tinyjson` or similar)
+3. Compile for all documented TinyGo targets without modification
+4. Support the Gorai Serial Protocol (GSP) for host communication
+5. Maintain separate test suites that run under TinyGo
+6. Document supported microcontroller targets explicitly
+7. Target devices that **cannot** run standard Go
+
+### When to Use TinyGo vs Standard Go
+
+| Device | OS | Language |
+|--------|-----|----------|
+| Arduino Uno/Mega | None (bare metal) | TinyGo |
+| ESP32 | None/FreeRTOS | TinyGo |
+| Raspberry Pi Pico | None (bare metal) | TinyGo |
+| STM32F4 | None/FreeRTOS | TinyGo |
+| Raspberry Pi 4/5 | Linux | Standard Go |
+| NVIDIA Jetson | Linux | Standard Go |
+| BeagleBone | Linux | Standard Go |
+| Orange Pi | Linux | Standard Go |
+| x86 PC | Linux | Standard Go |
 
 ---
 
-## Versioning Strategy
+## Versioning
 
-### Core Repo
+### Semantic Versioning
 
-Use Go modules semantic versioning:
-- `v0.x.y` during initial development
-- `v1.0.0` when interfaces stabilize
-- `v2+` follows Go modules convention (path suffix)
+All Gorai repositories **SHALL** use semantic versioning:
 
-### Satellite Repos
+- `v0.x.y` - Initial development, API may change
+- `v1.0.0` - Stable API, breaking changes increment major
+- `v2+` - Follow Go module conventions (path includes version)
 
-- Version independently from core
-- Specify compatible core versions in `go.mod`:
-  ```
-  require github.com/gorai/gorai v0.5.0
-  ```
-- Consider version ranges when stable:
-  ```
-  require github.com/gorai/gorai v1.0.0
-  ```
+### Core Repository Versioning
+
+The core repository version **SHALL** reflect API stability:
+
+| Version | Meaning |
+|---------|---------|
+| `v0.x.y` | Development, expect breaking changes |
+| `v1.0.0` | Stable interfaces, stable API |
+| `v1.x.y` | Bug fixes and additions, no breaking changes |
+| `v2.0.0` | Breaking changes (requires path update) |
+
+### Satellite Repository Versioning
+
+Satellite repositories **SHALL**:
+
+1. Version independently from core
+2. Declare compatible core versions in `go.mod`
+3. Follow semver for their own API
+
+```go
+// go.mod
+module github.com/gorai/gorai-driver-v4l2
+
+require github.com/gorai/gorai v0.5.0
+```
 
 ### Compatibility Matrix
 
-Maintain a compatibility matrix in core repo:
+The core repository **SHALL** maintain a compatibility matrix in `docs/compatibility.md`:
 
-| Satellite | v0.1.x | v0.2.x | v0.3.x |
-|-----------|--------|--------|--------|
+```markdown
+## Satellite Compatibility
+
+| Satellite | Core v0.1.x | Core v0.2.x | Core v0.3.x |
+|-----------|-------------|-------------|-------------|
 | gorai-driver-v4l2 | 0.1.0+ | 0.2.0+ | 0.3.0+ |
 | gorai-accel-coral | - | 0.1.0+ | 0.2.0+ |
+| gorai-accel-rockchip | - | - | 0.1.0+ |
+```
 
 ---
 
-## Discovery and Documentation
+## Discovery
 
-### Official Registry
+### Ecosystem Documentation
 
-Maintain a curated list in core repo (`docs/ecosystem.md`):
+The core repository **SHALL** maintain `docs/ecosystem.md`:
 
 ```markdown
+# Gorai Ecosystem
+
 ## Official Drivers
 
-| Name | Platform | Status |
-|------|----------|--------|
-| [gorai-driver-v4l2](https://github.com/gorai/gorai-driver-v4l2) | Linux | Stable |
-| [gorai-driver-realsense](https://github.com/gorai/gorai-driver-realsense) | Linux | Beta |
+| Name | Platform | Status | Maintainer |
+|------|----------|--------|------------|
+| [gorai-driver-v4l2](https://github.com/gorai/gorai-driver-v4l2) | Linux | Stable | @gorai/drivers |
+| [gorai-driver-realsense](https://github.com/gorai/gorai-driver-realsense) | Linux | Beta | @gorai/drivers |
 
-## Community Drivers
+## Official Accelerators
 
-| Name | Maintainer | Platform |
-|------|------------|----------|
-| [gorai-driver-custom-lidar](https://github.com/user/gorai-driver-custom-lidar) | @user | Linux |
+| Name | Hardware | Status | Maintainer |
+|------|----------|--------|------------|
+| [gorai-accel-coral](https://github.com/gorai/gorai-accel-coral) | Coral TPU | Alpha | @gorai/accel |
+| [gorai-accel-rockchip](https://github.com/gorai/gorai-accel-rockchip) | RK3588 | Stable | @gorai/accel |
+
+## Community Contributions
+
+| Name | Maintainer | Status |
+|------|------------|--------|
+| [gorai-driver-custom](https://github.com/user/gorai-driver-custom) | @user | Community |
 ```
-
-### pkg.go.dev
-
-All repos under `github.com/gorai/*` will appear together on pkg.go.dev, making discovery natural.
 
 ### GitHub Topics
 
-Use consistent GitHub topics:
-- `gorai`
-- `gorai-driver` / `gorai-accel` / `gorai-service`
-- `robotics`
-- `go`
+All Gorai repositories **SHALL** use these GitHub topics:
+
+- `gorai` (required)
+- `robotics` (required)
+- `go` (required)
+- Category-specific: `gorai-driver`, `gorai-accel`, `gorai-service`
+- Platform-specific: `linux`, `raspberry-pi`, `nvidia-jetson`
+
+### pkg.go.dev
+
+All repositories under `github.com/gorai/*` appear together on pkg.go.dev, providing natural discovery.
 
 ---
 
-## Anti-Patterns to Avoid
+## Prohibited Patterns
 
-### 1. The "contrib" Graveyard
+The following patterns are **prohibited**:
 
-Don't create `gorai-contrib` or `gorai-community` repos. These become unmaintained dumping grounds. Instead:
-- Let community publish under their own orgs
-- Curate a list of known-good community packages
-- Promote well-maintained packages to the official org
+### 1. Contrib/Community Dumping Ground
+
+**DO NOT** create repositories named:
+- `gorai-contrib`
+- `gorai-community`
+- `gorai-extras`
+
+These become unmaintained. Instead:
+- Community publishes under their own organizations
+- Core maintains curated list of known-good packages
+- Well-maintained packages are promoted to official org
 
 ### 2. Over-Fragmentation
 
-Don't create separate repos for every variation:
-- Bad: `gorai-driver-gpio-rpi`, `gorai-driver-gpio-jetson`, `gorai-driver-gpio-beaglebone`
-- Good: `gorai-driver-gpio` with platform-specific code paths
+**DO NOT** create separate repositories for platform variations:
 
-### 3. Interface Repos
+```
+# WRONG
+gorai-driver-gpio-rpi
+gorai-driver-gpio-jetson
+gorai-driver-gpio-beaglebone
 
-Don't put interfaces in separate repos from core:
-- Bad: `gorai-interfaces`, `gorai-api`
-- Good: Interfaces in `github.com/gorai/gorai/component/*`
+# CORRECT
+gorai-driver-gpio (with platform-specific code paths)
+```
+
+### 3. Separate Interface Repositories
+
+**DO NOT** put interfaces in separate repositories:
+
+```
+# WRONG
+gorai-interfaces
+gorai-api
+gorai-types
+
+# CORRECT
+Interfaces in github.com/gorai/gorai/component/*
+```
 
 ### 4. Premature Extraction
 
-Don't extract to satellite repos too early. Start in core, extract when:
-- Dependencies become problematic
-- Different release cadence is needed
+**DO NOT** extract code to satellite repositories prematurely.
+
+Code **SHALL** start in the core repository and only be extracted when:
+- CGo dependencies cause build problems
+- Different release cadence is required
 - Clear ownership boundary exists
+- Size exceeds reasonable limits
+
+### 5. Vendoring Core
+
+**DO NOT** vendor the core repository in satellites:
+
+```
+# WRONG
+gorai-driver-v4l2/
+└── vendor/
+    └── github.com/gorai/gorai/
+
+# CORRECT
+go.mod with proper require directive
+```
 
 ---
 
-## Recommended Initial Setup
+## Implementation Phases
 
 ### Phase 1: Core Only
 
-Start with everything in the core repo:
+Initial development **SHALL** occur entirely in the core repository:
+
 ```
 github.com/gorai/gorai/
 ├── api/
@@ -486,41 +779,41 @@ github.com/gorai/gorai/
 └── examples/
 ```
 
-### Phase 2: Extract Heavy Deps
+### Phase 2: First Satellites
 
-When you add first CGo-heavy driver, extract:
+When CGo dependencies are added, extract:
+
 ```
 github.com/gorai/gorai-driver-v4l2/
-github.com/gorai/gorai-accel-coral/
+github.com/gorai/gorai-accel-rockchip/
 ```
 
 ### Phase 3: Community Growth
 
-As community grows, encourage pattern:
+As community grows, encourage the pattern:
+
 ```
-github.com/someone/gorai-driver-custom/
+github.com/user/gorai-driver-custom/
 github.com/company/gorai-robot-product/
 ```
 
-Promote well-maintained ones to official org.
+Promote well-maintained packages to the official organization.
 
 ---
 
 ## Summary
 
-| Aspect | Recommendation |
-|--------|----------------|
-| **Core structure** | Monorepo with interfaces, core libs, reference impls |
-| **Satellite repos** | For CGo/platform-specific/heavy deps |
-| **Naming** | `gorai-{category}-{name}` prefix pattern |
-| **Discovery** | Registration via `init()`, curated list in docs |
-| **Versioning** | Independent semver, compatibility matrix |
-| **TinyGo** | Separate `gorai-tiny` module |
-| **Community** | Own repos, curated list, promotion path |
-
-This structure provides:
-- Clean imports for users
-- Minimal dependency footprint
-- Easy contribution path
-- Clear ownership boundaries
-- Sustainable long-term growth
+| Aspect | Requirement |
+|--------|-------------|
+| Core location | `github.com/gorai/gorai` |
+| Core language | Standard Go only |
+| Satellite naming | `gorai-{category}-{name}` |
+| Satellite language | Standard Go |
+| TinyGo naming | `gorai-tiny-{name}` |
+| TinyGo targets | Microcontrollers only (no Linux devices) |
+| Interfaces | Always in core |
+| CGo code | Always in satellites |
+| Registration | Via `init()` function |
+| Versioning | Semantic versioning |
+| Discovery | `docs/ecosystem.md` + GitHub topics |
+| Contrib repos | Prohibited |

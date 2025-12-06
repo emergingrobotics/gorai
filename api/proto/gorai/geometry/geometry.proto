@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package gorai.geometry;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/geometry";
+
+import "gorai/std/std.proto";
+
+// Vector3 represents a 3D vector.
+message Vector3 {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+// Point represents a 3D point in space.
+message Point {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+// Quaternion represents a rotation in 3D space.
+message Quaternion {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double w = 4;
+}
+
+// Pose represents position and orientation in 3D space.
+message Pose {
+  Point position = 1;
+  Quaternion orientation = 2;
+}
+
+// PoseStamped is a Pose with a header.
+message PoseStamped {
+  gorai.std.Header header = 1;
+  Pose pose = 2;
+}
+
+// Twist represents linear and angular velocity.
+message Twist {
+  Vector3 linear = 1;
+  Vector3 angular = 2;
+}
+
+// TwistStamped is a Twist with a header.
+message TwistStamped {
+  gorai.std.Header header = 1;
+  Twist twist = 2;
+}
+
+// Transform represents a coordinate transformation.
+message Transform {
+  Vector3 translation = 1;
+  Quaternion rotation = 2;
+}
+
+// TransformStamped is a Transform with frame information.
+message TransformStamped {
+  gorai.std.Header header = 1;
+  string child_frame_id = 2;
+  Transform transform = 3;
+}

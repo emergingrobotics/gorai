@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package gorai.action;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/action";
+
+import "gorai/std/std.proto";
+
+// GoalID uniquely identifies an action goal.
+message GoalID {
+  gorai.std.Timestamp stamp = 1;
+  string id = 2;
+}
+
+// GoalStatus represents the status of an action goal.
+message GoalStatus {
+  GoalID goal_id = 1;
+  Status status = 2;
+  string text = 3;
+}
+
+// Status represents action execution state.
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_PENDING = 1;
+  STATUS_ACTIVE = 2;
+  STATUS_PREEMPTED = 3;
+  STATUS_SUCCEEDED = 4;
+  STATUS_ABORTED = 5;
+  STATUS_REJECTED = 6;
+  STATUS_PREEMPTING = 7;
+  STATUS_RECALLING = 8;
+  STATUS_RECALLED = 9;
+  STATUS_LOST = 10;
+}
+
+// GoalStatusArray contains multiple goal statuses.
+message GoalStatusArray {
+  gorai.std.Header header = 1;
+  repeated GoalStatus status_list = 2;
+}
+
+// CancelGoal requests cancellation of action goals.
+message CancelGoal {
+  GoalID goal_id = 1;
+}
+
+// ActionFeedback is a generic feedback message wrapper.
+message ActionFeedback {
+  gorai.std.Header header = 1;
+  GoalStatus status = 2;
+  bytes feedback = 3;  // Serialized feedback message
+}
+
+// ActionResult is a generic result message wrapper.
+message ActionResult {
+  gorai.std.Header header = 1;
+  GoalStatus status = 2;
+  bytes result = 3;  // Serialized result message
+}

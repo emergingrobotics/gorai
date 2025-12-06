@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package gorai.control;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/control";
+
+import "gorai/std/std.proto";
+import "gorai/geometry/geometry.proto";
+
+// JointState represents the state of a set of joints.
+message JointState {
+  gorai.std.Header header = 1;
+  repeated string name = 2;
+  repeated double position = 3;
+  repeated double velocity = 4;
+  repeated double effort = 5;
+}
+
+// JointCommand represents a command to a set of joints.
+message JointCommand {
+  gorai.std.Header header = 1;
+  repeated string name = 2;
+  repeated double position = 3;
+  repeated double velocity = 4;
+  repeated double effort = 5;
+}
+
+// MotorCommand represents a command to a single motor.
+message MotorCommand {
+  gorai.std.Header header = 1;
+  string name = 2;
+  double power = 3;  // -1.0 to 1.0
+}
+
+// MotorState represents the state of a single motor.
+message MotorState {
+  gorai.std.Header header = 1;
+  string name = 2;
+  double position = 3;
+  double velocity = 4;
+  double power = 5;
+  bool is_moving = 6;
+}
+
+// ServoCommand represents a command to a servo.
+message ServoCommand {
+  gorai.std.Header header = 1;
+  string name = 2;
+  double angle = 3;  // Target angle in radians
+  double speed = 4;  // Optional: angular velocity
+}
+
+// BaseVelocity represents a velocity command for a mobile base.
+message BaseVelocity {
+  gorai.std.Header header = 1;
+  gorai.geometry.Twist velocity = 2;
+}
+
+// Odometry represents odometry data from a mobile base.
+message Odometry {
+  gorai.std.Header header = 1;
+  string child_frame_id = 2;
+  gorai.geometry.PoseStamped pose = 3;
+  gorai.geometry.TwistStamped twist = 4;
+}

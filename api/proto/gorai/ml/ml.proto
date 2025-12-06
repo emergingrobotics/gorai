@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package gorai.ml;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/ml";
+
+// Tensor represents a multi-dimensional array for ML inference.
+message Tensor {
+  // Shape of the tensor.
+  repeated int64 shape = 1;
+  // Data type of elements.
+  DataType dtype = 2;
+  // Flattened data in row-major order.
+  oneof data {
+    FloatData float_data = 3;
+    Int32Data int32_data = 4;
+    Int64Data int64_data = 5;
+    Uint8Data uint8_data = 6;
+    DoubleData double_data = 7;
+  }
+}
+
+// DataType specifies the element type of a tensor.
+enum DataType {
+  DATA_TYPE_UNSPECIFIED = 0;
+  DATA_TYPE_FLOAT32 = 1;
+  DATA_TYPE_FLOAT64 = 2;
+  DATA_TYPE_INT32 = 3;
+  DATA_TYPE_INT64 = 4;
+  DATA_TYPE_UINT8 = 5;
+  DATA_TYPE_INT8 = 6;
+  DATA_TYPE_UINT16 = 7;
+  DATA_TYPE_INT16 = 8;
+  DATA_TYPE_BOOL = 9;
+}
+
+message FloatData {
+  repeated float values = 1 [packed = true];
+}
+
+message DoubleData {
+  repeated double values = 1 [packed = true];
+}
+
+message Int32Data {
+  repeated int32 values = 1 [packed = true];
+}
+
+message Int64Data {
+  repeated int64 values = 1 [packed = true];
+}
+
+message Uint8Data {
+  bytes values = 1;
+}
+
+// ModelMetadata describes an ML model.
+message ModelMetadata {
+  string name = 1;
+  string version = 2;
+  string framework = 3;  // e.g., "onnx", "tflite", "rknn"
+  repeated TensorSpec inputs = 4;
+  repeated TensorSpec outputs = 5;
+  map<string, string> properties = 6;
+}
+
+// TensorSpec describes the expected shape and type of a tensor.
+message TensorSpec {
+  string name = 1;
+  repeated int64 shape = 2;  // -1 for dynamic dimensions
+  DataType dtype = 3;
+  string description = 4;
+}
+
+// InferenceRequest is a request to run model inference.
+message InferenceRequest {
+  string model_name = 1;
+  map<string, Tensor> inputs = 2;
+}
+
+// InferenceResponse contains inference results.
+message InferenceResponse {
+  map<string, Tensor> outputs = 1;
+  int64 inference_time_ns = 2;
+}

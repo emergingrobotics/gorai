@@ -1,0 +1,10 @@
+version: v1
+name: buf.build/gorai/gorai
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX

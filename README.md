@@ -263,6 +263,49 @@ Autonomous surface vehicle for bathymetry and water monitoring. Differential thr
 
 **Hardware**: ~$530 | **Complexity**: Intermediate
 
+## AI-Assisted Software Engineering
+
+Gorai is developed using AI-assisted software engineering, primarily with [Claude Code](https://claude.ai/claude-code). This isn't a gimmick or experiment - it's a deliberate engineering choice that shapes how we build and maintain this project.
+
+### Our Approach
+
+The specifications, architecture documents, protocol buffer definitions, and core implementation code in this repository were largely generated through conversations with Claude. We treat AI-generated code the same way we treat code from any other source: **with appropriate verification**.
+
+When you `go get` a package from GitHub, you're trusting code written by developers you've never met. You mitigate that trust through:
+- Reading documentation and understanding the API
+- Writing tests that verify the behavior you depend on
+- Reviewing critical code paths
+- Monitoring for security advisories
+
+We apply the same discipline to AI-generated code:
+- **Specifications are reviewed** for correctness and completeness
+- **Interfaces are tested** against expected behavior
+- **Generated code is read** before being committed
+- **Integration tests verify** that components work together
+
+### Why This Matters
+
+AI-assisted development allows a small team (or even a single developer) to:
+- Explore design spaces more quickly
+- Generate boilerplate and scaffolding without tedium
+- Maintain consistency across a large codebase
+- Document as we build rather than after
+
+We're not claiming AI writes perfect code. We're claiming that with proper engineering practices - the same practices you'd apply to any codebase - AI-generated code is a legitimate and productive foundation.
+
+### What This Means for You
+
+If you use Gorai, you should be comfortable with:
+- Code that was generated with AI assistance
+- An iterative development process where AI helps refine implementations
+- Documentation and specs that reflect AI-human collaboration
+
+If this approach concerns you, that's a valid position - but Gorai may not be the right project for you. We believe this is the future of software development, and we're building Gorai to prove it works.
+
+### Transparency
+
+We don't hide AI involvement. Commits generated with Claude Code are marked. This README was written with AI assistance. The framework specification was developed through extended conversations with Claude. We consider this transparency important - not because AI-generated code is suspect, but because it's honest.
+
 ## Project Goals
 
 1. **Be written in Go** (and TinyGo for microcontrollers)

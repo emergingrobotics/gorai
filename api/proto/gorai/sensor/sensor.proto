@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package gorai.sensor;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/sensor";
+
+import "gorai/std/std.proto";
+import "gorai/geometry/geometry.proto";
+
+// Image represents a camera image.
+message Image {
+  gorai.std.Header header = 1;
+  uint32 height = 2;
+  uint32 width = 3;
+  string encoding = 4;  // e.g., "rgb8", "bgr8", "mono8", "jpeg"
+  bool is_bigendian = 5;
+  uint32 step = 6;  // Row stride in bytes
+  bytes data = 7;
+}
+
+// CompressedImage represents a compressed camera image.
+message CompressedImage {
+  gorai.std.Header header = 1;
+  string format = 2;  // e.g., "jpeg", "png"
+  bytes data = 3;
+}
+
+// CameraInfo contains camera calibration information.
+message CameraInfo {
+  gorai.std.Header header = 1;
+  uint32 height = 2;
+  uint32 width = 3;
+  string distortion_model = 4;
+  repeated double d = 5;  // Distortion parameters
+  repeated double k = 6;  // Intrinsic camera matrix (3x3, row-major)
+  repeated double r = 7;  // Rectification matrix (3x3, row-major)
+  repeated double p = 8;  // Projection matrix (3x4, row-major)
+}
+
+// PointCloud2 represents a 3D point cloud.
+message PointCloud2 {
+  gorai.std.Header header = 1;
+  uint32 height = 2;
+  uint32 width = 3;
+  repeated PointField fields = 4;
+  bool is_bigendian = 5;
+  uint32 point_step = 6;
+  uint32 row_step = 7;
+  bytes data = 8;
+  bool is_dense = 9;
+}
+
+// PointField describes a channel in a point cloud.
+message PointField {
+  string name = 1;
+  uint32 offset = 2;
+  uint32 datatype = 3;  // 1=INT8, 2=UINT8, 3=INT16, 4=UINT16, 5=INT32, 6=UINT32, 7=FLOAT32, 8=FLOAT64
+  uint32 count = 4;
+}
+
+// Imu represents IMU sensor data.
+message Imu {
+  gorai.std.Header header = 1;
+  gorai.geometry.Quaternion orientation = 2;
+  repeated double orientation_covariance = 3;  // 3x3, row-major
+  gorai.geometry.Vector3 angular_velocity = 4;
+  repeated double angular_velocity_covariance = 5;  // 3x3, row-major
+  gorai.geometry.Vector3 linear_acceleration = 6;
+  repeated double linear_acceleration_covariance = 7;  // 3x3, row-major
+}
+
+// LaserScan represents a single laser scan.
+message LaserScan {
+  gorai.std.Header header = 1;
+  float angle_min = 2;
+  float angle_max = 3;
+  float angle_increment = 4;
+  float time_increment = 5;
+  float scan_time = 6;
+  float range_min = 7;
+  float range_max = 8;
+  repeated float ranges = 9;
+  repeated float intensities = 10;
+}
+
+// Range represents a single range reading.
+message Range {
+  gorai.std.Header header = 1;
+  uint32 radiation_type = 2;  // 0=ULTRASOUND, 1=INFRARED
+  float field_of_view = 3;
+  float min_range = 4;
+  float max_range = 5;
+  float range = 6;
+}
+
+// NavSatFix represents a GPS fix.
+message NavSatFix {
+  gorai.std.Header header = 1;
+  NavSatStatus status = 2;
+  double latitude = 3;
+  double longitude = 4;
+  double altitude = 5;
+  repeated double position_covariance = 6;  // 3x3, row-major
+  uint32 position_covariance_type = 7;
+}
+
+// NavSatStatus represents GPS status.
+message NavSatStatus {
+  int32 status = 1;  // -1=NO_FIX, 0=FIX, 1=SBAS_FIX, 2=GBAS_FIX
+  uint32 service = 2;  // Bitmask: 1=GPS, 2=GLONASS, 4=COMPASS, 8=GALILEO
+}
+
+// BatteryState represents battery status.
+message BatteryState {
+  gorai.std.Header header = 1;
+  float voltage = 2;
+  float current = 3;
+  float charge = 4;
+  float capacity = 5;
+  float design_capacity = 6;
+  float percentage = 7;
+  uint32 power_supply_status = 8;
+  uint32 power_supply_health = 9;
+  uint32 power_supply_technology = 10;
+  bool present = 11;
+}
