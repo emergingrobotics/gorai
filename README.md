@@ -53,6 +53,10 @@ Drawing from [our analysis](docs/general-designs.md) of ROS 2, Viam, and YARP:
 - Complex middleware abstractions that leak implementation details
 - Central coordinators as single points of failure
 
+## AI Assisted Software Engineering From Day One
+
+Gorai is built entirely with [Claude Code](https://claude.ai/claude-code) assisting in design, implementation, and testing. Go is particularly well-suited for AI-assisted development—the language's clarity, strong typing, and consistent idioms make it easier for AI to generate correct, idiomatic code. We believe AI-assisted software engineering is the future, and the entire project is organized to leverage it to the maximum extent possible: detailed specifications, clear interfaces, and comprehensive documentation that both humans and AI can reason about effectively.
+
 ## Architecture Overview
 
 ```mermaid
