@@ -12,7 +12,7 @@ We wrote this book because we believe robotics software should be simpler. The t
 
 My path to robotics took a circuitous route through some of the most demanding technical environments you can imagine.
 
-I started my career as a US Navy Submarine Nuclear Power Plant Supervisor. When you're responsible for a nuclear reactor hundreds of feet underwater, you learn quickly that systems must be simple enough to understand completely, robust enough to never fail, and designed so that the right action is the obvious action. Those lessons never left me.
+I started my career as a US Navy Submarine Nuclear Power Plant Operator and then Supervisor. When you're responsible for a nuclear reactor hundreds of feet underwater, you learn quickly that systems must be simple enough to understand completely, robust enough to never fail, and designed so that the right action is the obvious action. Those lessons never left me.
 
 After the Navy, I spent decades in Silicon Valley leading engineering teams at companies you've heard of—Rackspace, Cisco, AWS—and plenty of startups you haven't. I built distributed systems before "distributed systems" was a buzzword. I learned what works at scale and what doesn't.
 
@@ -22,13 +22,11 @@ Gorai grew from a simple question: why is robotics software so much harder than 
 
 ### Luca Herlein
 
-I grew up building robots. Not as a hobby I picked up later—as the thing I did from elementary school through college.
+I grew up building robots. Not as a hobby - I picked that up later — as the thing I did from elementary school through college.
 
-My FIRST LEGO League team made it to the World Championships. I spent years in VEX competitions, learning what it takes to build machines that actually work under pressure. Eight years of competition robotics teaches you things that textbooks can't: that the elegant solution usually beats the complex one, that testing matters more than theory, and that the robot that runs reliably beats the robot that runs impressively (sometimes).
+My FIRST LEGO League team made it to the World Championships. I spent years in VEX competitions, learning what it takes to build machines that actually work under pressure. Eight years of competition robotics teaches you things that textbooks can't: that the simple solution usually beats the complex one, that testing matters more than theory, and that the robot that runs reliably beats the robot that runs impressively (sometimes).
 
-I studied Aerospace Engineering at CU Boulder, where I learned the formal foundations—dynamics, control systems, embedded programming. But honestly, the competition experience taught me more about building things that work. Academic exercises have known solutions. Competition robots face unknown challenges with hard deadlines.
-
-When my dad started talking about building a robotics framework, I was skeptical. We'd both seen enough "revolutionary" platforms that complicated more than they simplified. But as Gorai took shape, I recognized what he was building: the framework I wished I'd had during all those competition seasons. Simple enough to understand. Powerful enough to win.
+I studied Aerospace Engineering at CU Boulder, where I learned the formal foundations—dynamics, control systems, embedded programming. I served as Aerodynamics Lead Engineer on the university's 2021-22 Design Build Fly (DBF) competition team, applying those foundations to aircraft that had to actually fly. But honestly, the competition experience—from FLL through DBF—taught me more about building things that work than any textbook. Academic exercises have known solutions. Competition robots and aircraft face unknown challenges with hard deadlines.
 
 ## Why We Wrote This Together
 
