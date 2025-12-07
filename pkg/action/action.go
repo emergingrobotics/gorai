@@ -1,57 +1,35 @@
 // Package action provides long-running action patterns for Gorai.
 //
 // Actions are like services but support feedback during execution
-// and can be canceled.
+// and can be canceled. They follow a request-response model where:
+//   - A client sends a goal to a server
+//   - The server processes the goal and sends periodic feedback
+//   - The server sends a final result when complete
+//   - The client can cancel goals at any time
+//
+// Example usage:
+//
+//	// Server side
+//	server, err := action.NewServer[*MyGoal, *MyFeedback, *MyResult](
+//	    node, "my_action",
+//	    func(ctx context.Context, handle *action.GoalHandle[*MyGoal, *MyFeedback, *MyResult]) {
+//	        for i := 0; i < 10; i++ {
+//	            if handle.IsCanceling() {
+//	                handle.SetCanceled(&MyResult{})
+//	                return
+//	            }
+//	            handle.SendFeedback(&MyFeedback{Progress: float32(i) / 10})
+//	            time.Sleep(time.Second)
+//	        }
+//	        handle.SetSucceeded(&MyResult{Success: true})
+//	    },
+//	)
+//
+//	// Client side
+//	client, err := action.NewClient[*MyGoal, *MyFeedback, *MyResult](node, "my_action")
+//	handle, err := client.SendGoal(ctx, &MyGoal{Target: 100})
+//	for fb := range handle.Feedback() {
+//	    fmt.Printf("Progress: %.0f%%\n", fb.Progress * 100)
+//	}
+//	result, err := handle.Wait(ctx)
 package action
-
-import (
-	"context"
-
-	"google.golang.org/protobuf/proto"
-)
-
-// Goal represents an action goal.
-type Goal[T proto.Message] struct {
-	ID   string
-	Data T
-}
-
-// Feedback represents action feedback.
-type Feedback[T proto.Message] struct {
-	GoalID string
-	Data   T
-}
-
-// Result represents an action result.
-type Result[T proto.Message] struct {
-	GoalID string
-	Data   T
-	Error  error
-}
-
-// Server handles action requests.
-type Server[GoalT, FeedbackT, ResultT proto.Message] struct {
-	// TODO: Implement action server
-}
-
-// Client sends action goals.
-type Client[GoalT, FeedbackT, ResultT proto.Message] struct {
-	// TODO: Implement action client
-}
-
-// Handler processes an action goal.
-type Handler[GoalT, FeedbackT, ResultT proto.Message] func(
-	ctx context.Context,
-	goal Goal[GoalT],
-	feedback chan<- Feedback[FeedbackT],
-) (ResultT, error)
-
-// NewServer creates a new action server.
-func NewServer[GoalT, FeedbackT, ResultT proto.Message]() *Server[GoalT, FeedbackT, ResultT] {
-	return &Server[GoalT, FeedbackT, ResultT]{}
-}
-
-// NewClient creates a new action client.
-func NewClient[GoalT, FeedbackT, ResultT proto.Message]() *Client[GoalT, FeedbackT, ResultT] {
-	return &Client[GoalT, FeedbackT, ResultT]{}
-}

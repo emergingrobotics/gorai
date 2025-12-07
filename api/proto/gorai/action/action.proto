@@ -43,6 +43,22 @@ message GoalStatusArray {
 // CancelGoal requests cancellation of action goals.
 message CancelGoal {
   GoalID goal_id = 1;
+  gorai.std.Timestamp stamp = 2;
+}
+
+// CancelGoalResponse is the response to a goal cancellation request.
+message CancelGoalResponse {
+  // Return code indicating the result of the cancellation request.
+  enum Code {
+    CODE_UNSPECIFIED = 0;
+    CODE_NONE = 1;
+    CODE_REJECTED = 2;
+    CODE_UNKNOWN_GOAL = 3;
+    CODE_GOAL_TERMINATED = 4;
+  }
+  Code return_code = 1;
+  // List of goals that are being canceled.
+  repeated GoalID goals_canceling = 2;
 }
 
 // ActionFeedback is a generic feedback message wrapper.

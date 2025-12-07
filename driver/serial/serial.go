@@ -11,7 +11,7 @@ import (
 // Port represents a serial port.
 type Port interface {
 	driver.Driver
-	io.ReadWriteCloser
+	io.ReadWriter
 
 	// SetBaudRate sets the baud rate.
 	SetBaudRate(baud int) error

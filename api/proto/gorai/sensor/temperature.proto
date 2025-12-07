@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package gorai.sensor;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/sensor";
+
+import "gorai/std/std.proto";
+
+// TemperatureReading represents a temperature measurement.
+message TemperatureReading {
+  // Standard header with timestamp and frame_id.
+  gorai.std.Header header = 1;
+
+  // Temperature in Celsius.
+  double temperature_celsius = 2;
+
+  // Temperature in Fahrenheit (convenience).
+  double temperature_fahrenheit = 3;
+
+  // Source identifier (e.g., "cpu", "gpu", "ambient").
+  string source = 4;
+
+  // Zone or core identifier (e.g., "zone0", "core0", "package").
+  string zone = 5;
+
+  // Optional critical threshold from hardware (Celsius).
+  double critical_celsius = 6;
+
+  // Optional warning threshold from hardware (Celsius).
+  double warning_celsius = 7;
+}
+
+// TemperatureSensorInfo provides sensor metadata.
+message TemperatureSensorInfo {
+  // Standard header.
+  gorai.std.Header header = 1;
+
+  // Human-readable sensor name.
+  string name = 2;
+
+  // Platform identifier (e.g., "linux", "darwin").
+  string platform = 3;
+
+  // Available thermal zones.
+  repeated string zones = 4;
+
+  // Update rate in Hz.
+  double update_rate_hz = 5;
+
+  // Temperature unit (always "celsius" for raw values).
+  string unit = 6;
+}
+
+// TemperatureDiagnostics provides health information.
+message TemperatureDiagnostics {
+  // Standard header.
+  gorai.std.Header header = 1;
+
+  // Diagnostic status.
+  gorai.std.DiagnosticStatus status = 2;
+
+  // Number of readings taken.
+  uint64 reading_count = 3;
+
+  // Number of read errors.
+  uint64 error_count = 4;
+
+  // Last error message (if any).
+  string last_error = 5;
+
+  // Average temperature over last minute (Celsius).
+  double average_celsius = 6;
+
+  // Minimum temperature over last minute (Celsius).
+  double min_celsius = 7;
+
+  // Maximum temperature over last minute (Celsius).
+  double max_celsius = 8;
+}

@@ -1,10 +1,12 @@
-version: v1
-name: buf.build/gorai/gorai
+version: v2
+modules:
+  - path: proto
+    name: buf.build/gorai/gorai
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
 breaking:
   use:
     - FILE
-lint:
-  use:
-    - DEFAULT
-  except:
-    - PACKAGE_VERSION_SUFFIX

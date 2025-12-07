@@ -29,3 +29,30 @@ message Duration {
   // Nanoseconds component.
   int32 nanos = 2;
 }
+
+// DiagnosticStatus represents the status of a component or system.
+message DiagnosticStatus {
+  // Diagnostic level indicating severity.
+  enum Level {
+    LEVEL_UNSPECIFIED = 0;
+    LEVEL_OK = 1;
+    LEVEL_WARN = 2;
+    LEVEL_ERROR = 3;
+    LEVEL_STALE = 4;
+  }
+  Level level = 1;
+  // Name of the component this status refers to.
+  string name = 2;
+  // Human-readable description of the status.
+  string message = 3;
+  // Hardware ID if applicable.
+  string hardware_id = 4;
+  // Key-value pairs with additional diagnostic information.
+  repeated KeyValue values = 5;
+}
+
+// KeyValue is a simple key-value pair for diagnostic data.
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}
