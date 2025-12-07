@@ -3,18 +3,20 @@
 // Services represent software capabilities such as vision processing,
 // ML inference, SLAM, and navigation. Unlike components which abstract
 // hardware, services abstract algorithms and processing pipelines.
+//
+// All services implement the resource.Resource interface, which provides:
+//   - Name() for unique resource identification
+//   - Reconfigure() for runtime configuration updates
+//   - DoCommand() for extensibility
+//   - Close() for cleanup
 package service
 
-import "context"
+import (
+	"github.com/gorai/gorai/pkg/resource"
+)
 
 // Service is the base interface for all services.
+// All services must implement the resource.Resource interface.
 type Service interface {
-	// Name returns the service's unique name.
-	Name() string
-
-	// Reconfigure updates the service with new configuration.
-	Reconfigure(ctx context.Context, conf map[string]any) error
-
-	// Close releases all resources held by the service.
-	Close(ctx context.Context) error
+	resource.Resource
 }

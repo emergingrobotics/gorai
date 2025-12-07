@@ -3,10 +3,12 @@ package fake
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/gorai/gorai/component/motor"
 	"github.com/gorai/gorai/pkg/registry"
+	"github.com/gorai/gorai/pkg/resource"
 )
 
 func init() {
@@ -15,27 +17,61 @@ func init() {
 
 // Motor is a fake motor for testing.
 type Motor struct {
-	name     string
+	name     resource.Name
 	mu       sync.RWMutex
 	power    float64
+	velocity float64
 	position float64
 	moving   bool
 }
 
 // New creates a new fake motor.
 func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) (any, error) {
-	name, _ := conf["name"].(string)
+	nameStr, _ := conf["name"].(string)
+	name := resource.NewComponentName("gorai", "motor", nameStr)
 	return &Motor{name: name}, nil
 }
 
-// Name returns the motor's name.
-func (m *Motor) Name() string {
+// NewWithName creates a fake motor with a specific resource name.
+func NewWithName(name resource.Name) *Motor {
+	return &Motor{name: name}
+}
+
+// Name returns the motor's resource name.
+func (m *Motor) Name() resource.Name {
 	return m.name
 }
 
 // Reconfigure updates the motor configuration.
-func (m *Motor) Reconfigure(ctx context.Context, conf map[string]any) error {
+func (m *Motor) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	// Fake motor has no configuration to update
 	return nil
+}
+
+// DoCommand executes arbitrary commands for extensibility.
+func (m *Motor) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
+	if cmdName, ok := cmd["command"].(string); ok {
+		switch cmdName {
+		case "set_position":
+			if pos, ok := cmd["position"].(float64); ok {
+				m.mu.Lock()
+				m.position = pos
+				m.mu.Unlock()
+				return map[string]any{"status": "ok"}, nil
+			}
+			return nil, fmt.Errorf("invalid position value")
+		case "get_state":
+			m.mu.RLock()
+			defer m.mu.RUnlock()
+			return map[string]any{
+				"power":    m.power,
+				"velocity": m.velocity,
+				"position": m.position,
+				"moving":   m.moving,
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("unknown command: %v", cmd)
 }
 
 // Close releases resources.
@@ -52,6 +88,15 @@ func (m *Motor) SetPower(ctx context.Context, power float64) error {
 	return nil
 }
 
+// SetVelocity sets the target velocity.
+func (m *Motor) SetVelocity(ctx context.Context, velocity float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.velocity = velocity
+	m.moving = velocity != 0
+	return nil
+}
+
 // GoFor moves the motor for the specified revolutions.
 func (m *Motor) GoFor(ctx context.Context, rpm, revolutions float64) error {
 	m.mu.Lock()
@@ -61,10 +106,11 @@ func (m *Motor) GoFor(ctx context.Context, rpm, revolutions float64) error {
 }
 
 // GoTo moves the motor to the specified position.
-func (m *Motor) GoTo(ctx context.Context, rpm, position float64) error {
+func (m *Motor) GoTo(ctx context.Context, position, velocity float64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.position = position
+	m.velocity = velocity
 	return nil
 }
 
@@ -76,16 +122,27 @@ func (m *Motor) ResetZeroPosition(ctx context.Context, offset float64) error {
 	return nil
 }
 
-// Position returns the current position.
-func (m *Motor) Position(ctx context.Context) (float64, error) {
+// GetPosition returns the current position.
+func (m *Motor) GetPosition(ctx context.Context) (float64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.position, nil
 }
 
+// GetVelocity returns the current velocity.
+func (m *Motor) GetVelocity(ctx context.Context) (float64, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.velocity, nil
+}
+
 // Properties returns the motor properties.
 func (m *Motor) Properties(ctx context.Context) (motor.Properties, error) {
-	return motor.Properties{PositionReporting: true}, nil
+	return motor.Properties{
+		PositionReporting: true,
+		VelocityReporting: true,
+		SupportsGoTo:      true,
+	}, nil
 }
 
 // IsPowered returns the power state.
@@ -107,6 +164,7 @@ func (m *Motor) Stop(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.power = 0
+	m.velocity = 0
 	m.moving = false
 	return nil
 }

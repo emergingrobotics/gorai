@@ -40,7 +40,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "GoTo error: %v\n", err)
 	}
 
-	pos, _ := motor.Position(ctx)
+	pos, _ := motor.GetPosition(ctx)
 	fmt.Printf("Current position: %.2f\n", pos)
 
 	// Stop motor

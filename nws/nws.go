@@ -1,96 +1,52 @@
 // Package nws provides Network Wrapper Server/Client for remote resource access.
 //
-// The NWS/NWC pattern (borrowed from YARP) allows resources to be accessed
-// transparently whether they are local or remote. An NWS wraps a local resource
-// and exposes it over the network; an NWC provides the same interface but
-// communicates with a remote NWS.
+// The NWS/NWC pattern (inspired by YARP) allows resources to be accessed
+// transparently whether they are local or remote. A ResourceServer wraps a
+// local resource and exposes it over NATS; a ResourceClient provides access
+// to a remote resource using the same interface.
+//
+// # Server Example
+//
+// Create a server to expose a local motor:
+//
+//	motor := fake.NewWithName(resource.NewComponentName("gorai", "motor", "left"))
+//	server, err := nws.Wrap(nc, motor)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer server.Close()
+//
+//	// Optional: start health checks
+//	hc := server.StartHealthCheck(5 * time.Second)
+//	defer hc.Stop()
+//
+// # Client Example
+//
+// Connect to a remote motor:
+//
+//	name := resource.NewComponentName("gorai", "motor", "left")
+//	client, err := nws.Connect(nc, name)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+//	// Call methods on the remote resource
+//	result, err := client.Call(ctx, "GetPosition", nil)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	position := result.(float64)
+//
+// # Protocol
+//
+// The RPC protocol uses JSON-encoded Request and Response messages over
+// NATS request-reply. The subject is derived from the resource name:
+//
+//	<namespace>.<type>.<subtype>.<name>.rpc
+//
+// For example: gorai.component.motor.left.rpc
+//
+// Health status is published periodically to:
+//
+//	<namespace>.<type>.<subtype>.<name>.rpc.health
 package nws
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/nats-io/nats.go"
-)
-
-// Server wraps a local resource and exposes it over the network.
-type Server struct {
-	nc       *nats.Conn
-	resource any
-	subject  string
-	sub      *nats.Subscription
-}
-
-// ServerOption configures a Server.
-type ServerOption func(*Server)
-
-// WithSubject sets the NATS subject for the server.
-func WithSubject(subject string) ServerOption {
-	return func(s *Server) {
-		s.subject = subject
-	}
-}
-
-// NewServer creates a new network wrapper server.
-func NewServer(nc *nats.Conn, resource any, opts ...ServerOption) (*Server, error) {
-	s := &Server{
-		nc:       nc,
-		resource: resource,
-	}
-
-	for _, opt := range opts {
-		opt(s)
-	}
-
-	if s.subject == "" {
-		return nil, fmt.Errorf("subject is required")
-	}
-
-	// TODO: Implement reflection-based RPC handling
-	// This would use NATS request/reply to handle method calls
-
-	return s, nil
-}
-
-// Start begins serving requests.
-func (s *Server) Start(ctx context.Context) error {
-	// TODO: Subscribe to subject and handle RPC requests
-	return nil
-}
-
-// Stop stops serving requests.
-func (s *Server) Stop() error {
-	if s.sub != nil {
-		return s.sub.Unsubscribe()
-	}
-	return nil
-}
-
-// Client connects to a remote resource over the network.
-type Client struct {
-	nc      *nats.Conn
-	subject string
-}
-
-// ClientOption configures a Client.
-type ClientOption func(*Client)
-
-// NewClient creates a new network wrapper client.
-func NewClient(nc *nats.Conn, subject string, opts ...ClientOption) *Client {
-	c := &Client{
-		nc:      nc,
-		subject: subject,
-	}
-
-	for _, opt := range opts {
-		opt(c)
-	}
-
-	return c
-}
-
-// Call invokes a remote method.
-func (c *Client) Call(ctx context.Context, method string, args any) (any, error) {
-	// TODO: Implement RPC call
-	return nil, fmt.Errorf("not implemented")
-}

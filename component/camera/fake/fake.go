@@ -3,11 +3,14 @@ package fake
 
 import (
 	"context"
+	"fmt"
 	"image"
 	"image/color"
+	"sync"
 
 	"github.com/gorai/gorai/component/camera"
 	"github.com/gorai/gorai/pkg/registry"
+	"github.com/gorai/gorai/pkg/resource"
 )
 
 func init() {
@@ -16,14 +19,17 @@ func init() {
 
 // Camera is a fake camera for testing.
 type Camera struct {
-	name   string
+	name   resource.Name
+	mu     sync.RWMutex
 	width  int
 	height int
 }
 
 // New creates a new fake camera.
 func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) (any, error) {
-	name, _ := conf["name"].(string)
+	nameStr, _ := conf["name"].(string)
+	name := resource.NewComponentName("gorai", "camera", nameStr)
+
 	width := 640
 	height := 480
 
@@ -41,20 +47,64 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	}, nil
 }
 
-// Name returns the camera's name.
-func (c *Camera) Name() string {
+// NewWithName creates a fake camera with a specific resource name.
+func NewWithName(name resource.Name, width, height int) *Camera {
+	if width == 0 {
+		width = 640
+	}
+	if height == 0 {
+		height = 480
+	}
+	return &Camera{
+		name:   name,
+		width:  width,
+		height: height,
+	}
+}
+
+// Name returns the camera's resource name.
+func (c *Camera) Name() resource.Name {
 	return c.name
 }
 
 // Reconfigure updates the camera configuration.
-func (c *Camera) Reconfigure(ctx context.Context, conf map[string]any) error {
-	if w, ok := conf["width"].(float64); ok {
-		c.width = int(w)
+func (c *Camera) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if w, ok := conf.GetInt("width"); ok {
+		c.width = w
 	}
-	if h, ok := conf["height"].(float64); ok {
-		c.height = int(h)
+	if h, ok := conf.GetInt("height"); ok {
+		c.height = h
 	}
 	return nil
+}
+
+// DoCommand executes arbitrary commands for extensibility.
+func (c *Camera) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
+	if cmdName, ok := cmd["command"].(string); ok {
+		switch cmdName {
+		case "get_resolution":
+			c.mu.RLock()
+			defer c.mu.RUnlock()
+			return map[string]any{
+				"width":  c.width,
+				"height": c.height,
+			}, nil
+		case "set_resolution":
+			c.mu.Lock()
+			defer c.mu.Unlock()
+			if w, ok := cmd["width"].(float64); ok {
+				c.width = int(w)
+			}
+			if h, ok := cmd["height"].(float64); ok {
+				c.height = int(h)
+			}
+			return map[string]any{"status": "ok"}, nil
+		}
+	}
+	return nil, fmt.Errorf("unknown command: %v", cmd)
 }
 
 // Close releases resources.
@@ -64,14 +114,18 @@ func (c *Camera) Close(ctx context.Context) error {
 
 // Image returns a test pattern image.
 func (c *Camera) Image(ctx context.Context) (image.Image, error) {
-	img := image.NewRGBA(image.Rect(0, 0, c.width, c.height))
+	c.mu.RLock()
+	width, height := c.width, c.height
+	c.mu.RUnlock()
+
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	// Create a simple gradient test pattern
-	for y := 0; y < c.height; y++ {
-		for x := 0; x < c.width; x++ {
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
 			img.Set(x, y, color.RGBA{
-				R: uint8(x * 255 / c.width),
-				G: uint8(y * 255 / c.height),
+				R: uint8(x * 255 / width),
+				G: uint8(y * 255 / height),
 				B: 128,
 				A: 255,
 			})
@@ -107,6 +161,8 @@ func (c *Camera) Stream(ctx context.Context) (<-chan image.Image, error) {
 
 // Properties returns the camera properties.
 func (c *Camera) Properties(ctx context.Context) (camera.Properties, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return camera.Properties{
 		Width:     c.width,
 		Height:    c.height,
