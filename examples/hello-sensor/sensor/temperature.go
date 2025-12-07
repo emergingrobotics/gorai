@@ -3,14 +3,12 @@ package sensor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/api/gen/gorai/sensor"
-	"github.com/gorai/gorai/api/gen/gorai/std"
 	"github.com/gorai/gorai/examples/hello-sensor/reader"
-	"github.com/gorai/gorai/pkg/pub"
 	"github.com/gorai/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
 )
@@ -45,13 +43,23 @@ func DefaultConfig() Config {
 	}
 }
 
+// TemperatureReading represents a temperature measurement.
+type TemperatureReading struct {
+	Timestamp             time.Time `json:"timestamp"`
+	TemperatureCelsius    float64   `json:"temperature_celsius"`
+	TemperatureFahrenheit float64   `json:"temperature_fahrenheit"`
+	Zone                  string    `json:"zone"`
+	Source                string    `json:"source"`
+	CriticalCelsius       float64   `json:"critical_celsius,omitempty"`
+	WarningCelsius        float64   `json:"warning_celsius,omitempty"`
+}
+
 // TemperatureSensor reads and publishes CPU temperature.
 type TemperatureSensor struct {
-	name      resource.Name
-	config    Config
-	reader    reader.Reader
-	publisher *pub.Publisher[*sensor.TemperatureReading]
-	nc        *nats.Conn
+	name   resource.Name
+	config Config
+	reader reader.Reader
+	nc     *nats.Conn
 
 	mu           sync.RWMutex
 	running      bool
@@ -59,12 +67,12 @@ type TemperatureSensor struct {
 	readingCount uint64
 	errorCount   uint64
 	lastError    string
-	lastReading  *sensor.TemperatureReading
+	lastReading  *TemperatureReading
 
 	// Stats for diagnostics
-	minTemp  float64
-	maxTemp  float64
-	sumTemp  float64
+	minTemp   float64
+	maxTemp   float64
+	sumTemp   float64
 	statCount int
 }
 
@@ -91,11 +99,6 @@ func New(n NATSGetter, r reader.Reader, cfg Config) (*TemperatureSensor, error) 
 		config: cfg,
 		reader: r,
 		nc:     n.NATS(),
-	}
-
-	// Create publisher if NATS is available
-	if ts.nc != nil {
-		ts.publisher = pub.New[*sensor.TemperatureReading](n, cfg.Topic)
 	}
 
 	return ts, nil
@@ -263,15 +266,8 @@ func (s *TemperatureSensor) publishReading(ctx context.Context) {
 	s.updateStats(reading.TemperatureC)
 	s.mu.Unlock()
 
-	now := time.Now()
-	protoReading := &sensor.TemperatureReading{
-		Header: &std.Header{
-			Stamp: &std.Timestamp{
-				Seconds: now.Unix(),
-				Nanos:   int32(now.Nanosecond()),
-			},
-			FrameId: s.config.Name,
-		},
+	tempReading := &TemperatureReading{
+		Timestamp:             time.Now(),
 		TemperatureCelsius:    reading.TemperatureC,
 		TemperatureFahrenheit: reader.CelsiusToFahrenheit(reading.TemperatureC),
 		Source:                "cpu",
@@ -281,11 +277,14 @@ func (s *TemperatureSensor) publishReading(ctx context.Context) {
 	}
 
 	s.mu.Lock()
-	s.lastReading = protoReading
+	s.lastReading = tempReading
 	s.mu.Unlock()
 
-	if s.publisher != nil {
-		s.publisher.Publish(ctx, protoReading)
+	if s.nc != nil {
+		data, err := json.Marshal(tempReading)
+		if err == nil {
+			s.nc.Publish(s.config.Topic, data)
+		}
 	}
 }
 
@@ -303,10 +302,6 @@ func (s *TemperatureSensor) Close(ctx context.Context) error {
 		s.cancel()
 	}
 	s.mu.Unlock()
-
-	if s.publisher != nil {
-		s.publisher.Close()
-	}
 
 	return s.reader.Close()
 }
