@@ -4,7 +4,7 @@
 
 ## Building Modern Robots with Go and NATS
 
-<img src="images/gorai.png" alt="Gorai Logo" width="300">
+<img src="../images/gorai.png" alt="Gorai Logo" width="300">
 
 **Greg Herlein & Luca Herlein**
 
@@ -16,7 +16,8 @@
 
 </div>
 
----
+
+<div style="page-break-after: always;"></div>
 
 # Introduction
 
@@ -96,6 +97,10 @@ Fire up your terminal. Clone the repository. Let's get started.
 
 *Greg Herlein & Luca Herlein*
 *2024*
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 1: Why Gorai?
 
 ## 1.1 The Robotics Software Landscape
@@ -370,6 +375,10 @@ Chapter 8 covers setup in detail. For now, confirm you can run `go version` and 
 ---
 
 With these foundations in place, you're ready to understand how Gorai thinks about robotics. Chapter 2 introduces the mental model and architecture that makes everything else make sense.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 2: Mental Model & Architecture
 
 Understanding Gorai's architecture isn't about memorizing components—it's about internalizing a way of thinking about robot software. This chapter establishes the mental model that makes everything else click.
@@ -1183,6 +1192,10 @@ Errors propagate correctly—if the remote motor fails, the error returns throug
 ---
 
 With the mental model established—nodes, resources, distributed architecture, configuration, and network transparency—you're ready to understand Gorai's communication backbone. Chapter 3 dives deep into NATS.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 3: NATS - The Communication Backbone
 
 NATS is the foundation of Gorai's communication. Understanding NATS deeply transforms how you think about robot architecture.
@@ -2129,6 +2142,10 @@ nats stream view SENSOR_DATA --json > data.jsonl
 ---
 
 With a solid understanding of NATS—its patterns, QoS levels, JetStream features, and debugging tools—you're ready to explore how Gorai uses these capabilities for specific component types. Chapter 4 begins with sensors.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 4: Components - Sensors
 
 Sensors are the robot's eyes, ears, and proprioception. They transform physical phenomena—light, temperature, acceleration, distance—into data structures your software can reason about.
@@ -2827,6 +2844,10 @@ func TestFakeSensor_ReturnsErrorWhenConfigured(t *testing.T) {
 ```
 
 *Cross-reference: See Chapter 11 for comprehensive testing strategies.*
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 5: Components - Actuators
 
 Actuators transform electrical signals into physical motion. They're how your robot interacts with the world—wheels that turn, arms that reach, grippers that grasp.
@@ -3786,6 +3807,10 @@ func (a *Arm) ExecuteTrajectory(ctx context.Context, traj *Trajectory) error {
 ---
 
 With sensors and actuators covered, Chapter 6 explores vision—the intersection of sensors and AI that enables robots to perceive and understand their environment.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 6: Components - Vision
 
 Vision gives robots the ability to perceive and understand their environment. From simple obstacle detection to complex object recognition, cameras are increasingly central to robotic systems.
@@ -4430,6 +4455,10 @@ func (f *RGBDFrame) DepthToColor(x, y int) (cx, cy int) {
 ---
 
 With component types covered—sensors, actuators, and cameras—Chapter 7 explores services: the software capabilities that process component data and coordinate robot behavior.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 7: Services
 
 Services are the brains of a robot—software capabilities that process sensor data, make decisions, and coordinate actions. Unlike components that abstract hardware, services are pure software.
@@ -4768,6 +4797,10 @@ Services follow the same lifecycle as components:
 ---
 
 Chapter 8 covers setting up your development environment to build components and services.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 8: Development Environment
 
 A well-configured development environment accelerates learning and productivity. This chapter covers everything you need to start building with Gorai.
@@ -5168,6 +5201,10 @@ The serial gateway translates NATS messages to a compact serial protocol.
 ---
 
 With your development environment configured, Chapter 9 provides a deep dive into the hello-sensor example, showing how all these pieces come together.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 9: Hello Sensor Deep Dive
 
 This chapter walks through a complete, working Gorai component: the `hello-sensor` example. By understanding every line, you'll be ready to build your own components.
@@ -5847,6 +5884,10 @@ watch -n1 "nats sub gorai.hello.cpu_temp.data --count 1 2>/dev/null"
 ---
 
 With hello-sensor thoroughly understood, Chapter 10 shows how to build your own custom components following these same patterns.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 10: Building Custom Components
 
 Now that you understand Gorai's patterns through hello-sensor, let's build custom components from scratch.
@@ -6298,6 +6339,10 @@ motor.SetPower(ctx, 0.5)  // Works transparently
 ---
 
 Chapter 11 covers testing these components thoroughly.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 11: Testing Strategies
 
 Robots are safety-critical systems. Bugs can cause physical damage. Testing is not optional—it's essential.
@@ -6733,6 +6778,10 @@ jobs:
 ---
 
 Chapter 12 explores integrating AI/ML into your tested components.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 12: AI/ML Integration
 
 Modern robots increasingly rely on ML for perception and decision-making. Gorai treats AI as a first-class capability.
@@ -7136,6 +7185,10 @@ func (p *InferencePool) PutInputBuffer(buf []float32) {
 ---
 
 Chapter 13 covers organizing these components into maintainable projects.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 13: Project Organization
 
 As your robot codebase grows, organization matters. This chapter covers best practices for Gorai projects.
@@ -7402,6 +7455,10 @@ go test -v -run Example
 ---
 
 Chapter 14 explores using AI tools to accelerate Gorai development.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 14: AI-Assisted Development
 
 Gorai is designed with AI-assisted development in mind. Clear interfaces, consistent patterns, and comprehensive specifications make AI tools effective collaborators.
@@ -7639,6 +7696,10 @@ Help me understand platform-specific issues.
 ---
 
 With all the technical foundations in place, Chapter 15 concludes with the Gorai vision and next steps.
+
+
+<div style="page-break-after: always;"></div>
+
 # Chapter 15: Conclusion
 
 We've covered a lot of ground. Let's step back and see the whole picture.
@@ -7783,6 +7844,10 @@ Welcome aboard. Let's build something amazing.
 ---
 
 *Gorai: Building Modern Robots with Go and NATS*
+
+
+<div style="page-break-after: always;"></div>
+
 # Appendices
 
 ## Appendix A: Command Reference
