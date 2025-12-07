@@ -1,0 +1,58 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories
+vendor/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.envrc
+
+# Gorai runtime files
+.logs/
+.pids/
+.nats-data/
+
+# Debug binaries
+__debug_bin*
+debug.test
+
+# Build output
+/bin/
+/dist/
+/build/
+
+# Profiling
+*.prof
+*.pprof
+cpu.out
+mem.out
+
+# Local configuration
+*.local.yaml
+*.local.json
+config.local.*
