@@ -256,11 +256,25 @@ For commercial robotics applications, prefer Apache 2.0, MIT, or BSD licensed mo
 ## Documentation
 
 - [Framework Specification](specs/gorai-framework-specification.md) - Complete technical specification
+- [Hello Sensor Design](specs/hello-sensor-design.md) - Example design document (CPU temperature sensor)
+- [Code Organization](specs/code-organization.md) - Module structure and naming conventions
 - [Go AI Ecosystem](docs/go-ai-material.md) - ML frameworks, inference runtimes, and hardware acceleration
 - [Design Comparison](docs/general-designs.md) - Analysis of ROS 2, Viam, and YARP
 - [ROS 2 Design](docs/ros2-design.md) - ROS 2 architecture summary
 - [Viam Design](docs/viam-design.md) - Viam architecture summary
 - [YARP Design](docs/yarp-design.md) - YARP architecture summary
+
+### Design Document Philosophy
+
+The [Hello Sensor Design](specs/hello-sensor-design.md) document serves as a template for Gorai component designs. This level of detail is intentional: a well-written design document is both documentation for humans and a blueprint for AI-assisted implementation. It includes:
+
+- Architecture diagrams and component relationships
+- Complete Protocol Buffer definitions
+- Platform-specific implementation details
+- Verification steps and expected outputs
+- Test specifications
+
+When contributing new components or services, follow this format. The specificity enables AI coding assistants to implement and test designs with minimal ambiguity.
 
 ## Example Projects
 

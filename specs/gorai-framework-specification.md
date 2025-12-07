@@ -65,6 +65,27 @@ Podman is the reference container runtime for Gorai due to:
 - **OCI compliance**: Images work with any OCI-compliant runtime
 - **Pod support**: Native multi-container pod support
 
+### Design Document Standard
+
+Gorai uses detailed design documents as the specification format for components and services. See [hello-sensor-design.md](hello-sensor-design.md) for the canonical example.
+
+A complete design document includes:
+
+| Section | Purpose |
+|---------|---------|
+| **Overview** | Goals, use cases, design philosophy |
+| **Architecture** | Component diagrams, data flow, NATS topic structure |
+| **Protocol Buffers** | Complete `.proto` definitions with field documentation |
+| **Implementation** | Package structure, platform-specific code, configuration |
+| **Verification** | Step-by-step testing procedures with expected outputs |
+| **Test Specification** | Unit test cases, integration test scenarios |
+
+This level of detail serves two purposes:
+1. **Human documentation**: Engineers can understand the component without reading source code
+2. **AI implementation blueprint**: AI coding assistants can implement the design with minimal ambiguity
+
+When adding new components or services, create a design document following this format before implementation.
+
 ---
 
 ## Architecture
