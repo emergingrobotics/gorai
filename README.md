@@ -4,7 +4,11 @@
 
 **A lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI**
 
+*Pronounced "go-ray" (like stingray)*
+
 Gorai provides the essential capabilities of modern robotics frameworks without the complexity of DDS, the legacy constraints of C++ middleware, or mandatory cloud dependencies. Single-binary deployment, type-safe messaging, and battle-tested infrastructure.
+
+We originally wanted to name this project "Gort" after the iconic robot from *The Day the Earth Stood Still*, but that name has been taken for years by DevOps tooling for the excellent [GoBot](https://gobot.io/) project. Gorai is a contraction of **Go + Robot + AI**—and it evokes the [eye ray gun of Gort](https://youtu.be/K6iF5sINVns?t=92)!
 
 ## Why Gorai?
 
