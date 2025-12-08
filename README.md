@@ -351,6 +351,91 @@ We don't hide AI involvement. Commits generated with Claude Code are marked. Thi
 8. **Apply distributed systems lessons** from cloud software
 9. **Have fun!**
 
+## Building Documentation
+
+Gorai documentation consists of three components:
+
+| Component | Tool | Description |
+|-----------|------|-------------|
+| **Book** | [mdBook](https://rust-lang.github.io/mdBook/) | Comprehensive tutorial and guide |
+| **Website** | [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) | Developer portal with quick-start guides |
+| **API Reference** | [pkgsite](https://pkg.go.dev/golang.org/x/pkgsite) | Go package documentation |
+
+All tools run inside a single container—no local dependencies required beyond Podman.
+
+### Prerequisites
+
+- [Podman](https://podman.io/) (or Docker)
+
+### Build the Publishing Container
+
+```bash
+podman build -t gorai-publish publish/container/
+```
+
+### Build Documentation
+
+```bash
+# Build everything (book + website)
+podman run --rm -v ${PWD}:/workspace:Z gorai-publish all
+
+# Build only the book
+podman run --rm -v ${PWD}:/workspace:Z gorai-publish book
+
+# Build only the website
+podman run --rm -v ${PWD}:/workspace:Z gorai-publish website
+```
+
+Output is written to `publish/dist/`.
+
+### Development with Live Reload
+
+```bash
+# Serve the book (http://localhost:3000)
+podman run --rm -it -p 3000:3000 -v ${PWD}:/workspace:Z gorai-publish book-serve
+
+# Serve the website (http://localhost:8000)
+podman run --rm -it -p 8000:8000 -v ${PWD}:/workspace:Z gorai-publish website-serve
+
+# Serve the API reference (http://localhost:6060)
+podman run --rm -it -p 6060:6060 -v ${PWD}:/workspace:Z gorai-publish api-serve
+```
+
+### Using Make
+
+If you prefer Make targets:
+
+```bash
+make publish-container  # Build the container
+make publish-all        # Build all documentation
+make publish-book       # Build the book
+make publish-website    # Build the website
+make serve-book         # Serve book with live reload
+make serve-website      # Serve website with live reload
+make serve-api          # Serve API reference
+make publish-clean      # Clean build outputs
+```
+
+### Directory Structure
+
+```
+publish/
+├── container/          # Container definition
+│   ├── Containerfile   # Multi-tool container
+│   └── entrypoint.sh   # Command dispatcher
+├── book/               # mdBook source
+│   ├── book.toml       # Configuration
+│   └── src/            # Markdown chapters
+├── website/            # MkDocs source
+│   ├── mkdocs.yml      # Configuration
+│   └── docs/           # Markdown pages
+└── dist/               # Build output (gitignored)
+    ├── book/           # Built book HTML
+    └── website/        # Built website HTML
+```
+
+See [specs/publication.md](specs/publication.md) for the complete publication specification.
+
 ## License
 
 Apache 2.0

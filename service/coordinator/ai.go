@@ -3,8 +3,6 @@ package coordinator
 import (
 	"context"
 	"time"
-
-	"github.com/gorai/gorai/service/behavior"
 )
 
 // AICoordinator extends Service with AI/ML capabilities for

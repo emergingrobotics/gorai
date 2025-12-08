@@ -20,3 +20,17 @@ import (
 type Service interface {
 	resource.Resource
 }
+
+// Behavior is a service type that represents decision-making logic.
+// Behaviors encapsulate autonomous actions and can expose derived sensors.
+// See the service/behavior package for the full interface.
+type Behavior interface {
+	Service
+}
+
+// Coordinator is a service type that orchestrates multiple behaviors.
+// Coordinators do not directly use components - they work through behaviors.
+// See the service/coordinator package for the full interface.
+type Coordinator interface {
+	Service
+}

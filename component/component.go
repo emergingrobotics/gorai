@@ -32,3 +32,24 @@ type Sensor interface {
 	Component
 	resource.Sensor
 }
+
+// Power is a component that provides power information.
+// Examples: batteries, power supplies, solar panels.
+type Power interface {
+	Component
+	resource.Power
+}
+
+// Space is a component that represents a spatial region.
+// Examples: containers, zones, workspaces.
+type Space interface {
+	Component
+	resource.Space
+}
+
+// Link is a component that provides communication capabilities.
+// Examples: serial ports, IP connections, NATS channels.
+type Link interface {
+	Component
+	resource.Link
+}

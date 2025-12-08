@@ -3,7 +3,6 @@ package coordinator_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/gorai/gorai/pkg/resource"
 	"github.com/gorai/gorai/service"
