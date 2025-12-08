@@ -70,11 +70,27 @@ fi
 # Link examples directory
 if [ -d "$CONTENT/examples" ]; then
     # Link individual example directories to website examples
-    # Only link real directories, not symlinks (to avoid recursion)
     mkdir -p "$DOCS_DIR/examples"
-    for example in "$CONTENT/examples"/*/; do
-        if [ -d "$example" ] && [ ! -L "${example%/}" ]; then
-            dirname=$(basename "$example")
+
+    # First, clean up any existing symlinks in website/docs/examples
+    find "$DOCS_DIR/examples" -maxdepth 1 -type l -delete 2>/dev/null || true
+
+    # Also clean up any recursive symlinks that may have been created in content/examples
+    for dir in "$CONTENT/examples"/*/; do
+        if [ -d "$dir" ]; then
+            dirname=$(basename "$dir")
+            # Remove symlink if it has same name as parent (recursive symlink)
+            if [ -L "$dir$dirname" ]; then
+                echo "  Removing recursive symlink: $dir$dirname"
+                rm -f "$dir$dirname"
+            fi
+        fi
+    done
+
+    # Now create fresh symlinks - only for real directories
+    for entry in "$CONTENT/examples"/*; do
+        if [ -d "$entry" ] && [ ! -L "$entry" ]; then
+            dirname=$(basename "$entry")
             ln -sf "../../../content/examples/$dirname" "$DOCS_DIR/examples/$dirname"
             echo "  Linked: examples/$dirname/"
         fi
