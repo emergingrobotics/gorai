@@ -1,61 +1,70 @@
-# Introduction
+# Gorai
 
-Welcome to *Gorai: Building Modern Robots with Go and NATS*.
+## Building Modern Robots with Go and NATS
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+**Greg Herlein & Luca Herlein**
 
-This book is your comprehensive guide to building robots with the Gorai framework—a lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI.
+*Version 0.2.0 — 2025*
 
-## What is Gorai?
+---
 
-Gorai is a robotics framework that provides:
+## About This Book
 
-- **NATS-based messaging** for pub/sub, request/reply, and persistence
-- **Protocol Buffer serialization** for type-safe, efficient communication
-- **Resource-centric architecture** with unified component/service abstraction
-- **First-class AI/ML support** with hardware acceleration (RK3588 NPU, NVIDIA CUDA)
-- **Hot reconfiguration** without restart
-- **TinyGo compatibility** for microcontroller deployment
+*Gorai: Building Modern Robots with Go and NATS* is a practical guide to a new approach in robotics software. Whether you're a software developer curious about robotics, a robotics enthusiast tired of fighting complex frameworks, or an experienced engineer looking for something better, this book will get you building.
+
+We wrote this book because we believe robotics software should be simpler. The tools exist—Go's elegant concurrency, NATS's battle-tested messaging, modern AI accelerators—but nobody had put them together in a way that prioritized developer experience. Gorai is our answer, and this book is your guide to using it.
+
+## Our Core Belief
+
+**Developer experience is as important as functionality.**
+
+A powerful framework that nobody can learn is a framework nobody uses. We aim for wide adoption and contributions—that happens only when developers enjoy using Gorai.
+
+This book reflects that belief:
+- **Clear explanations** over clever brevity
+- **Working examples** you can run immediately
+- **Honest about limitations** so you don't waste time
+- **Invitations to contribute** because your improvements help everyone
+
+If something confuses you, that's a bug in our documentation. Please file an issue.
 
 ## What You'll Learn
 
 By the end of this book, you'll understand:
 
-- The Gorai mental model and architecture
-- NATS messaging patterns for robotics
-- Building sensors, actuators, and vision components
-- Testing strategies for robot software
-- AI/ML integration with hardware acceleration
-- AI-assisted development workflows
+- **The Gorai mental model**: How to think about robot software as distributed systems
+- **NATS messaging**: Pub/sub, request/reply, and streaming for robotics
+- **Component architecture**: Sensors, actuators, cameras—building blocks that compose
+- **Service design**: Vision, navigation, and custom capabilities
+- **Testing strategies**: From unit tests to hardware validation
+- **AI integration**: Running ML models on edge hardware
+- **Project organization**: Structuring code that grows with your robot
 
-## Prerequisites
+## Book Structure
 
-- Basic Go knowledge (variables, functions, structs, interfaces)
-- Command-line familiarity
-- Optional: Basic electronics understanding
+| Part | Focus |
+|------|-------|
+| **Part I: Getting Started** | Why Gorai exists and how to think about robot software |
+| **Part II: Core Framework** | NATS, components, services, behaviors, coordinators |
+| **Part III: Development** | Environment setup, tutorials, testing |
+| **Part IV: Advanced** | AI/ML, project organization, future |
 
-## How This Book is Organized
+## How to Read This Book
 
-The book is divided into four parts:
+**New to robotics?** Read sequentially—each chapter builds on the previous.
 
-**Part 1: Getting Started** (Chapters 1-2)
-- Why Gorai exists and the problems it solves
-- The mental model and architecture
+**Experienced with ROS?** Skim Part I, then dive into Chapter 3 (NATS) and Chapter 11 (Hello Sensor).
 
-**Part 2: Core Framework** (Chapters 3-7)
-- NATS messaging patterns
-- Components: sensors, actuators, vision
-- Services and higher-level abstractions
+**Go developer?** Part I and Part II will orient you quickly.
 
-**Part 3: Development** (Chapters 8-11)
-- Development environment setup
-- Building the Hello Sensor example
-- Custom components and testing
+**Just want to build?** Start with Chapter 10 and Chapter 11. Get code running first.
 
-**Part 4: Advanced Topics** (Chapters 12-15)
-- AI/ML integration
-- Project organization
-- AI-assisted development
-- Conclusion and next steps
+## Let's Build
 
-Let's build some robots.
+The best way to learn robotics is to build robots. The best way to learn Gorai is to use it.
+
+Fire up your terminal. Clone the repository. Let's get started.
+
+---
+
+*Pronounced "Go-ray-I" (rhymes with "samurai")*

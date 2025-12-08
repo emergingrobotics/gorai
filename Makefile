@@ -335,7 +335,7 @@ dev-deps:
 	go install github.com/nats-io/natscli/nats@latest
 	@echo ""
 	@echo "Installing air (hot reload)..."
-	go install github.com/cosmtrek/air@latest
+	go install github.com/air-verse/air@latest
 	@echo ""
 	@echo "==> Development dependencies installed"
 	@echo ""
@@ -398,7 +398,7 @@ watch:
 		 done); \
 	else \
 		echo "Installing air for watch mode..."; \
-		go install github.com/cosmtrek/air@latest; \
+		go install github.com/air-verse/air@latest; \
 		echo "Run 'make watch' again"; \
 	fi
 

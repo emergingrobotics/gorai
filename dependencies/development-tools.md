@@ -200,13 +200,13 @@ make check       # Run fmt-check, vet, lint, test
 
 | Tool | Purpose | Install |
 |------|---------|---------|
-| **air** | Hot reload for development | `go install github.com/cosmtrek/air@latest` |
+| **air** | Hot reload for development | `go install github.com/air-verse/air@latest` |
 | **pkgsite** | Local Go documentation server | `go install golang.org/x/pkgsite/cmd/pkgsite@latest` |
 
 #### Install air (Hot Reload)
 
 ```bash
-go install github.com/cosmtrek/air@latest
+go install github.com/air-verse/air@latest
 ```
 
 **Usage**:

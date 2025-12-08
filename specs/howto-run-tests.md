@@ -492,7 +492,7 @@ find ./pkg/node -name "*.go" | entr -c go test -v ./pkg/node -run TestNew
 
 ```bash
 # Install air
-go install github.com/cosmtrek/air@latest
+go install github.com/air-verse/air@latest
 
 # Create configuration
 cat > .air.toml << 'EOF'

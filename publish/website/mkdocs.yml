@@ -1,11 +1,11 @@
 site_name: Gorai
 site_url: https://gorai.dev
 site_description: A lightweight, Go-based robotics framework built on NATS.io
-site_author: The Gorai Authors
+site_author: Greg Herlein, Luca Herlein
 
 repo_name: gorai/gorai
 repo_url: https://github.com/gorai/gorai
-edit_uri: edit/main/publish/website/docs/
+edit_uri: edit/main/publish/content/
 
 theme:
   name: material
@@ -32,73 +32,162 @@ theme:
     code: JetBrains Mono
 
   features:
+    # Navigation
     - navigation.instant
+    - navigation.instant.progress
     - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
+    - navigation.indexes
     - navigation.top
+    - navigation.footer
+
+    # Search
     - search.suggest
     - search.highlight
+    - search.share
+
+    # Content
     - content.code.copy
     - content.code.annotate
     - content.action.edit
+    - content.action.view
+    - content.tabs.link
+
+    # TOC
+    - toc.follow
 
   icon:
     repo: fontawesome/brands/github
     logo: material/robot
 
 plugins:
-  - search
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
 
 markdown_extensions:
+  # Code highlighting
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+      auto_title: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+
+  # Code snippets from files
+  - pymdownx.snippets:
+      base_path:
+        - publish/content
+        - .
+      check_paths: true
+
+  # Super fences for code blocks and mermaid
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+
+  # Tabbed content
   - pymdownx.tabbed:
       alternate_style: true
+      combine_header_slug: true
+
+  # Details/expandable sections
   - pymdownx.details
-  - pymdownx.critic
-  - pymdownx.caret
-  - pymdownx.keys
-  - pymdownx.mark
-  - pymdownx.tilde
+
+  # Admonitions (note, warning, tip boxes)
   - admonition
+
+  # Keyboard keys
+  - pymdownx.keys
+
+  # Mark/highlight text
+  - pymdownx.mark
+  - pymdownx.caret
+  - pymdownx.tilde
+
+  # Task lists
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+  # Tables
   - tables
+
+  # Attributes and HTML
   - attr_list
   - md_in_html
+
+  # Definition lists
   - def_list
+
+  # Footnotes
   - footnotes
+
+  # Table of contents
   - toc:
       permalink: true
+      toc_depth: 3
 
 nav:
   - Home: index.md
+
   - Getting Started:
+    - getting-started/index.md
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
-    - Concepts: getting-started/concepts.md
+    - Core Concepts: getting-started/concepts.md
+
   - Guides:
-    - Components: guides/components.md
-    - Services: guides/services.md
+    - guides/index.md
+    - Working with Components: guides/components.md
+    - Working with Services: guides/services.md
     - NATS Messaging: guides/nats.md
     - Configuration: guides/configuration.md
     - Testing: guides/testing.md
+
+  - The Book:
+    - book/index.md
+    - "Part I: Getting Started":
+      - book/part1-getting-started/_index.md
+      - Why Gorai?: book/part1-getting-started/ch01-why-gorai/_index.md
+      - Architecture: book/part1-getting-started/ch02-architecture/_index.md
+    - "Part II: Core Framework":
+      - book/part2-core-framework/_index.md
+      - NATS Messaging: book/part2-core-framework/ch03-nats/_index.md
+      - Sensors: book/part2-core-framework/ch04-sensors/_index.md
+      - Actuators: book/part2-core-framework/ch05-actuators/_index.md
+      - Vision: book/part2-core-framework/ch06-vision/_index.md
+      - Services: book/part2-core-framework/ch07-services/_index.md
+      - Behaviors: book/part2-core-framework/ch08-behaviors/_index.md
+      - Coordinators: book/part2-core-framework/ch09-coordinators/_index.md
+    - "Part III: Development":
+      - book/part3-development/_index.md
+      - Dev Environment: book/part3-development/ch10-devenv/_index.md
+      - Hello Sensor: book/part3-development/ch11-hello-sensor/_index.md
+      - Custom Components: book/part3-development/ch12-custom/_index.md
+      - Testing: book/part3-development/ch13-testing/_index.md
+    - "Part IV: Advanced":
+      - book/part4-advanced/_index.md
+      - AI/ML: book/part4-advanced/ch14-ai-ml/_index.md
+      - Organization: book/part4-advanced/ch15-organization/_index.md
+      - AI-Assisted Dev: book/part4-advanced/ch16-ai-dev/_index.md
+      - Conclusion: book/part4-advanced/ch17-conclusion/_index.md
+    - Appendices: book/appendices/_index.md
+
   - Examples:
+    - examples/index.md
     - Hello Sensor: examples/hello-sensor.md
     - Pan-Tilt Platform: examples/pan-tilt.md
     - Surface Vehicle: examples/skimmer.md
+
   - Reference:
-    - Framework Spec: reference/framework-spec.md
+    - reference/index.md
     - CLI Reference: reference/cli.md
+    - Framework Spec: reference/framework-spec.md
+
   - Community:
     - Contributing: community/contributing.md
     - Support: community/support.md
@@ -108,4 +197,4 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/gorai/gorai
 
-copyright: Copyright &copy; 2024 The Gorai Authors. Apache 2.0 License.
+copyright: Copyright &copy; 2024-2025 Greg Herlein & Luca Herlein. Apache 2.0 License.

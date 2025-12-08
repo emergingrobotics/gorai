@@ -1,6 +1,6 @@
 [book]
 title = "Gorai: Building Modern Robots with Go and NATS"
-authors = ["The Gorai Authors"]
+authors = ["Greg Herlein", "Luca Herlein"]
 description = "A comprehensive guide to building robots with the Gorai framework"
 language = "en"
 src = "src"
@@ -13,7 +13,7 @@ create-missing = false
 default-theme = "light"
 preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/gorai/gorai"
-edit-url-template = "https://github.com/gorai/gorai/edit/main/publish/book/{path}"
+edit-url-template = "https://github.com/gorai/gorai/edit/main/publish/content/{path}"
 site-url = "/book/"
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
@@ -30,6 +30,9 @@ line-numbers = true
 enable = true
 limit-results = 30
 boost-hierarchy = 2
+
+[output.html.print]
+enable = true
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
