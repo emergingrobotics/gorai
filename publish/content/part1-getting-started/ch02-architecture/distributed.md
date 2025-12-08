@@ -1,6 +1,6 @@
 ## 2.3 Distributed Architecture
 
-Gorai is distributed by default. Even a single-board robot runs multiple nodes communicating through NATS. This section explains why and how.
+GoRAI is distributed by default. Even a single-board robot runs multiple nodes communicating through NATS. This section explains why and how.
 
 ### Why Distributed Matters for Robotics
 

@@ -1,12 +1,12 @@
 ## 2.2 Core Concepts
 
-Three concepts form Gorai's foundation: Nodes, Resources, and the Resource Model. Master these, and the framework becomes intuitive.
+Three concepts form GoRAI's foundation: Nodes, Resources, and the Resource Model. Master these, and the framework becomes intuitive.
 
 > **Design Note**: These abstractions exist to make your life easier, not to impress. If something seems unnecessarily complex, file an issue—we probably got it wrong. The goal is concepts you can explain to a teammate in two minutes.
 
 ### 2.2.1 Nodes
 
-A **Node** is the fundamental unit of execution in Gorai. It represents a process that:
+A **Node** is the fundamental unit of execution in GoRAI. It represents a process that:
 
 - Connects to the NATS message bus
 - Manages one or more resources
@@ -84,7 +84,7 @@ n.FullName() // Returns "robot1.sensors"
 
 ### 2.2.2 Resources
 
-A **Resource** is anything managed by Gorai: a motor, a camera, a navigation service, a sensor. All resources implement a common interface defined in `pkg/resource/resource.go`:
+A **Resource** is anything managed by GoRAI: a motor, a camera, a navigation service, a sensor. All resources implement a common interface defined in `pkg/resource/resource.go`:
 
 ```go
 type Resource interface {
@@ -155,7 +155,7 @@ This distinction matters for organization but not for the core interface—both 
 
 ### 2.2.3 The Resource Model
 
-Gorai's resource model creates a consistent hierarchy:
+GoRAI's resource model creates a consistent hierarchy:
 
 ```
 Resource (base interface)

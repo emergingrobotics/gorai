@@ -1,10 +1,10 @@
 # Part II: Core Framework
 
-> **In This Part:** Master the building blocks of Gorai—NATS messaging, sensors, actuators, vision, services, behaviors, and coordinators.
+> **In This Part:** Master the building blocks of GoRAI—NATS messaging, sensors, actuators, vision, services, behaviors, and coordinators.
 
 ## Overview
 
-Part II is the heart of the book. Here you'll learn every component type in Gorai, how they communicate over NATS, and how to compose them into working robot systems.
+Part II is the heart of the book. Here you'll learn every component type in GoRAI, how they communicate over NATS, and how to compose them into working robot systems.
 
 We start with NATS because it's the communication backbone that everything else depends on. Then we work through components from simple (sensors) to complex (coordinators), building your understanding layer by layer.
 

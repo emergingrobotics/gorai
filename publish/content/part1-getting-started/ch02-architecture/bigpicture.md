@@ -1,10 +1,10 @@
 # Chapter 2: Mental Model & Architecture
 
-Understanding Gorai's architecture isn't about memorizing components—it's about internalizing a way of thinking about robot software. This chapter establishes the mental model that makes everything else click.
+Understanding GoRAI's architecture isn't about memorizing components—it's about internalizing a way of thinking about robot software. This chapter establishes the mental model that makes everything else click.
 
 ## 2.1 The Big Picture
 
-A Gorai robot is a collection of independent processes communicating through messages. This sounds abstract, so let's make it concrete.
+A GoRAI robot is a collection of independent processes communicating through messages. This sounds abstract, so let's make it concrete.
 
 ### System Architecture
 
@@ -39,7 +39,7 @@ Each box is a **node**—an independent process that manages one or more **resou
 
 ### The Three-Layer Model
 
-Gorai robots typically span three computational layers:
+GoRAI robots typically span three computational layers:
 
 #### Layer 1: Primary Compute
 

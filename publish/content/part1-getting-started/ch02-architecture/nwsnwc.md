@@ -1,6 +1,6 @@
 ## 2.5 Network Transparency (NWS/NWC)
 
-One of Gorai's most powerful features is network transparency: the ability to use resources the same way whether they're local (in the same process) or remote (on another machine).
+One of GoRAI's most powerful features is network transparency: the ability to use resources the same way whether they're local (in the same process) or remote (on another machine).
 
 ### Local vs Remote Resources
 
@@ -155,4 +155,4 @@ Errors propagate correctly—if the remote motor fails, the error returns throug
 
 ---
 
-With the mental model established—nodes, resources, distributed architecture, configuration, and network transparency—you're ready to understand Gorai's communication backbone. Chapter 3 dives deep into NATS.
+With the mental model established—nodes, resources, distributed architecture, configuration, and network transparency—you're ready to understand GoRAI's communication backbone. Chapter 3 dives deep into NATS.

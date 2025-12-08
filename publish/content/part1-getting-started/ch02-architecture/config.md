@@ -1,6 +1,6 @@
 ## 2.4 Configuration & Hot Reload
 
-Robots need configuration: motor directions, sensor calibrations, network addresses, behavioral parameters. Gorai provides a configuration system that works at runtime, not just at startup.
+Robots need configuration: motor directions, sensor calibrations, network addresses, behavioral parameters. GoRAI provides a configuration system that works at runtime, not just at startup.
 
 ### JSON-Based Configuration
 
@@ -142,6 +142,8 @@ func NewVisionService(deps Dependencies, conf Config) (*VisionService, error) {
 ```
 
 The configuration's `depends_on` field ensures proper initialization order. Resources start only after their dependencies are ready.
+
+*Cross-reference: See `pkg/config/` for configuration loading implementation.*
 
 ### Configuration Best Practices
 
