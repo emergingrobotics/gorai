@@ -1,0 +1,111 @@
+site_name: Gorai
+site_url: https://gorai.dev
+site_description: A lightweight, Go-based robotics framework built on NATS.io
+site_author: The Gorai Authors
+
+repo_name: gorai/gorai
+repo_url: https://github.com/gorai/gorai
+edit_uri: edit/main/publish/website/docs/
+
+theme:
+  name: material
+  language: en
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/robot
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - admonition
+  - tables
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Concepts: getting-started/concepts.md
+  - Guides:
+    - Components: guides/components.md
+    - Services: guides/services.md
+    - NATS Messaging: guides/nats.md
+    - Configuration: guides/configuration.md
+    - Testing: guides/testing.md
+  - Examples:
+    - Hello Sensor: examples/hello-sensor.md
+    - Pan-Tilt Platform: examples/pan-tilt.md
+    - Surface Vehicle: examples/skimmer.md
+  - Reference:
+    - Framework Spec: reference/framework-spec.md
+    - CLI Reference: reference/cli.md
+  - Community:
+    - Contributing: community/contributing.md
+    - Support: community/support.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/gorai/gorai
+
+copyright: Copyright &copy; 2024 The Gorai Authors. Apache 2.0 License.
