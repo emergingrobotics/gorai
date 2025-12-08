@@ -1,10 +1,10 @@
 # Chapter 13: Project Organization
 
-As your robot codebase grows, organization matters. This chapter covers best practices for Gorai projects.
+As your robot codebase grows, organization matters. This chapter covers best practices for GoRAI projects.
 
-## 13.1 The Gorai Monorepo Structure
+## 13.1 The GoRAI Monorepo Structure
 
-The main Gorai repository:
+The main GoRAI repository:
 
 ```
 github.com/gorai/gorai/
@@ -194,7 +194,7 @@ github.com/myorg/robot-fleet/
 ```markdown
 # package motor
 
-Motor component interface for Gorai.
+Motor component interface for GoRAI.
 
 ## Installation
 
@@ -263,4 +263,4 @@ go test -v -run Example
 
 ---
 
-Chapter 14 explores using AI tools to accelerate Gorai development.
+Chapter 14 explores using AI tools to accelerate GoRAI development.

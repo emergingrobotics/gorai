@@ -1,6 +1,6 @@
 # Chapter 8: Development Environment
 
-A well-configured development environment accelerates learning and productivity. This chapter covers everything you need to start building with Gorai.
+A well-configured development environment accelerates learning and productivity. This chapter covers everything you need to start building with GoRAI.
 
 > **Our Promise**: You should go from zero to running code in under 15 minutes. If it takes longer, that's a bug in our documentation—please file an issue.
 
@@ -10,7 +10,7 @@ Developer experience starts here. We've invested heavily in making setup painles
 
 ### Go 1.21+
 
-Gorai requires Go 1.21 or later for generics support.
+GoRAI requires Go 1.21 or later for generics support.
 
 **Linux (apt)**:
 ```bash
@@ -257,7 +257,7 @@ GoLand works out of the box with Go projects. Recommended settings:
 
 ## 8.5 Scripts and Automation
 
-Gorai includes helper scripts:
+GoRAI includes helper scripts:
 
 ### scripts/start.sh
 
@@ -405,7 +405,7 @@ The serial gateway translates NATS messages to a compact serial protocol.
 
 ## 8.8 Documentation as First-Class Code
 
-In Gorai, documentation isn't an afterthought—it's as important as the code itself.
+In GoRAI, documentation isn't an afterthought—it's as important as the code itself.
 
 **Why?** Because a feature nobody understands is a feature nobody uses. We want contributions, and contributors need to understand the codebase.
 

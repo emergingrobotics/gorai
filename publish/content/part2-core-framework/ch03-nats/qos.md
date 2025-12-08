@@ -1,6 +1,6 @@
 ## 3.4 Quality of Service (QoS)
 
-Not all messages have the same requirements. A control command must arrive immediately but can be lost if the subscriber isn't ready. A configuration update must be delivered reliably. Gorai provides QoS levels for these different needs.
+Not all messages have the same requirements. A control command must arrive immediately but can be lost if the subscriber isn't ready. A configuration update must be delivered reliably. GoRAI provides QoS levels for these different needs.
 
 ### BestEffort: Core NATS
 

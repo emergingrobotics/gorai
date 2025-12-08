@@ -1,6 +1,6 @@
 # Getting Started
 
-Get up and running with Gorai quickly.
+Get up and running with GoRAI quickly.
 
 <div class="grid cards" markdown>
 
@@ -8,7 +8,7 @@ Get up and running with Gorai quickly.
 
     ---
 
-    Install Go, NATS, and Gorai dependencies
+    Install Go, NATS, and GoRAI dependencies
 
     [:octicons-arrow-right-24: Install](installation.md)
 
@@ -16,7 +16,7 @@ Get up and running with Gorai quickly.
 
     ---
 
-    Build your first Gorai node in minutes
+    Build your first GoRAI node in minutes
 
     [:octicons-arrow-right-24: Quick Start](quickstart.md)
 

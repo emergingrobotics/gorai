@@ -58,7 +58,7 @@ help:
 
 container:
 	@echo "Building publishing container..."
-	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) container/
+	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) -f container/Containerfile container/
 
 docker-all: container
 	$(CONTAINER_CMD) run --rm -v $(CURDIR)/..:/workspace:Z $(CONTAINER_NAME) all

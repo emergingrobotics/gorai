@@ -32,7 +32,7 @@ The Actuator interface adds two critical safety methods:
 
 ### Safety-First Design
 
-Actuators can cause harm. Gorai's actuator design prioritizes safety:
+Actuators can cause harm. GoRAI's actuator design prioritizes safety:
 
 ```go
 func (m *Motor) SetPower(ctx context.Context, power float64) error {

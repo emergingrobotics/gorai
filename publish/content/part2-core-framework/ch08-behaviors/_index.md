@@ -16,7 +16,7 @@ After reading this chapter, you'll understand:
 - Finite state machines for sequential behaviors
 - Behavior trees for complex decision making
 - Reactive/subsumption architectures
-- Implementing behaviors in Gorai
+- Implementing behaviors in GoRAI
 
 ## Chapter Contents
 
@@ -26,7 +26,7 @@ This chapter covers behavioral architecture comprehensively:
 2. **Finite State Machines** — States, transitions, guards
 3. **Behavior Trees** — Selectors, sequences, decorators
 4. **Reactive Architectures** — Priority-based, subsumption
-5. **Gorai Behavior Patterns** — Implementation strategies
+5. **GoRAI Behavior Patterns** — Implementation strategies
 6. **Testing Behaviors** — Simulation and verification
 
 ## Key Takeaways

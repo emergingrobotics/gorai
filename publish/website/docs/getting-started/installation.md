@@ -6,7 +6,7 @@
 - NATS server (local or remote)
 - Linux (primary) or macOS (development)
 
-## Install Gorai
+## Install GoRAI
 
 ```bash
 go get github.com/gorai/gorai
@@ -34,5 +34,5 @@ go run github.com/gorai/gorai/cmd/gorai version
 
 ## Next Steps
 
-- [Quick Start](quickstart.md) - Build your first Gorai node
+- [Quick Start](quickstart.md) - Build your first GoRAI node
 - [Concepts](concepts.md) - Understand the architecture

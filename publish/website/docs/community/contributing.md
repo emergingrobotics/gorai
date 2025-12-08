@@ -1,4 +1,4 @@
-# Contributing to Gorai
+# Contributing to GoRAI
 
 We welcome contributions!
 

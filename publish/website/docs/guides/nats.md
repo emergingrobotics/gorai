@@ -1,6 +1,6 @@
 # NATS Messaging
 
-NATS is the communication backbone of Gorai.
+NATS is the communication backbone of GoRAI.
 
 ## Why NATS?
 

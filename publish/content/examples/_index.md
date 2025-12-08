@@ -1,10 +1,10 @@
 # Examples
 
-> **Working Projects:** Complete, buildable robot projects demonstrating Gorai patterns.
+> **Working Projects:** Complete, buildable robot projects demonstrating GoRAI patterns.
 
 ## Overview
 
-Learn by example. These projects demonstrate Gorai concepts in complete, working systems you can build and modify.
+Learn by example. These projects demonstrate GoRAI concepts in complete, working systems you can build and modify.
 
 ## Available Examples
 
@@ -24,7 +24,7 @@ Learn by example. These projects demonstrate Gorai concepts in complete, working
 
 [View Hello Sensor →](hello-sensor/_index.md)
 
-## Gorai-Sentinel (Pan-Tilt Platform)
+## GoRAI-Sentinel (Pan-Tilt Platform)
 
 **Your first multi-component robot.** A pan-tilt camera platform featuring:
 - Dual servo control
@@ -34,7 +34,7 @@ Learn by example. These projects demonstrate Gorai concepts in complete, working
 
 [View Pan-Tilt Platform →](pan-tilt/_index.md)
 
-## Gorai-Skimmer (Surface Vehicle)
+## GoRAI-Skimmer (Surface Vehicle)
 
 **A complete autonomous robot.** An autonomous surface vehicle including:
 - GPS navigation

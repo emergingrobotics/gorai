@@ -4,7 +4,7 @@ While `Readings()` returns dynamic maps, structured sensor data uses Protocol Bu
 
 ### The sensor.proto Definitions
 
-Gorai defines standard sensor messages in `api/proto/gorai/sensor/sensor.proto`:
+GoRAI defines standard sensor messages in `api/proto/gorai/sensor/sensor.proto`:
 
 ```protobuf
 syntax = "proto3";

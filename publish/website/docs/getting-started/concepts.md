@@ -1,6 +1,6 @@
 # Core Concepts
 
-Understanding the Gorai mental model.
+Understanding the GoRAI mental model.
 
 ## Nodes
 
@@ -8,7 +8,7 @@ A node is a process that connects to NATS and participates in the robot system.
 
 ## Resources
 
-Everything in Gorai is a Resource:
+Everything in GoRAI is a Resource:
 
 - **Components**: Hardware abstractions (motors, sensors, cameras)
 - **Services**: Software capabilities (vision, SLAM, navigation)

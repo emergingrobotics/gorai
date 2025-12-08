@@ -6,7 +6,7 @@ JetStream is NATS's persistence layer. When you need messages to survive restart
 
 **Streams** store messages:
 ```go
-// Gorai creates streams automatically when using JetStream QoS
+// GoRAI creates streams automatically when using JetStream QoS
 // But you can create them manually for advanced control
 js, _ := nc.JetStream()
 

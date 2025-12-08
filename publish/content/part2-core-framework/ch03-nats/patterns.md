@@ -1,6 +1,6 @@
-## 3.3 Gorai's NATS Patterns
+## 3.3 GoRAI's NATS Patterns
 
-Gorai builds three communication patterns on NATS: Topics (pub/sub), Services (request/reply), and Actions (long-running with feedback).
+GoRAI builds three communication patterns on NATS: Topics (pub/sub), Services (request/reply), and Actions (long-running with feedback).
 
 ### 3.3.1 Topics (Pub/Sub)
 

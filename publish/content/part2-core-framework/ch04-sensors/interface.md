@@ -4,7 +4,7 @@ Sensors are the robot's eyes, ears, and proprioception. They transform physical 
 
 ## 4.1 The Sensor Interface
 
-Every sensor in Gorai implements a simple interface from `pkg/resource/resource.go`:
+Every sensor in GoRAI implements a simple interface from `pkg/resource/resource.go`:
 
 ```go
 type Sensor interface {

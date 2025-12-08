@@ -1,12 +1,12 @@
 # Chapter 9: Hello Sensor Deep Dive
 
-This chapter walks through a complete, working Gorai component: the `hello-sensor` example. By understanding every line, you'll be ready to build your own components.
+This chapter walks through a complete, working GoRAI component: the `hello-sensor` example. By understanding every line, you'll be ready to build your own components.
 
 ## 9.1 What We're Building
 
 The hello-sensor reads CPU temperature from the host system and publishes it to NATS. It demonstrates:
 
-- Creating a Gorai node
+- Creating a GoRAI node
 - Platform-specific hardware access
 - Implementing the Sensor interface
 - Publishing structured messages
@@ -43,7 +43,7 @@ The complete code is in `examples/hello-sensor/`.
 
 **Separation of concerns**:
 - `reader/`: Platform-specific temperature reading
-- `sensor/`: Gorai component wrapping the reader
+- `sensor/`: GoRAI component wrapping the reader
 - `main.go`: Entry point orchestrating everything
 
 *Cross-reference: See Chapter 4 for the sensor interface this implements.*

@@ -1,6 +1,6 @@
 ## 3.2 NATS Fundamentals
 
-Before diving into Gorai's patterns, let's understand NATS primitives.
+Before diving into GoRAI's patterns, let's understand NATS primitives.
 
 ### Publish/Subscribe Basics
 
@@ -89,7 +89,7 @@ The client automatically:
 - Re-subscribes after reconnection
 - Buffers messages during brief outages
 
-Gorai's `node.New()` configures these sensibly by default:
+GoRAI's `node.New()` configures these sensibly by default:
 
 ```go
 n, err := node.New("my_node", node.WithNATS("nats://localhost:4222"))
@@ -118,7 +118,7 @@ During development, keep a terminal running `nats sub ">"` to watch all traffic.
 
 ### Subject Naming Conventions
 
-Gorai follows consistent naming:
+GoRAI follows consistent naming:
 
 ```
 {namespace}.{type}.{name}.{suffix}

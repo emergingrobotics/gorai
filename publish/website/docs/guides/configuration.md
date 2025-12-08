@@ -1,6 +1,6 @@
 # Configuration Guide
 
-Gorai robots are configured via JSON.
+GoRAI robots are configured via JSON.
 
 ## Example Configuration
 

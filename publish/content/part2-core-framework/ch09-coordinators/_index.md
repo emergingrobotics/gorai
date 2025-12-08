@@ -4,7 +4,7 @@
 
 ## Overview
 
-Coordinators sit at the top of Gorai's architecture, orchestrating missions that span multiple behaviors, services, and even multiple robots. They handle the big picture: task sequencing, resource allocation, failure recovery, and inter-robot coordination.
+Coordinators sit at the top of GoRAI's architecture, orchestrating missions that span multiple behaviors, services, and even multiple robots. They handle the big picture: task sequencing, resource allocation, failure recovery, and inter-robot coordination.
 
 This chapter covers mission orchestration for single robots and coordination patterns for multi-robot systems.
 

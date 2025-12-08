@@ -1,6 +1,6 @@
 # Examples
 
-Complete, working Gorai projects you can build.
+Complete, working GoRAI projects you can build.
 
 <div class="grid cards" markdown>
 
@@ -8,7 +8,7 @@ Complete, working Gorai projects you can build.
 
     ---
 
-    Your first Gorai sensor - understand the fundamentals
+    Your first GoRAI sensor - understand the fundamentals
 
     **Complexity**: Beginner
     **Hardware**: None required
@@ -55,4 +55,4 @@ Complete, working Gorai projects you can build.
 
 ## Source Code
 
-All examples have complete source code in the [Gorai repository](https://github.com/gorai/gorai/tree/main/examples).
+All examples have complete source code in the [GoRAI repository](https://github.com/gorai/gorai/tree/main/examples).

@@ -117,7 +117,7 @@ This matters for:
 
 ### Dependency Injection
 
-Resources often depend on other resources. A vision service needs a camera. A navigation service needs motors and sensors. Gorai manages these dependencies explicitly:
+Resources often depend on other resources. A vision service needs a camera. A navigation service needs motors and sensors. GoRAI manages these dependencies explicitly:
 
 ```go
 type Dependencies interface {

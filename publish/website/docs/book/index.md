@@ -1,4 +1,4 @@
-# The Gorai Book
+# The GoRAI Book
 
 **Building Modern Robots with Go and NATS**
 
@@ -6,7 +6,7 @@
 
 ---
 
-This comprehensive guide takes you from first principles through advanced topics in building robotics software with Gorai. Whether you prefer to read sequentially or jump to specific topics, you'll find everything you need here.
+This comprehensive guide takes you from first principles through advanced topics in building robotics software with GoRAI. Whether you prefer to read sequentially or jump to specific topics, you'll find everything you need here.
 
 ## Book Structure
 
@@ -16,7 +16,7 @@ This comprehensive guide takes you from first principles through advanced topics
 
     ---
 
-    Why Gorai exists, core concepts, and the mental model for thinking about robot software as distributed systems.
+    Why GoRAI exists, core concepts, and the mental model for thinking about robot software as distributed systems.
 
     [:octicons-arrow-right-24: Start Here](part1-getting-started/_index.md)
 
@@ -52,7 +52,7 @@ This comprehensive guide takes you from first principles through advanced topics
 
 | Chapter | Description |
 |---------|-------------|
-| [Why Gorai?](part1-getting-started/ch01-why-gorai/_index.md) | The robotics landscape, design philosophy, and what you'll build |
+| [Why GoRAI?](part1-getting-started/ch01-why-gorai/_index.md) | The robotics landscape, design philosophy, and what you'll build |
 | [Architecture](part1-getting-started/ch02-architecture/_index.md) | The big picture, core concepts, distributed systems thinking |
 
 ### Part II: Core Framework
@@ -64,7 +64,7 @@ This comprehensive guide takes you from first principles through advanced topics
 | [Actuators](part2-core-framework/ch05-actuators/_index.md) | Motors, servos, control patterns, bases and arms |
 | [Vision](part2-core-framework/ch06-vision/_index.md) | Cameras, data flow, computer vision integration |
 | [Services](part2-core-framework/ch07-services/_index.md) | Service architecture and implementation |
-| [Behaviors](part2-core-framework/ch08-behaviors/_index.md) | Behavior-based robotics with Gorai |
+| [Behaviors](part2-core-framework/ch08-behaviors/_index.md) | Behavior-based robotics with GoRAI |
 | [Coordinators](part2-core-framework/ch09-coordinators/_index.md) | Orchestrating complex robot behaviors |
 
 ### Part III: Development
@@ -83,7 +83,7 @@ This comprehensive guide takes you from first principles through advanced topics
 | [AI/ML Integration](part4-advanced/ch14-ai-ml/_index.md) | Running ML models on edge hardware |
 | [Project Organization](part4-advanced/ch15-organization/_index.md) | Structuring code that scales |
 | [AI-Assisted Dev](part4-advanced/ch16-ai-dev/_index.md) | Using AI tools in robotics development |
-| [Conclusion](part4-advanced/ch17-conclusion/_index.md) | What's next for you and Gorai |
+| [Conclusion](part4-advanced/ch17-conclusion/_index.md) | What's next for you and GoRAI |
 
 ### Reference
 
@@ -120,4 +120,4 @@ Want to read offline?
 
 ---
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+*Pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")*

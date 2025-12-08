@@ -1,6 +1,6 @@
 # Guides
 
-Practical guides for working with Gorai.
+Practical guides for working with GoRAI.
 
 <div class="grid cards" markdown>
 

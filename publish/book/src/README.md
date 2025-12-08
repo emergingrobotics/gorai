@@ -34,7 +34,7 @@ If something confuses you, that's a bug in our documentation. Please file an iss
 
 By the end of this book, you'll understand:
 
-- **The Gorai mental model**: How to think about robot software as distributed systems
+- **The GoRAI mental model**: How to think about robot software as distributed systems
 - **NATS messaging**: Pub/sub, request/reply, and streaming for robotics
 - **Component architecture**: Sensors, actuators, cameras—building blocks that compose
 - **Service design**: Vision, navigation, and custom capabilities
@@ -46,7 +46,7 @@ By the end of this book, you'll understand:
 
 | Part | Focus |
 |------|-------|
-| **Part I: Getting Started** | Why Gorai exists and how to think about robot software |
+| **Part I: Getting Started** | Why GoRAI exists and how to think about robot software |
 | **Part II: Core Framework** | NATS, components, services, behaviors, coordinators |
 | **Part III: Development** | Environment setup, tutorials, testing |
 | **Part IV: Advanced** | AI/ML, project organization, future |
@@ -63,10 +63,10 @@ By the end of this book, you'll understand:
 
 ## Let's Build
 
-The best way to learn robotics is to build robots. The best way to learn Gorai is to use it.
+The best way to learn robotics is to build robots. The best way to learn GoRAI is to use it.
 
 Fire up your terminal. Clone the repository. Let's get started.
 
 ---
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+*Pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")*

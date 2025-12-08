@@ -1,10 +1,10 @@
 # Chapter 3: NATS - The Communication Backbone
 
-NATS is the foundation of Gorai's communication. Understanding NATS deeply transforms how you think about robot architecture.
+NATS is the foundation of GoRAI's communication. Understanding NATS deeply transforms how you think about robot architecture.
 
 ## 3.1 Why NATS?
 
-Gorai could have built on many messaging systems: ROS 2's DDS, ZeroMQ, gRPC, MQTT, or custom protocols. NATS won for compelling reasons.
+GoRAI could have built on many messaging systems: ROS 2's DDS, ZeroMQ, gRPC, MQTT, or custom protocols. NATS won for compelling reasons.
 
 ### Cloud-Native Messaging for Robotics
 
@@ -60,7 +60,7 @@ Core NATS is fire-and-forget: if no subscriber is listening, messages disappear.
 - **Replay**: New subscribers can catch up on history
 - **Acknowledgment**: Ensure messages are processed
 
-Gorai uses core NATS for real-time data (sensor streams, control commands) and JetStream when durability matters (configuration updates, logged data, mission waypoints).
+GoRAI uses core NATS for real-time data (sensor streams, control commands) and JetStream when durability matters (configuration updates, logged data, mission waypoints).
 
 ```go
 // Core NATS: fast, no persistence

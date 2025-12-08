@@ -1,6 +1,6 @@
 ## 9.4 The Sensor Component
 
-The sensor package wraps the reader in a Gorai component.
+The sensor package wraps the reader in a GoRAI component.
 
 ### 9.4.1 Implementing resource.Resource
 

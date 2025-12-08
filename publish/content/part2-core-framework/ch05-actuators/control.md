@@ -155,7 +155,7 @@ Control loops can run at different levels:
 - Fast response (100µs - 1ms)
 - Custom control algorithms
 
-**Gorai on Linux**: Higher-level control
+**GoRAI on Linux**: Higher-level control
 - Slower response (1-10ms)
 - Suitable for position control, trajectory tracking
 - Not suitable for commutation, current control

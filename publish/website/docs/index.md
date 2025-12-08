@@ -1,14 +1,14 @@
-# Gorai
+# GoRAI
 
 **A lightweight, Go-based robotics framework built on NATS.io**
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+*Pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")*
 
 ---
 
-## What is Gorai?
+## What is GoRAI?
 
-Gorai is a modern robotics framework that provides:
+GoRAI is a modern robotics framework that provides:
 
 - **NATS-based messaging** for pub/sub, request/reply, and persistence
 - **Protocol Buffer serialization** for type-safe communication
@@ -17,9 +17,9 @@ Gorai is a modern robotics framework that provides:
 - **Hot reconfiguration** without restart
 - **TinyGo compatibility** for microcontrollers
 
-## Why Gorai?
+## Why GoRAI?
 
-| Aspect | Gorai | ROS 2 | Viam |
+| Aspect | GoRAI | ROS 2 | Viam |
 |--------|-------|-------|------|
 | **Language** | Go + TinyGo | C++/Python | Go |
 | **Middleware** | NATS | DDS | gRPC |
@@ -53,7 +53,7 @@ n.Spin(ctx)
 
     ---
 
-    Install Gorai and its dependencies
+    Install GoRAI and its dependencies
 
     [:octicons-arrow-right-24: Install](getting-started/installation.md)
 
@@ -61,7 +61,7 @@ n.Spin(ctx)
 
     ---
 
-    Build your first Gorai node in minutes
+    Build your first GoRAI node in minutes
 
     [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
 
@@ -85,7 +85,7 @@ n.Spin(ctx)
 
 ## Example Projects
 
-### Gorai-Sentinel
+### GoRAI-Sentinel
 
 Pan-tilt sensor fusion platform with camera, ToF depth sensor, and servo control.
 
@@ -93,7 +93,7 @@ Pan-tilt sensor fusion platform with camera, ToF depth sensor, and servo control
 
 [Learn more](examples/pan-tilt.md)
 
-### Gorai-Skimmer
+### GoRAI-Skimmer
 
 Autonomous surface vehicle for bathymetry and water monitoring.
 

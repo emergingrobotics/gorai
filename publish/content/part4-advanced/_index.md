@@ -4,7 +4,7 @@
 
 ## Overview
 
-Part IV covers advanced topics that will take your Gorai projects to the next level. You'll learn to run ML models on edge hardware, organize code for growing projects and teams, use AI tools to accelerate development, and understand where Gorai is headed.
+Part IV covers advanced topics that will take your GoRAI projects to the next level. You'll learn to run ML models on edge hardware, organize code for growing projects and teams, use AI tools to accelerate development, and understand where GoRAI is headed.
 
 These chapters are more independent than earlier parts—read them based on your interests and needs.
 
@@ -25,7 +25,7 @@ By the end of Part IV, you'll understand:
 - **Model deployment**: ONNX, quantization, inference pipelines
 - **Code organization**: When to use monorepos vs separate packages
 - **AI-assisted workflows**: Effective prompting for robotics code
-- **Community involvement**: How to contribute to Gorai
+- **Community involvement**: How to contribute to GoRAI
 
 ## Prerequisites
 

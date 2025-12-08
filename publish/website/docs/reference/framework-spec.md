@@ -1,10 +1,10 @@
 # Framework Specification
 
-The complete technical specification for Gorai.
+The complete technical specification for GoRAI.
 
 ## Overview
 
-Gorai is a robotics framework providing:
+GoRAI is a robotics framework providing:
 
 - NATS-based messaging
 - Protocol Buffer serialization

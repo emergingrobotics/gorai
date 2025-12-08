@@ -1,10 +1,10 @@
-# Gorai-Skimmer: Surface Vehicle
+# GoRAI-Skimmer: Surface Vehicle
 
 An autonomous surface vehicle for bathymetry and water monitoring.
 
 ## Overview
 
-Gorai-Skimmer is a boogie-board sized ASV with:
+GoRAI-Skimmer is a boogie-board sized ASV with:
 
 - Differential thrust propulsion
 - GPS navigation

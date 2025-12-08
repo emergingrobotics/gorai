@@ -1,12 +1,12 @@
 # Chapter 3: NATS Messaging
 
-> **In This Chapter:** Master NATS—the communication backbone of Gorai. Learn pub/sub, request/reply, QoS levels, and JetStream persistence.
+> **In This Chapter:** Master NATS—the communication backbone of GoRAI. Learn pub/sub, request/reply, QoS levels, and JetStream persistence.
 
 ## Overview
 
-NATS is to Gorai what DDS is to ROS 2—the messaging layer that connects everything. But NATS comes from the cloud-native world, bringing lessons learned from operating systems at massive scale. It's simple, fast, and proven.
+NATS is to GoRAI what DDS is to ROS 2—the messaging layer that connects everything. But NATS comes from the cloud-native world, bringing lessons learned from operating systems at massive scale. It's simple, fast, and proven.
 
-This chapter gives you deep understanding of NATS and how Gorai uses it. We start with fundamentals (publish/subscribe, request/reply), move to Gorai-specific patterns (topics, services, actions), cover quality of service options, and finish with JetStream for persistence.
+This chapter gives you deep understanding of NATS and how GoRAI uses it. We start with fundamentals (publish/subscribe, request/reply), move to GoRAI-specific patterns (topics, services, actions), cover quality of service options, and finish with JetStream for persistence.
 
 ## What You'll Learn
 
@@ -25,7 +25,7 @@ After reading this chapter, you'll understand:
 |---------|-------------|
 | [Why NATS?](whynats.md) | Comparison with alternatives, cloud-native heritage |
 | [Fundamentals](fundamentals.md) | Subjects, publish, subscribe, wildcards |
-| [Gorai Patterns](patterns.md) | Topics, services, actions—Gorai's NATS conventions |
+| [GoRAI Patterns](patterns.md) | Topics, services, actions—GoRAI's NATS conventions |
 | [Quality of Service](qos.md) | BestEffort, Reliable, Retained, History |
 | [JetStream](jetstream.md) | Streams, consumers, persistence |
 | [NATS CLI](cli.md) | Debugging and monitoring with `nats` command |

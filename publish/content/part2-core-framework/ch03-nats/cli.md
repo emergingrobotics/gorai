@@ -1,6 +1,6 @@
 ## 3.6 The NATS CLI
 
-The `nats` command-line tool is indispensable for Gorai development. It lets you observe, debug, and interact with the message bus directly.
+The `nats` command-line tool is indispensable for GoRAI development. It lets you observe, debug, and interact with the message bus directly.
 
 ### Installation
 
@@ -171,4 +171,4 @@ nats stream view SENSOR_DATA --json > data.jsonl
 
 ---
 
-With a solid understanding of NATS—its patterns, QoS levels, JetStream features, and debugging tools—you're ready to explore how Gorai uses these capabilities for specific component types. Chapter 4 begins with sensors.
+With a solid understanding of NATS—its patterns, QoS levels, JetStream features, and debugging tools—you're ready to explore how GoRAI uses these capabilities for specific component types. Chapter 4 begins with sensors.

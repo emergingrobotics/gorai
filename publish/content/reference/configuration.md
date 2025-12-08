@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Gorai uses YAML configuration files for node and component settings.
+GoRAI uses YAML configuration files for node and component settings.
 
 ## Configuration File
 

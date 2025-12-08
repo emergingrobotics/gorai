@@ -39,7 +39,7 @@ For microcontrollers, TinyGo brings the same language to resource-constrained de
 
 ### NATS-Native
 
-While ROS 2 chose DDS—a complex enterprise middleware with multiple competing implementations—Gorai builds on NATS, a messaging system designed for cloud-native applications.
+While ROS 2 chose DDS—a complex enterprise middleware with multiple competing implementations—GoRAI builds on NATS, a messaging system designed for cloud-native applications.
 
 NATS brings:
 - **Simplicity**: A single binary, zero configuration to start

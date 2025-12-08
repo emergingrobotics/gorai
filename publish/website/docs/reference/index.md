@@ -1,6 +1,6 @@
 # Reference
 
-Technical reference documentation for Gorai.
+Technical reference documentation for GoRAI.
 
 <div class="grid cards" markdown>
 

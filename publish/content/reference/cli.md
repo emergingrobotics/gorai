@@ -1,8 +1,8 @@
 # CLI Reference
 
-Gorai command-line tools and scripts.
+GoRAI command-line tools and scripts.
 
-## Gorai Scripts
+## GoRAI Scripts
 
 | Script | Purpose |
 |--------|---------|

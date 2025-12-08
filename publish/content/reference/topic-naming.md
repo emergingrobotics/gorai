@@ -1,6 +1,6 @@
 # Topic Naming Reference
 
-NATS topic (subject) naming conventions for Gorai.
+NATS topic (subject) naming conventions for GoRAI.
 
 ## Hierarchical Structure
 

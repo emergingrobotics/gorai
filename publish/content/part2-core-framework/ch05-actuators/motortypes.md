@@ -13,7 +13,7 @@ Simple, cheap, high-power motors controlled by voltage/PWM:
 - Reversible by polarity swap
 - Require H-bridge driver for bidirectional control
 
-**Gorai implementation considerations**:
+**GoRAI implementation considerations**:
 ```go
 type DCMotor struct {
     pwmPin    gpio.PWMPin
@@ -51,7 +51,7 @@ Precise positioning without encoders:
 - Lower top speed than DC motors
 - Holding torque at rest
 
-**Gorai implementation considerations**:
+**GoRAI implementation considerations**:
 ```go
 type StepperMotor struct {
     stepPin   gpio.Pin
@@ -105,7 +105,7 @@ Position-controlled motors with built-in feedback:
 - **Smart Servos**: Serial protocol (Dynamixel, Herkulex), full rotation
 - **Industrial Servos**: CAN/EtherCAT, high power
 
-**Gorai implementation for RC servo**:
+**GoRAI implementation for RC servo**:
 ```go
 type RCServo struct {
     pwmPin gpio.PWMPin

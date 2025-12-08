@@ -1,6 +1,6 @@
 # Hardware Compatibility
 
-This appendix lists hardware tested and supported with Gorai.
+This appendix lists hardware tested and supported with GoRAI.
 
 ## Supported SBCs
 
@@ -40,7 +40,7 @@ This appendix lists hardware tested and supported with Gorai.
 
 ## Common Sensors
 
-| Sensor | Interface | Gorai Support |
+| Sensor | Interface | GoRAI Support |
 |--------|-----------|---------------|
 | MPU6050 | I2C | Example available |
 | BME280 | I2C/SPI | Example available |
@@ -53,7 +53,7 @@ This appendix lists hardware tested and supported with Gorai.
 
 ## Common Actuators
 
-| Actuator | Interface | Gorai Support |
+| Actuator | Interface | GoRAI Support |
 |----------|-----------|---------------|
 | DC Motors | PWM+GPIO | Included |
 | Steppers | GPIO | Example available |

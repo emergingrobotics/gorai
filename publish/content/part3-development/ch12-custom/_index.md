@@ -1,6 +1,6 @@
 # Chapter 10: Building Custom Components
 
-Now that you understand Gorai's patterns through hello-sensor, let's build custom components from scratch.
+Now that you understand GoRAI's patterns through hello-sensor, let's build custom components from scratch.
 
 ## 10.1 When to Create a Component
 

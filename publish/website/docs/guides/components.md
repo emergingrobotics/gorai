@@ -1,6 +1,6 @@
 # Components Guide
 
-Components are hardware abstractions in Gorai.
+Components are hardware abstractions in GoRAI.
 
 ## Component Types
 

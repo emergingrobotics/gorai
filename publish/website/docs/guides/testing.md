@@ -1,6 +1,6 @@
 # Testing Guide
 
-Testing strategies for Gorai applications.
+Testing strategies for GoRAI applications.
 
 ## The Testing Pyramid
 
@@ -10,7 +10,7 @@ Testing strategies for Gorai applications.
 
 ## Using Fakes
 
-Gorai provides fake implementations for testing:
+GoRAI provides fake implementations for testing:
 
 ```go
 motor := fake.NewMotor()

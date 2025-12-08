@@ -1,6 +1,6 @@
 # Community
 
-Join the Gorai community.
+Join the GoRAI community.
 
 <div class="grid cards" markdown>
 
@@ -8,7 +8,7 @@ Join the Gorai community.
 
     ---
 
-    How to contribute to Gorai
+    How to contribute to GoRAI
 
     [:octicons-arrow-right-24: Contribute](contributing.md)
 
@@ -16,7 +16,7 @@ Join the Gorai community.
 
     ---
 
-    Get help with Gorai
+    Get help with GoRAI
 
     [:octicons-arrow-right-24: Get Help](support.md)
 
@@ -34,4 +34,4 @@ Join the Gorai community.
 2. **Suggest features** - Share ideas for new functionality
 3. **Improve docs** - Fix typos, clarify explanations
 4. **Write code** - Submit pull requests
-5. **Share projects** - Show what you've built with Gorai
+5. **Share projects** - Show what you've built with GoRAI

@@ -1,13 +1,13 @@
 # Glossary
 
-Terms and definitions used throughout Gorai documentation.
+Terms and definitions used throughout GoRAI documentation.
 
 | Term | Definition |
 |------|------------|
 | **Actuator** | Component that performs physical actions (motors, servos, relays) |
 | **Base** | Actuator representing a mobile platform (differential drive, holonomic) |
 | **Behavior** | High-level robot action composed of sensor reads and actuator commands |
-| **Component** | Hardware abstraction in Gorai - sensors, actuators, cameras |
+| **Component** | Hardware abstraction in GoRAI - sensors, actuators, cameras |
 | **Consumer** | NATS entity that receives messages from a stream |
 | **Coordinator** | Module that orchestrates behaviors and manages robot state |
 | **DDS** | Data Distribution Service - middleware used by ROS 2 |
@@ -16,7 +16,7 @@ Terms and definitions used throughout Gorai documentation.
 | **GPIO** | General Purpose Input/Output pins on SBCs |
 | **I2C** | Inter-Integrated Circuit - serial communication protocol |
 | **JetStream** | NATS persistence and streaming layer |
-| **Node** | Gorai process managing resources and NATS connection |
+| **Node** | GoRAI process managing resources and NATS connection |
 | **NPU** | Neural Processing Unit - accelerator for ML inference |
 | **NWC** | Network Wrapper Client - consumes remote resources over NATS |
 | **NWS** | Network Wrapper Server - exposes local resources over NATS |
@@ -25,7 +25,7 @@ Terms and definitions used throughout Gorai documentation.
 | **Proto / Protobuf** | Protocol Buffers - binary serialization format |
 | **PWM** | Pulse Width Modulation - technique for analog-like signals |
 | **QoS** | Quality of Service - delivery guarantees for messages |
-| **Resource** | Base interface for all Gorai components and services |
+| **Resource** | Base interface for all GoRAI components and services |
 | **SBC** | Single Board Computer (Raspberry Pi, etc.) |
 | **Sensor** | Component that provides readings from the physical world |
 | **Service** | Software capability exposing request/reply functionality |

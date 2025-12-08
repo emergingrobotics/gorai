@@ -1,10 +1,10 @@
 # Support
 
-Getting help with Gorai.
+Getting help with GoRAI.
 
 ## Documentation
 
-- [The Gorai Book](/book/) - Comprehensive tutorial
+- [The GoRAI Book](/book/) - Comprehensive tutorial
 - [Framework Specification](../reference/framework-spec.md) - Technical details
 
 ## Community
@@ -16,7 +16,7 @@ Getting help with Gorai.
 
 When reporting issues, please include:
 
-1. Gorai version
+1. GoRAI version
 2. Go version
 3. Operating system
 4. Steps to reproduce

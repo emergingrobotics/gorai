@@ -1,6 +1,6 @@
 # Hello Sensor Example
 
-The Hello Sensor is your introduction to Gorai development. It demonstrates core concepts with minimal complexity.
+The Hello Sensor is your introduction to GoRAI development. It demonstrates core concepts with minimal complexity.
 
 ## What You'll Build
 
@@ -8,7 +8,7 @@ A sensor that reads CPU temperature and publishes it over NATS.
 
 ## What You'll Learn
 
-- Creating a Gorai node
+- Creating a GoRAI node
 - Implementing the Sensor interface
 - Platform-specific hardware access
 - Publishing structured messages

@@ -7,7 +7,7 @@
 # Part I: Getting Started
 
 - [Part Overview](part1-getting-started/_index.md)
-- [Why Gorai?](part1-getting-started/ch01-why-gorai/_index.md)
+- [Why GoRAI?](part1-getting-started/ch01-why-gorai/_index.md)
     - [The Robotics Landscape](part1-getting-started/ch01-why-gorai/landscape.md)
     - [Design Philosophy](part1-getting-started/ch01-why-gorai/philosophy.md)
     - [Target Audience](part1-getting-started/ch01-why-gorai/audience.md)
@@ -28,7 +28,7 @@
 - [NATS Messaging](part2-core-framework/ch03-nats/_index.md)
     - [Why NATS?](part2-core-framework/ch03-nats/whynats.md)
     - [Fundamentals](part2-core-framework/ch03-nats/fundamentals.md)
-    - [Gorai Patterns](part2-core-framework/ch03-nats/patterns.md)
+    - [GoRAI Patterns](part2-core-framework/ch03-nats/patterns.md)
     - [Quality of Service](part2-core-framework/ch03-nats/qos.md)
     - [JetStream](part2-core-framework/ch03-nats/jetstream.md)
     - [NATS CLI](part2-core-framework/ch03-nats/cli.md)

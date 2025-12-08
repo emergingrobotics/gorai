@@ -2,7 +2,7 @@
 
 ## Appendix A: Command Reference
 
-### Gorai Scripts
+### GoRAI Scripts
 
 | Script | Purpose |
 |--------|---------|
@@ -15,7 +15,7 @@
 | Command | Purpose |
 |---------|---------|
 | `nats sub ">"` | Subscribe to all messages |
-| `nats sub "gorai.>"` | Subscribe to Gorai messages |
+| `nats sub "gorai.>"` | Subscribe to GoRAI messages |
 | `nats pub TOPIC DATA` | Publish message |
 | `nats request TOPIC DATA` | Request/reply |
 | `nats server info` | Server information |
@@ -182,7 +182,7 @@ message NavSatFix {
 
 ### Common Sensors
 
-| Sensor | Interface | Gorai Support |
+| Sensor | Interface | GoRAI Support |
 |--------|-----------|---------------|
 | MPU6050 | I2C | Example available |
 | BME280 | I2C/SPI | Example available |
@@ -192,7 +192,7 @@ message NavSatFix {
 
 ### Common Actuators
 
-| Actuator | Interface | Gorai Support |
+| Actuator | Interface | GoRAI Support |
 |----------|-----------|---------------|
 | DC Motors | PWM+GPIO | Included |
 | Steppers | GPIO | Example available |
@@ -280,10 +280,10 @@ cgo: C compiler "gcc" not found
 | Term | Definition |
 |------|------------|
 | **Actuator** | Component that performs physical actions (motors, servos) |
-| **Component** | Hardware abstraction in Gorai |
+| **Component** | Hardware abstraction in GoRAI |
 | **Fake** | Test implementation that simulates real hardware |
 | **JetStream** | NATS persistence layer |
-| **Node** | Gorai process managing resources and NATS connection |
+| **Node** | GoRAI process managing resources and NATS connection |
 | **NPU** | Neural Processing Unit for ML inference |
 | **NWC** | Network Wrapper Client - consumes remote resources |
 | **NWS** | Network Wrapper Server - exposes resources |
@@ -296,4 +296,4 @@ cgo: C compiler "gcc" not found
 
 ---
 
-*End of Gorai Book*
+*End of GoRAI Book*

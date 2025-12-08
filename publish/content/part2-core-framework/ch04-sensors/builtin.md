@@ -1,6 +1,6 @@
 ## 4.2 Built-in Sensor Types
 
-Gorai provides interfaces and implementations for common sensor types. Each builds on the base Sensor interface with domain-specific methods and data structures.
+GoRAI provides interfaces and implementations for common sensor types. Each builds on the base Sensor interface with domain-specific methods and data structures.
 
 ### 4.2.1 Temperature Sensor
 
@@ -50,7 +50,7 @@ map[string]any{
 }
 ```
 
-**Coordinate frames** matter for IMUs. Gorai follows REP 103 conventions:
+**Coordinate frames** matter for IMUs. GoRAI follows REP 103 conventions:
 - X: Forward
 - Y: Left
 - Z: Up
@@ -102,7 +102,7 @@ map[string]any{
 $GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,47.0,M,,*47
 ```
 
-Gorai GPS implementations parse these into structured data.
+GoRAI GPS implementations parse these into structured data.
 
 **Integration with navigation**: GPS alone isn't sufficient for robot localization—it's too slow and inaccurate. Combine with IMU and wheel odometry for sensor fusion.
 

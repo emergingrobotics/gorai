@@ -1,6 +1,6 @@
 # Chapter 14: AI-Assisted Development
 
-Gorai is designed with AI-assisted development in mind. Clear interfaces, consistent patterns, and comprehensive specifications make AI tools effective collaborators.
+GoRAI is designed with AI-assisted development in mind. Clear interfaces, consistent patterns, and comprehensive specifications make AI tools effective collaborators.
 
 ## 14.1 The AI Development Philosophy
 
@@ -17,7 +17,7 @@ This isn't about replacing developers—it's about amplifying them:
 ### Component Generation
 
 ```
-Create a Gorai motor component for the L298N dual H-bridge that implements
+Create a GoRAI motor component for the L298N dual H-bridge that implements
 the motor.Motor interface. Include:
 - SetPower with power clamping to configured max
 - Direction control via IN1/IN2 pins
@@ -41,7 +41,7 @@ Write table-driven tests for the DRV8833 motor's SetPower method covering:
 - Normal cases: 0, 0.5, 1.0, -0.5, -1.0
 - Edge cases: values beyond range (clamp), exactly at limits
 - Error conditions: motor in fault state, closed motor
-Follow Gorai's testing patterns from specs/testing-approach.md
+Follow GoRAI's testing patterns from specs/testing-approach.md
 ```
 
 ### Protocol Buffer Design
@@ -135,7 +135,7 @@ Help me debug the message flow.
 
 ## 14.6 Specification to Implementation
 
-Gorai's specs are designed for AI consumption:
+GoRAI's specs are designed for AI consumption:
 
 ```
 Implement the temperature sensor described in specs/hello-sensor-design.md.
@@ -202,7 +202,7 @@ These require human verification and testing.
 VS Code with Copilot/Cody:
 - Inline completions as you type
 - Chat for questions and generation
-- Reference Gorai patterns in prompts
+- Reference GoRAI patterns in prompts
 
 ### CLI Tools
 
@@ -210,7 +210,7 @@ Use AI from command line:
 
 ```bash
 # Generate component
-ai "Create a Gorai component for BMP280 temperature/pressure sensor"
+ai "Create a GoRAI component for BMP280 temperature/pressure sensor"
 
 # Explain code
 ai "Explain what this NATS subscription does" < code.go
@@ -234,4 +234,4 @@ Help me understand platform-specific issues.
 
 ---
 
-With all the technical foundations in place, Chapter 15 concludes with the Gorai vision and next steps.
+With all the technical foundations in place, Chapter 15 concludes with the GoRAI vision and next steps.

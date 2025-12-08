@@ -1,10 +1,10 @@
 # Chapter 11: Hello Sensor Deep Dive
 
-> **In This Chapter:** Build a complete, production-quality temperature sensor from scratch. Learn patterns you'll use for every Gorai component.
+> **In This Chapter:** Build a complete, production-quality temperature sensor from scratch. Learn patterns you'll use for every GoRAI component.
 
 ## Overview
 
-The best way to learn Gorai is to build something real. This chapter walks through the "hello-sensor" example in complete detail—a CPU temperature sensor that reads thermal data, publishes to NATS, and includes proper testing infrastructure.
+The best way to learn GoRAI is to build something real. This chapter walks through the "hello-sensor" example in complete detail—a CPU temperature sensor that reads thermal data, publishes to NATS, and includes proper testing infrastructure.
 
 This isn't a toy example. The patterns here—platform abstraction, fake implementations, statistics tracking, graceful shutdown—are exactly what you'll use in production code.
 
@@ -12,7 +12,7 @@ This isn't a toy example. The patterns here—platform abstraction, fake impleme
 
 After reading this chapter, you'll understand:
 
-- Complete structure of a Gorai component
+- Complete structure of a GoRAI component
 - Platform-specific code with build tags
 - The reader/sensor separation pattern
 - Implementing the Sensor interface
@@ -69,10 +69,10 @@ You should have a working Go environment with NATS available.
 ```
 
 <!-- book-only -->
-*This is the most important chapter in Part III. The patterns established here recur throughout Gorai development. Take time to understand each piece.*
+*This is the most important chapter in Part III. The patterns established here recur throughout GoRAI development. Take time to understand each piece.*
 <!-- /book-only -->
 
 <!-- website-only -->
 !!! success "Reference Implementation"
-    This example serves as a reference for all Gorai component development. Bookmark it!
+    This example serves as a reference for all GoRAI component development. Bookmark it!
 <!-- /website-only -->

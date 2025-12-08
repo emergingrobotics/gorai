@@ -1,6 +1,6 @@
 # Part III: Development
 
-> **In This Part:** Set up your development environment, build your first complete Gorai project, create custom components, and master testing strategies.
+> **In This Part:** Set up your development environment, build your first complete GoRAI project, create custom components, and master testing strategies.
 
 ## Overview
 
@@ -13,7 +13,7 @@ This is the most hands-on part of the book. Expect to write code, run tests, and
 | Chapter | Title | What You'll Learn |
 |---------|-------|-------------------|
 | [Chapter 10](ch10-devenv/_index.md) | Development Environment | Go setup, NATS, tools, hardware configuration |
-| [Chapter 11](ch11-hello-sensor/_index.md) | Hello Sensor Tutorial | Complete walkthrough of a real Gorai component |
+| [Chapter 11](ch11-hello-sensor/_index.md) | Hello Sensor Tutorial | Complete walkthrough of a real GoRAI component |
 | [Chapter 12](ch12-custom/_index.md) | Custom Components | Creating your own sensors, motors, and services |
 | [Chapter 13](ch13-testing/_index.md) | Testing | Unit tests, component tests, integration tests, fakes |
 
@@ -21,8 +21,8 @@ This is the most hands-on part of the book. Expect to write code, run tests, and
 
 By the end of Part III, you'll understand:
 
-- **Development workflow**: Edit, test, run cycle with Gorai
-- **Project structure**: How to organize Gorai code
+- **Development workflow**: Edit, test, run cycle with GoRAI
+- **Project structure**: How to organize GoRAI code
 - **Platform-specific code**: Build tags for Linux, macOS, etc.
 - **The fake pattern**: Test doubles for every component
 - **Testing pyramid**: Unit → Component → Integration → System → Hardware
@@ -44,10 +44,10 @@ You'll also need:
 
 | Chapter | Project | Outcome |
 |---------|---------|---------|
-| 10 | Environment Setup | Working Gorai development environment |
+| 10 | Environment Setup | Working GoRAI development environment |
 | 11 | Hello Sensor | Complete temperature sensor with NATS publishing |
 | 12 | Custom Motor | Your own motor driver with fake implementation |
-| 13 | Test Suite | Comprehensive tests for a Gorai component |
+| 13 | Test Suite | Comprehensive tests for a GoRAI component |
 
 <!-- book-only -->
 *Work through Chapter 11 completely before attempting Chapter 12. The Hello Sensor example establishes patterns you'll use repeatedly.*

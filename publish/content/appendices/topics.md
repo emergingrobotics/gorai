@@ -1,10 +1,10 @@
 # NATS Topics Reference
 
-This appendix covers NATS topic naming conventions and patterns used in Gorai.
+This appendix covers NATS topic naming conventions and patterns used in GoRAI.
 
 ## Topic Hierarchy
 
-Gorai uses a hierarchical topic structure:
+GoRAI uses a hierarchical topic structure:
 
 ```
 gorai.<domain>.<component>.<type>.<instance>
@@ -53,7 +53,7 @@ NATS supports two wildcards:
 | Command | Purpose |
 |---------|---------|
 | `nats sub ">"` | Subscribe to all messages |
-| `nats sub "gorai.>"` | Subscribe to Gorai messages |
+| `nats sub "gorai.>"` | Subscribe to GoRAI messages |
 | `nats pub TOPIC DATA` | Publish message |
 | `nats request TOPIC DATA` | Request/reply |
 | `nats server info` | Server information |

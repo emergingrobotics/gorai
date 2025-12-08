@@ -1,6 +1,6 @@
 # Surface Vehicle Example
 
-The Gorai-Skimmer is an autonomous surface vehicle for water monitoring and bathymetry.
+The GoRAI-Skimmer is an autonomous surface vehicle for water monitoring and bathymetry.
 
 ## What You'll Build
 

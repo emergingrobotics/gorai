@@ -5,7 +5,7 @@ We've covered a lot of ground. Let's step back and see the whole picture.
 ## 15.1 What We've Covered
 
 **Foundations** (Chapters 1-3):
-- Why Gorai exists: filling the gap between heavy frameworks and from-scratch development
+- Why GoRAI exists: filling the gap between heavy frameworks and from-scratch development
 - The mental model: nodes, resources, distributed architecture
 - NATS as the communication backbone: topics, services, actions, QoS
 
@@ -30,7 +30,7 @@ We've covered a lot of ground. Let's step back and see the whole picture.
 - Project organization: monorepo, satellites, versioning
 - AI-assisted development: prompting, review, debugging
 
-## 15.2 The Gorai Vision
+## 15.2 The GoRAI Vision
 
 Returning to Chapter 1's question: What if we designed a robotics framework for today?
 
@@ -68,7 +68,7 @@ Returning to Chapter 1's question: What if we designed a robotics framework for 
 
 ## 15.4 Roadmap Highlights
 
-Gorai is actively developing:
+GoRAI is actively developing:
 
 **Near term**:
 - More component drivers (common motors, sensors)
@@ -102,9 +102,9 @@ Gorai is actively developing:
 - Share your builds
 - Contribute improvements
 
-## 15.6 Contributing to Gorai
+## 15.6 Contributing to GoRAI
 
-**We don't just welcome contributions—we depend on them.** Gorai's success hinges on building a community of developers who improve, extend, and document the framework. Your contribution matters, whether it's a typo fix or a new component.
+**We don't just welcome contributions—we depend on them.** GoRAI's success hinges on building a community of developers who improve, extend, and document the framework. Your contribution matters, whether it's a typo fix or a new component.
 
 ### Why Contribute?
 
@@ -151,7 +151,7 @@ Gorai is actively developing:
 
 We mean it: **documentation contributions are as valued as code contributions.**
 
-Great docs lower the barrier to entry, which brings more developers, which means more contributions, which makes Gorai better for everyone. It's a virtuous cycle, and documentation is the catalyst.
+Great docs lower the barrier to entry, which brings more developers, which means more contributions, which makes GoRAI better for everyone. It's a virtuous cycle, and documentation is the catalyst.
 
 If you learned something the hard way, write it down. Your struggle is tomorrow's tutorial.
 
@@ -159,16 +159,16 @@ If you learned something the hard way, write it down. Your struggle is tomorrow'
 
 Robotics should be joyful. The frustration of complex build systems, cryptic errors, and heavyweight frameworks steals that joy.
 
-Gorai aims to restore it. Write Go code. Run it on your robot. See it work. Iterate quickly. Focus on the interesting problems—not the infrastructure.
+GoRAI aims to restore it. Write Go code. Run it on your robot. See it work. Iterate quickly. Focus on the interesting problems—not the infrastructure.
 
 The framework is young. There's much to build. But the foundations are solid: clean interfaces, consistent patterns, comprehensive testing. You can build on this.
 
-**Remember our core belief**: Developer experience is as important as functionality. If something is confusing, unclear, or frustrating—that's a bug. File an issue. Better yet, fix it and submit a PR. Every improvement to docs, examples, or error messages makes Gorai better for the next developer.
+**Remember our core belief**: Developer experience is as important as functionality. If something is confusing, unclear, or frustrating—that's a bug. File an issue. Better yet, fix it and submit a PR. Every improvement to docs, examples, or error messages makes GoRAI better for the next developer.
 
-Whether you're exploring robotics for the first time or simplifying a complex existing system, Gorai offers a path: **Go + NATS + AI = modern robotics**.
+Whether you're exploring robotics for the first time or simplifying a complex existing system, GoRAI offers a path: **Go + NATS + AI = modern robotics**.
 
 Welcome aboard. Let's build something amazing together.
 
 ---
 
-*Gorai: Building Modern Robots with Go and NATS*
+*GoRAI: Building Modern Robots with Go and NATS*

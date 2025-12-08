@@ -1,10 +1,10 @@
-# Gorai-Sentinel: Pan-Tilt Platform
+# GoRAI-Sentinel: Pan-Tilt Platform
 
 A pan-tilt sensor fusion platform with camera, ToF depth sensor, and servo control.
 
 ## Overview
 
-Gorai-Sentinel combines:
+GoRAI-Sentinel combines:
 
 - RGB camera (USB or CSI)
 - VL53L5CX ToF depth sensor

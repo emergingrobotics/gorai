@@ -1,6 +1,6 @@
 # Pan-Tilt Platform Example
 
-The Pan-Tilt Platform (Gorai-Sentinel) demonstrates sensor fusion and servo control.
+The Pan-Tilt Platform (GoRAI-Sentinel) demonstrates sensor fusion and servo control.
 
 ## What You'll Build
 

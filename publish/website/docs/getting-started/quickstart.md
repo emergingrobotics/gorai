@@ -1,6 +1,6 @@
 # Quick Start
 
-Build your first Gorai node in minutes.
+Build your first GoRAI node in minutes.
 
 ## Create a New Project
 

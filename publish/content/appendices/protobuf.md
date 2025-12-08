@@ -1,6 +1,6 @@
 # Protocol Buffers Reference
 
-Gorai uses Protocol Buffers for message serialization. This appendix provides reference for standard message types.
+GoRAI uses Protocol Buffers for message serialization. This appendix provides reference for standard message types.
 
 ## Standard Messages (gorai/std)
 

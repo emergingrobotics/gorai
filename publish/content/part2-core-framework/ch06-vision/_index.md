@@ -4,7 +4,7 @@
 
 ## Overview
 
-Vision gives robots the ability to see and interpret their environment. Gorai's camera interface provides a consistent way to capture images from USB cameras, CSI cameras, IP cameras, and depth sensors.
+Vision gives robots the ability to see and interpret their environment. GoRAI's camera interface provides a consistent way to capture images from USB cameras, CSI cameras, IP cameras, and depth sensors.
 
 This chapter covers the Camera interface, different camera types, how image data flows through the system, and integration with computer vision libraries like OpenCV.
 

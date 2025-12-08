@@ -4,7 +4,7 @@
 
 ## Overview
 
-If sensors are how robots perceive, actuators are how they act. Gorai provides a hierarchy of actuator interfaces from the basic `Actuator` (with `Stop()`) to specialized interfaces like `Motor`, `Servo`, and `Arm`.
+If sensors are how robots perceive, actuators are how they act. GoRAI provides a hierarchy of actuator interfaces from the basic `Actuator` (with `Stop()`) to specialized interfaces like `Motor`, `Servo`, and `Arm`.
 
 This chapter covers all actuator types, their interfaces, and the control patterns that make them work safely and effectively. Safety is paramount—every actuator can stop instantly, and control loops handle failures gracefully.
 

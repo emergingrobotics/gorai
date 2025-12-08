@@ -1,6 +1,6 @@
 # Chapter 12: AI/ML Integration
 
-Modern robots increasingly rely on ML for perception and decision-making. Gorai treats AI as a first-class capability.
+Modern robots increasingly rely on ML for perception and decision-making. GoRAI treats AI as a first-class capability.
 
 ## 12.1 The AI Opportunity in Robotics
 
@@ -8,7 +8,7 @@ Modern robots increasingly rely on ML for perception and decision-making. Gorai 
 - Edge: Low latency, works offline, privacy preserving
 - Cloud: More compute, larger models, easier updates
 
-Gorai focuses on edge inference—models running on the robot itself.
+GoRAI focuses on edge inference—models running on the robot itself.
 
 **Real-time requirements**:
 - Object detection: 10-30 fps for navigation
@@ -27,7 +27,7 @@ Gorai focuses on edge inference—models running on the robot itself.
 **RK3588 NPU** (6 TOPS):
 - Found in Orange Pi 5, Rock 5B, Radxa
 - Optimized for INT8 inference
-- Gorai uses go-rknnlite bindings
+- GoRAI uses go-rknnlite bindings
 
 ```go
 import "github.com/gorai/gorai/accel/rknn"
@@ -73,7 +73,7 @@ acc, err := coral.New()
 // USB or M.2 Edge TPU
 ```
 
-## 12.3 Gorai's Acceleration Layer
+## 12.3 GoRAI's Acceleration Layer
 
 The `accel` package provides a unified interface:
 

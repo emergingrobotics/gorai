@@ -27,7 +27,7 @@ podman run -d --name nats -p 4222:4222 nats:latest
 # Check NATS status
 nats server ping
 
-# Subscribe to all Gorai topics
+# Subscribe to all GoRAI topics
 nats sub "gorai.>"
 
 # Run hello-sensor

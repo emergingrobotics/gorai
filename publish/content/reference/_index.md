@@ -16,7 +16,7 @@ This section provides complete technical reference documentation. Use it when yo
 
 ## Quick Reference
 
-### Gorai CLI
+### GoRAI CLI
 
 ```bash
 gorai version            # Show version

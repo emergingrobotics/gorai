@@ -4,7 +4,7 @@
 
 ## Overview
 
-Sensors are how robots perceive the world. In Gorai, all sensors implement a common interface that returns readings as key-value maps. This simple abstraction handles everything from temperature sensors to IMUs to GPS receivers.
+Sensors are how robots perceive the world. In GoRAI, all sensors implement a common interface that returns readings as key-value maps. This simple abstraction handles everything from temperature sensors to IMUs to GPS receivers.
 
 This chapter covers the Sensor interface in depth, surveys the built-in sensor types, explains the Protocol Buffer data types for sensor data, and introduces the fake pattern that makes sensors testable without hardware.
 

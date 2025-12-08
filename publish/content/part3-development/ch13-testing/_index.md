@@ -4,7 +4,7 @@ Robots are safety-critical systems. Bugs can cause physical damage. Testing is n
 
 ## 11.1 The Testing Pyramid
 
-Gorai follows a testing pyramid with more unit tests at the base:
+GoRAI follows a testing pyramid with more unit tests at the base:
 
 ```
         /\
@@ -21,7 +21,7 @@ Gorai follows a testing pyramid with more unit tests at the base:
 
 ## 11.2 Test Categories and Build Tags
 
-Gorai uses build tags to organize tests:
+GoRAI uses build tags to organize tests:
 
 | Tag | Purpose | Speed | NATS | Hardware |
 |-----|---------|-------|------|----------|
