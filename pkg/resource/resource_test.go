@@ -398,3 +398,68 @@ func TestEmptyDependencies(t *testing.T) {
 		t.Errorf("All returned %d resources, want 0", len(all))
 	}
 }
+
+func TestLinkType_String(t *testing.T) {
+	tests := []struct {
+		lt   resource.LinkType
+		want string
+	}{
+		{resource.LinkTypeSerial, "serial"},
+		{resource.LinkTypeIP, "ip"},
+		{resource.LinkTypeNATS, "nats"},
+		{resource.LinkTypeCAN, "can"},
+		{resource.LinkTypeI2C, "i2c"},
+		{resource.LinkTypeSPI, "spi"},
+		{resource.LinkType(99), "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := tt.lt.String()
+		if got != tt.want {
+			t.Errorf("LinkType(%d).String() = %q, want %q", tt.lt, got, tt.want)
+		}
+	}
+}
+
+func TestLinkDirection_String(t *testing.T) {
+	tests := []struct {
+		ld   resource.LinkDirection
+		want string
+	}{
+		{resource.LinkBidirectional, "bidirectional"},
+		{resource.LinkBroadcast, "broadcast"},
+		{resource.LinkDirection(99), "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := tt.ld.String()
+		if got != tt.want {
+			t.Errorf("LinkDirection(%d).String() = %q, want %q", tt.ld, got, tt.want)
+		}
+	}
+}
+
+func TestBounds(t *testing.T) {
+	bounds := resource.Bounds{
+		MinX: 0, MinY: 0, MinZ: 0,
+		MaxX: 1, MaxY: 2, MaxZ: 3,
+	}
+
+	if bounds.MaxX != 1 || bounds.MaxY != 2 || bounds.MaxZ != 3 {
+		t.Error("Bounds fields not set correctly")
+	}
+}
+
+func TestLinkStats(t *testing.T) {
+	stats := resource.LinkStats{
+		BytesSent:     1000,
+		BytesReceived: 2000,
+		MessagesSent:  10,
+		MessagesRecv:  20,
+		ErrorCount:    1,
+	}
+
+	if stats.BytesSent != 1000 || stats.MessagesRecv != 20 {
+		t.Error("LinkStats fields not set correctly")
+	}
+}

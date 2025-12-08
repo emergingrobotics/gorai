@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // Resource is the base interface for all Gorai components and services.
@@ -41,6 +42,133 @@ type Actuator interface {
 
 	// Stop halts all motion immediately.
 	Stop(ctx context.Context) error
+}
+
+// Power represents resources that manage energy storage and distribution.
+// Examples: batteries, power supplies, power distribution units.
+type Power interface {
+	Resource
+
+	// GetCapacity returns total capacity in watt-hours (Wh).
+	GetCapacity(ctx context.Context) (float64, error)
+
+	// GetLevel returns current charge level as a ratio (0.0 - 1.0).
+	GetLevel(ctx context.Context) (float64, error)
+
+	// GetVoltage returns current voltage in volts.
+	GetVoltage(ctx context.Context) (float64, error)
+
+	// GetCurrent returns current draw in amps (positive = discharging).
+	GetCurrent(ctx context.Context) (float64, error)
+
+	// IsCharging returns true if currently charging.
+	IsCharging(ctx context.Context) (bool, error)
+}
+
+// Bounds represents a 3D bounding box.
+type Bounds struct {
+	MinX, MinY, MinZ float64
+	MaxX, MaxY, MaxZ float64
+}
+
+// Space represents physical volumes that can contain things.
+// Examples: containers, cargo bays, workspaces, zones.
+type Space interface {
+	Resource
+
+	// GetVolume returns volume in cubic meters.
+	GetVolume(ctx context.Context) (float64, error)
+
+	// GetBounds returns the bounding box geometry.
+	GetBounds(ctx context.Context) (*Bounds, error)
+
+	// GetContents returns identifiers of what's currently in this space.
+	GetContents(ctx context.Context) ([]string, error)
+
+	// IsEmpty returns true if space contains nothing.
+	IsEmpty(ctx context.Context) (bool, error)
+}
+
+// LinkType identifies the transport mechanism of a link.
+type LinkType int
+
+const (
+	LinkTypeSerial LinkType = iota
+	LinkTypeIP
+	LinkTypeNATS
+	LinkTypeCAN
+	LinkTypeI2C
+	LinkTypeSPI
+)
+
+// String returns the string representation of a LinkType.
+func (lt LinkType) String() string {
+	switch lt {
+	case LinkTypeSerial:
+		return "serial"
+	case LinkTypeIP:
+		return "ip"
+	case LinkTypeNATS:
+		return "nats"
+	case LinkTypeCAN:
+		return "can"
+	case LinkTypeI2C:
+		return "i2c"
+	case LinkTypeSPI:
+		return "spi"
+	default:
+		return "unknown"
+	}
+}
+
+// LinkDirection identifies whether a link is point-to-point or broadcast.
+type LinkDirection int
+
+const (
+	// LinkBidirectional is point-to-point, request/response communication.
+	LinkBidirectional LinkDirection = iota
+	// LinkBroadcast is one-to-many, pub/sub communication.
+	LinkBroadcast
+)
+
+// String returns the string representation of a LinkDirection.
+func (ld LinkDirection) String() string {
+	switch ld {
+	case LinkBidirectional:
+		return "bidirectional"
+	case LinkBroadcast:
+		return "broadcast"
+	default:
+		return "unknown"
+	}
+}
+
+// LinkStats contains statistics about a communication link.
+type LinkStats struct {
+	BytesSent     uint64
+	BytesReceived uint64
+	MessagesSent  uint64
+	MessagesRecv  uint64
+	ErrorCount    uint64
+	Latency       time.Duration
+}
+
+// Link represents a communication link between nodes.
+// Links can be bidirectional (serial, TCP) or broadcast (NATS, CAN).
+type Link interface {
+	Resource
+
+	// Type returns the link transport type.
+	Type() LinkType
+
+	// Direction returns whether the link is bidirectional or broadcast.
+	Direction() LinkDirection
+
+	// IsConnected returns true if the link is active.
+	IsConnected(ctx context.Context) (bool, error)
+
+	// GetStats returns link statistics.
+	GetStats(ctx context.Context) (*LinkStats, error)
 }
 
 // Typed is an optional interface for resources that can report their type info.
