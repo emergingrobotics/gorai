@@ -4,7 +4,7 @@
 
 **A lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI**
 
-*Pronounced "go-ray" (like stingray)*
+*Pronounced "Go-ray-I" (rhymes with "samurai")*
 
 Gorai provides the essential capabilities of modern robotics frameworks without the complexity of DDS, the legacy constraints of C++ middleware, or mandatory cloud dependencies. Single-binary deployment, type-safe messaging, and battle-tested infrastructure.
 

@@ -2,6 +2,8 @@
 
 **Working Title**: *Gorai: Building Modern Robots with Go and NATS*
 
+*Pronounced "Go-ray-I" (rhymes with "samurai")*
+
 **Target Audience**: Software developers with basic Go knowledge interested in robotics, robotics enthusiasts wanting a modern Go-based approach, AI/ML developers exploring edge robotics.
 
 **Target Output**: `book/gorai-book.md`

@@ -1,8 +1,10 @@
 # Gorai Framework Specification
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 A lightweight, Go-based robotics framework built on NATS.io with first-class AI/ML support.
+
+*Pronounced "Go-ray-I" (rhymes with "samurai")*
 
 ---
 
@@ -11,12 +13,27 @@ A lightweight, Go-based robotics framework built on NATS.io with first-class AI/
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Resource Model](#resource-model)
+   - [Overview](#overview-1)
+   - [Resource Interface](#resource-interface)
+   - [Resource Registry](#resource-registry)
+   - [Helper Interfaces](#helper-interfaces)
+   - [Component Types](#component-types) (Sensors, Actuators, Power, Space, Links)
 4. [Communication Layer](#communication-layer)
 5. [Topic Naming Convention](#topic-naming-convention)
 6. [Protocol Buffer Definitions](#protocol-buffer-definitions)
 7. [Core Components](#core-components)
 8. [Device Interfaces](#device-interfaces)
 9. [AI/ML Services](#aiml-services)
+   - [Vision Service](#vision-service)
+   - [ML Model Service](#ml-model-service)
+   - [SLAM Service](#slam-service)
+   - [Navigation Service](#navigation-service)
+   - [Motion Service](#motion-service)
+   - [Behavior Service](#behavior-service)
+     - [Derived Sensors](#derived-sensors)
+     - [AI-Powered Behaviors](#ai-powered-behaviors) (ML & LLM agents)
+   - [Coordinator Service](#coordinator-service)
+     - [AI-Powered Coordinators](#ai-powered-coordinators)
 10. [Acceleration Layer](#acceleration-layer)
 11. [Configuration System](#configuration-system)
 12. [Network Transparency](#network-transparency)
@@ -155,6 +172,27 @@ flowchart TB
 
 ## Resource Model
 
+### Overview
+
+The Resource Model is the foundation of Gorai's architecture. **Resource is the common interface for ALL entities in the system**—every component and every service implements Resource. This provides a unified way to manage, configure, and interact with any part of a robot.
+
+```
+                    Resource (base interface)
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+   Component          Service          Module
+        │                │
+   ┌────┴────┐      ┌───┴───┐
+   │ Types:  │      │Types: │
+   │-Sensor  │      │-Vision│
+   │-Actuator│      │-SLAM  │
+   │-Power   │      │-Nav   │
+   │-Space   │      │-Motion│
+   │-Link    │      │-Behavior│
+   └─────────┘      └───────┘
+```
+
 ### Resource Interface
 
 All components and services implement the base Resource interface:
@@ -265,6 +303,190 @@ type Reconfigurable interface {
     Reconfigure(ctx context.Context, deps Dependencies, conf Config) error
 }
 ```
+
+### Component Types
+
+Components are Resources that abstract hardware. They are organized into five fundamental categories based on their relationship with the physical environment:
+
+#### Sensors
+
+**Sensors observe the environment without changing it.** They provide measurements and data about the world.
+
+| Subtype | Description | Examples |
+|---------|-------------|----------|
+| `camera` | Visual sensors | RGB, depth, stereo, thermal |
+| `movement_sensor` | Motion/orientation | IMU, GPS, encoders |
+| `range_sensor` | Distance measurement | LiDAR, ultrasonic, infrared |
+| `environmental` | Environmental conditions | Temperature, humidity, pressure |
+
+```go
+// Sensor can only read from the environment
+type Sensor interface {
+    Component
+    Readings(ctx context.Context) (map[string]any, error)
+}
+```
+
+#### Actuators
+
+**Actuators change the environment.** They produce physical motion, force, or other effects. Many actuators include embedded sensors for feedback.
+
+| Subtype | Description | Examples |
+|---------|-------------|----------|
+| `motor` | Rotary motion | DC, servo, stepper, BLDC |
+| `base` | Mobile platform | Differential drive, holonomic |
+| `arm` | Articulated manipulator | 6-DOF arm, SCARA |
+| `gripper` | End effector | Parallel jaw, vacuum, soft |
+| `linear` | Linear motion | Linear actuator, lead screw |
+
+```go
+// Actuator can change the environment and optionally sense it
+type Actuator interface {
+    Component
+    IsMoving(ctx context.Context) (bool, error)
+    Stop(ctx context.Context) error
+}
+```
+
+#### Power
+
+**Power components manage energy storage and distribution.** They typically have a capacity and current level.
+
+| Subtype | Description | Examples |
+|---------|-------------|----------|
+| `battery` | Energy storage | Li-ion, LiFePO4, lead-acid |
+| `power_supply` | Power conversion | AC/DC adapter, solar panel |
+| `power_distribution` | Power routing | PDU, fuse box, relay board |
+
+```go
+// Power provides energy management
+type Power interface {
+    Component
+    // GetCapacity returns total capacity (Wh, Ah, or Joules)
+    GetCapacity(ctx context.Context) (float64, error)
+    // GetLevel returns current level (0.0 - 1.0)
+    GetLevel(ctx context.Context) (float64, error)
+    // GetVoltage returns current voltage
+    GetVoltage(ctx context.Context) (float64, error)
+    // GetCurrent returns current draw (positive = discharging)
+    GetCurrent(ctx context.Context) (float64, error)
+    // IsCharging returns true if currently charging
+    IsCharging(ctx context.Context) (bool, error)
+}
+```
+
+#### Space
+
+**Space components represent physical volumes that can contain things.** They define boundaries and may track contents.
+
+| Subtype | Description | Examples |
+|---------|-------------|----------|
+| `container` | Storage volume | Cargo bay, hopper, tank |
+| `workspace` | Operating area | Robot work envelope |
+| `zone` | Defined region | Safety zone, charging zone |
+
+```go
+// Space represents a physical volume
+type Space interface {
+    Component
+    // GetVolume returns volume in cubic meters
+    GetVolume(ctx context.Context) (float64, error)
+    // GetBounds returns bounding box geometry
+    GetBounds(ctx context.Context) (*geometry.Box, error)
+    // GetContents returns what's currently in this space (if trackable)
+    GetContents(ctx context.Context) ([]string, error)
+    // IsEmpty returns true if space contains nothing
+    IsEmpty(ctx context.Context) (bool, error)
+}
+```
+
+#### Links
+
+**Links provide communication between nodes.** They are either bi-directional (point-to-point) or broadcast (one-to-many), and use various transport mechanisms.
+
+| Subtype | Direction | Transport | Examples |
+|---------|-----------|-----------|----------|
+| `serial_link` | Bi-directional | Serial | UART, RS-232, RS-485 |
+| `ip_link` | Bi-directional | IP | TCP socket, UDP |
+| `nats_link` | Broadcast | NATS | Pub/sub topics |
+| `can_link` | Broadcast | CAN bus | CANopen, J1939 |
+| `i2c_link` | Bi-directional | I2C | Sensor buses |
+
+```go
+// Link provides communication between nodes
+type Link interface {
+    Component
+    // Type returns the link type
+    Type() LinkType
+    // Direction returns Bidirectional or Broadcast
+    Direction() LinkDirection
+    // IsConnected returns true if link is active
+    IsConnected(ctx context.Context) (bool, error)
+    // GetStats returns link statistics
+    GetStats(ctx context.Context) (*LinkStats, error)
+}
+
+type LinkType int
+const (
+    LinkTypeSerial LinkType = iota
+    LinkTypeIP
+    LinkTypeNATS
+    LinkTypeCAN
+    LinkTypeI2C
+    LinkTypeSPI
+)
+
+type LinkDirection int
+const (
+    LinkBidirectional LinkDirection = iota
+    LinkBroadcast
+)
+
+type LinkStats struct {
+    BytesSent     uint64
+    BytesReceived uint64
+    MessagesSent  uint64
+    MessagesRecv  uint64
+    ErrorCount    uint64
+    Latency       time.Duration
+}
+```
+
+**Link Direction Characteristics:**
+
+| Direction | Description | Use Cases |
+|-----------|-------------|-----------|
+| **Bi-directional** | Point-to-point, request/response | Serial communication, TCP sockets, I2C |
+| **Broadcast** | One-to-many, pub/sub | NATS topics, CAN bus, multicast |
+
+**NATS as a Special Link:**
+
+NATS is a special kind of IP-based link that provides:
+- Broadcast semantics via pub/sub
+- Optional persistence via JetStream
+- Built-in clustering and fault tolerance
+- Request/reply patterns (bi-directional over broadcast)
+
+```go
+// NATSLink is a specialized Link using NATS
+type NATSLink interface {
+    Link
+    // GetConnection returns the underlying NATS connection
+    GetConnection() *nats.Conn
+    // GetSubject returns the primary subject for this link
+    GetSubject() string
+}
+```
+
+### Component Type Summary
+
+| Type | Can Observe | Can Change | Has Capacity | Has Volume | Provides Communication |
+|------|-------------|------------|--------------|------------|------------------------|
+| Sensor | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Actuator | Optional | ✓ | ✗ | ✗ | ✗ |
+| Power | ✓ (levels) | ✗ | ✓ | ✗ | ✗ |
+| Space | ✓ (contents) | ✗ | ✗ | ✓ | ✗ |
+| Link | ✗ | ✗ | ✗ | ✗ | ✓ |
 
 ---
 
@@ -2106,6 +2328,609 @@ type WorldState struct {
 type ExecutionID string
 ```
 
+### Behavior Service
+
+**Behaviors are the "brain" of the robot.** They implement high-level decision-making logic that determines what the robot should do based on sensor inputs, goals, and the current state.
+
+A Behavior service can use:
+- **Components** (sensors, actuators) for direct hardware interaction
+- **Other services** (vision, navigation, motion) for higher-level capabilities
+- **Other behaviors** for hierarchical decision-making
+
+A Behavior service can also **expose derived sensors**—virtual sensors that provide computed or inferred data as a byproduct of the behavior's operation. This allows other parts of the system to consume high-level information without knowing how it was derived.
+
+```go
+package behavior
+
+// Service is the interface for behavior services.
+// Behaviors implement decision-making logic that coordinates
+// components and other services to achieve goals.
+type Service interface {
+    resource.Resource
+
+    // Start begins behavior execution.
+    Start(ctx context.Context) error
+
+    // Stop halts behavior execution.
+    Stop(ctx context.Context) error
+
+    // IsRunning returns true if the behavior is active.
+    IsRunning(ctx context.Context) (bool, error)
+
+    // GetState returns current behavior state.
+    GetState(ctx context.Context) (*State, error)
+
+    // SetGoal sets a goal for the behavior to achieve.
+    SetGoal(ctx context.Context, goal *Goal) error
+
+    // GetGoal returns the current goal.
+    GetGoal(ctx context.Context) (*Goal, error)
+
+    // Tick executes one cycle of the behavior (for external schedulers).
+    Tick(ctx context.Context) (*TickResult, error)
+
+    // GetDerivedSensors returns sensors exposed by this behavior.
+    // These are virtual sensors providing computed/inferred data.
+    GetDerivedSensors(ctx context.Context) ([]resource.Name, error)
+}
+
+// State represents the current state of a behavior.
+type State struct {
+    Status      Status
+    CurrentNode string            // For behavior trees
+    Variables   map[string]any    // Blackboard or state variables
+    LastTick    time.Time
+    Error       string
+}
+
+type Status int
+const (
+    StatusIdle Status = iota
+    StatusRunning
+    StatusSuccess
+    StatusFailure
+    StatusCanceled
+)
+
+// Goal represents an objective for the behavior.
+type Goal struct {
+    Type       string
+    Target     any               // Goal-specific target (pose, object, etc.)
+    Priority   int
+    Timeout    time.Duration
+    Parameters map[string]any
+}
+
+// TickResult is the result of one behavior tick.
+type TickResult struct {
+    Status   Status
+    Action   string             // What action was taken
+    Duration time.Duration      // How long the tick took
+}
+```
+
+**Common Behavior Implementations:**
+
+| Implementation | Description | Use Case |
+|----------------|-------------|----------|
+| `behavior_tree` | Hierarchical tree of behaviors | Complex decision logic |
+| `state_machine` | Finite state machine | Sequential tasks |
+| `subsumption` | Priority-based layers | Reactive behaviors |
+| `utility` | Utility-based selection | Dynamic prioritization |
+| `ai_agent` | AI/ML-powered decision making | Adaptive, learning behaviors |
+| `llm_agent` | LLM-powered reasoning | Natural language tasks, complex planning |
+
+### Derived Sensors
+
+Behaviors can expose **derived sensors**—virtual sensors that provide computed, fused, or inferred data as a byproduct of the behavior's operation. This is a powerful pattern that allows behaviors to contribute data back to the system.
+
+**Examples of Derived Sensors:**
+
+| Behavior | Derived Sensor | Data Provided |
+|----------|----------------|---------------|
+| Localization | `estimated_pose` | Fused position from GPS, IMU, wheel odometry |
+| Object Tracking | `tracked_objects` | Bounding boxes, velocities, object IDs |
+| SLAM | `map_updates` | New map segments, landmarks |
+| Person Following | `target_person` | Tracked person's position and identity |
+| Anomaly Detection | `anomalies` | Detected anomalies with confidence scores |
+| Scene Understanding | `scene_context` | Semantic description of the environment |
+
+```go
+// DerivedSensor is a virtual sensor exposed by a behavior.
+type DerivedSensor struct {
+    resource.Resource
+    resource.Sensor  // Implements Readings()
+
+    // SourceBehavior returns the behavior that produces this sensor.
+    SourceBehavior() resource.Name
+
+    // DataType returns the type of data this sensor provides.
+    DataType() string
+
+    // UpdateRate returns how often this sensor updates (0 = event-driven).
+    UpdateRate() time.Duration
+}
+
+// Example: Object tracking behavior exposes tracked objects as a sensor
+type TrackedObjectsSensor struct {
+    // Implements Sensor interface
+}
+
+func (s *TrackedObjectsSensor) Readings(ctx context.Context) (map[string]any, error) {
+    return map[string]any{
+        "objects": []TrackedObject{
+            {ID: "obj_1", Class: "person", BBox: BoundingBox{...}, Velocity: Vector3{...}},
+            {ID: "obj_2", Class: "car", BBox: BoundingBox{...}, Velocity: Vector3{...}},
+        },
+        "frame_id":  "camera_front",
+        "timestamp": time.Now(),
+    }, nil
+}
+```
+
+**Configuration Example:**
+
+```json
+{
+    "name": "object_tracker",
+    "type": "behavior",
+    "model": "gorai:builtin:object_tracker",
+    "config": {
+        "vision_service": "vision",
+        "camera": "camera_front",
+        "tracking_algorithm": "sort",
+        "derived_sensors": [
+            {
+                "name": "tracked_objects",
+                "type": "sensor",
+                "topic": "gorai.robot.tracker.objects",
+                "update_rate_hz": 30
+            },
+            {
+                "name": "object_count",
+                "type": "sensor",
+                "topic": "gorai.robot.tracker.count"
+            }
+        ]
+    }
+}
+```
+
+### AI-Powered Behaviors
+
+Behaviors can be powered by AI/ML models or Large Language Models (LLMs), enabling adaptive, learning, and reasoning capabilities that go beyond traditional programmatic approaches.
+
+#### ML Model-Powered Behaviors
+
+These behaviors use trained ML models for decision-making:
+
+```go
+// AIBehavior extends Service with AI-specific capabilities.
+type AIBehavior interface {
+    Service
+
+    // GetModel returns the ML model used by this behavior.
+    GetModel(ctx context.Context) (string, error)
+
+    // GetConfidence returns confidence in current decision (0-1).
+    GetConfidence(ctx context.Context) (float64, error)
+
+    // GetExplanation returns human-readable explanation of current action.
+    GetExplanation(ctx context.Context) (string, error)
+
+    // Learn updates the model based on feedback (for online learning).
+    Learn(ctx context.Context, feedback *Feedback) error
+}
+
+type Feedback struct {
+    GoalID    string
+    Outcome   Outcome  // Success, Failure, Partial
+    Reward    float64  // For reinforcement learning
+    Metadata  map[string]any
+}
+```
+
+**Example Use Cases:**
+
+| Model Type | Behavior | Description |
+|------------|----------|-------------|
+| Reinforcement Learning | Navigation | Learn optimal paths through experience |
+| Imitation Learning | Manipulation | Learn from human demonstrations |
+| Classification | Anomaly Detection | Identify unusual situations |
+| Object Detection | Person Following | Track and follow specific targets |
+| Semantic Segmentation | Terrain Analysis | Understand drivable surfaces |
+
+**Configuration Example:**
+
+```json
+{
+    "name": "adaptive_navigator",
+    "type": "behavior",
+    "model": "gorai:ai:reinforcement_navigator",
+    "config": {
+        "model_path": "/models/nav_policy.onnx",
+        "accelerator": "npu",
+        "learning_enabled": true,
+        "exploration_rate": 0.1,
+        "reward_function": "distance_to_goal + safety_penalty"
+    }
+}
+```
+
+#### LLM-Powered Behaviors
+
+Large Language Models enable behaviors that can reason, plan, and interact using natural language:
+
+```go
+// LLMBehavior extends Service with LLM-specific capabilities.
+type LLMBehavior interface {
+    Service
+
+    // GetLLMProvider returns the LLM service being used.
+    GetLLMProvider(ctx context.Context) (string, error)
+
+    // SendPrompt sends a prompt and gets a response (for debugging/interaction).
+    SendPrompt(ctx context.Context, prompt string) (string, error)
+
+    // GetReasoningTrace returns the LLM's reasoning for current action.
+    GetReasoningTrace(ctx context.Context) ([]ReasoningStep, error)
+
+    // SetSystemPrompt updates the system prompt/persona.
+    SetSystemPrompt(ctx context.Context, prompt string) error
+}
+
+type ReasoningStep struct {
+    Step       int
+    Thought    string
+    Action     string
+    Observation string
+    Timestamp  time.Time
+}
+```
+
+**LLM Behavior Capabilities:**
+
+| Capability | Description | Example |
+|------------|-------------|---------|
+| **Natural Language Goals** | Accept goals in plain English | "Find the red ball and bring it to me" |
+| **Contextual Reasoning** | Understand and reason about situations | "The door is closed, I need to open it first" |
+| **Dynamic Planning** | Generate and adapt plans on the fly | Breaking complex tasks into steps |
+| **Error Recovery** | Reason about failures and alternatives | "That path is blocked, trying another route" |
+| **Human Interaction** | Communicate status and ask questions | "I found two red objects. Which one?" |
+| **Tool Use** | Decide which robot capabilities to use | Selecting appropriate sensors and actuators |
+
+**Configuration Example:**
+
+```json
+{
+    "name": "assistant_behavior",
+    "type": "behavior",
+    "model": "gorai:ai:llm_agent",
+    "config": {
+        "llm_provider": "anthropic",
+        "llm_model": "claude-3-sonnet",
+        "system_prompt": "You are a helpful robot assistant...",
+        "available_tools": [
+            "navigate_to",
+            "pick_object",
+            "place_object",
+            "speak",
+            "take_photo"
+        ],
+        "max_reasoning_steps": 10,
+        "timeout_per_step": "30s",
+        "safety_constraints": [
+            "never_enter_restricted_zones",
+            "always_announce_before_moving"
+        ]
+    },
+    "depends_on": ["navigation", "arm", "gripper", "speech", "camera"]
+}
+```
+
+**LLM Agent Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      LLM Agent Behavior                          │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │   Perceive  │───▶│   Reason    │───▶│     Act     │         │
+│  │  (sensors)  │    │   (LLM)     │    │ (actuators) │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│         │                  │                  │                 │
+│         ▼                  ▼                  ▼                 │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │              Working Memory / Context                │       │
+│  │  • Current goal           • Conversation history    │       │
+│  │  • Environment state      • Recent actions          │       │
+│  │  • Available tools        • Safety constraints      │       │
+│  └─────────────────────────────────────────────────────┘       │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │              Derived Sensors (exposed)               │       │
+│  │  • intent_sensor: Current understood goal           │       │
+│  │  • plan_sensor: Current execution plan              │       │
+│  │  • reasoning_sensor: Latest reasoning trace         │       │
+│  └─────────────────────────────────────────────────────┘       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Safety Considerations for AI Behaviors:**
+
+| Concern | Mitigation |
+|---------|------------|
+| Unpredictable actions | Action allowlists, safety constraints |
+| Hallucinations | Ground decisions in actual sensor data |
+| Latency | Timeout limits, fallback behaviors |
+| Cost | Rate limiting, caching, local models |
+| Privacy | On-device inference when possible |
+
+**Example: Behavior Tree Configuration:**
+
+```json
+{
+    "name": "patrol_behavior",
+    "type": "behavior",
+    "model": "gorai:builtin:behavior_tree",
+    "config": {
+        "tree_path": "/config/patrol.btree",
+        "tick_rate_hz": 10,
+        "blackboard": {
+            "patrol_points": ["waypoint_a", "waypoint_b", "waypoint_c"],
+            "speed": 0.5
+        }
+    },
+    "depends_on": ["navigation", "vision", "base"]
+}
+```
+
+### Coordinator Service
+
+**A Coordinator is a special type of Behavior that ONLY works through other behaviors.** It does not directly use components—instead, it orchestrates multiple behaviors to achieve complex, multi-phase goals.
+
+Think of Coordinators as "meta-behaviors" or "behavior managers" that:
+- Sequence behaviors (do A, then B, then C)
+- Run behaviors in parallel (do A and B simultaneously)
+- Select behaviors based on conditions
+- Manage behavior priorities and conflicts
+
+```go
+package coordinator
+
+// Service orchestrates multiple behaviors without directly using components.
+// Coordinators implement higher-level logic by delegating to other behaviors.
+type Service interface {
+    resource.Resource
+
+    // Start begins coordinator execution.
+    Start(ctx context.Context) error
+
+    // Stop halts coordinator and all managed behaviors.
+    Stop(ctx context.Context) error
+
+    // IsRunning returns true if the coordinator is active.
+    IsRunning(ctx context.Context) (bool, error)
+
+    // GetState returns coordinator state including child behavior states.
+    GetState(ctx context.Context) (*State, error)
+
+    // GetManagedBehaviors returns behaviors this coordinator manages.
+    GetManagedBehaviors(ctx context.Context) ([]string, error)
+
+    // SetMission sets a high-level mission for the coordinator.
+    SetMission(ctx context.Context, mission *Mission) error
+
+    // GetMission returns the current mission.
+    GetMission(ctx context.Context) (*Mission, error)
+
+    // GetProgress returns mission progress.
+    GetProgress(ctx context.Context) (*Progress, error)
+}
+
+// State represents coordinator state.
+type State struct {
+    Status           Status
+    CurrentPhase     string
+    BehaviorStates   map[string]*behavior.State
+    MissionProgress  float64  // 0.0 - 1.0
+    StartTime        time.Time
+    ElapsedTime      time.Duration
+}
+
+// Mission represents a high-level objective composed of phases.
+type Mission struct {
+    ID          string
+    Name        string
+    Phases      []Phase
+    Priority    int
+    Timeout     time.Duration
+    OnFailure   FailurePolicy
+}
+
+// Phase is a step in a mission.
+type Phase struct {
+    Name        string
+    Behaviors   []BehaviorRef      // Behaviors to run in this phase
+    Parallel    bool               // Run behaviors in parallel vs sequence
+    Condition   string             // Optional condition to check before starting
+    OnComplete  string             // Next phase on success
+    OnFailure   string             // Phase to go to on failure (or "abort")
+}
+
+// BehaviorRef references a behavior to be used in a phase.
+type BehaviorRef struct {
+    Name       string             // Name of the behavior service
+    Goal       *behavior.Goal     // Goal to set for this behavior
+    Required   bool               // If true, phase fails if this behavior fails
+}
+
+type FailurePolicy int
+const (
+    FailureAbort FailurePolicy = iota      // Stop everything on failure
+    FailureRetry                           // Retry the failed phase
+    FailureSkip                            // Skip and continue to next phase
+    FailureFallback                        // Execute fallback mission
+)
+
+// Progress tracks mission completion.
+type Progress struct {
+    MissionID       string
+    CurrentPhase    int
+    TotalPhases     int
+    PhaseProgress   float64        // Progress within current phase
+    OverallProgress float64        // Total mission progress
+    EstimatedTime   time.Duration  // Estimated time to completion
+}
+```
+
+**Coordinator vs Behavior:**
+
+| Aspect | Behavior | Coordinator |
+|--------|----------|-------------|
+| Uses Components | Yes | **No** |
+| Uses Services | Yes | Yes (especially behaviors) |
+| Uses Behaviors | Optional | **Required** |
+| Purpose | Execute tasks | Orchestrate tasks |
+| Granularity | Single objective | Multi-phase missions |
+
+**Example: Coordinator Configuration:**
+
+```json
+{
+    "name": "mission_coordinator",
+    "type": "coordinator",
+    "model": "gorai:builtin:mission_coordinator",
+    "config": {
+        "default_mission": "patrol_and_inspect",
+        "behaviors": ["patrol_behavior", "inspect_behavior", "dock_behavior"],
+        "missions": {
+            "patrol_and_inspect": {
+                "phases": [
+                    {
+                        "name": "patrol",
+                        "behaviors": [{"name": "patrol_behavior"}],
+                        "on_complete": "inspect"
+                    },
+                    {
+                        "name": "inspect",
+                        "behaviors": [{"name": "inspect_behavior"}],
+                        "on_complete": "dock"
+                    },
+                    {
+                        "name": "dock",
+                        "behaviors": [{"name": "dock_behavior"}]
+                    }
+                ]
+            }
+        }
+    },
+    "depends_on": ["patrol_behavior", "inspect_behavior", "dock_behavior"]
+}
+```
+
+**Hierarchical Example:**
+
+```
+┌─────────────────────────────────────────────┐
+│           mission_coordinator               │  ← Coordinator (no components)
+│  Orchestrates: patrol, inspect, dock        │
+└─────────────────────────────────────────────┘
+          │           │            │
+          ▼           ▼            ▼
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│   patrol    │ │   inspect   │ │    dock     │  ← Behaviors (use components)
+│  behavior   │ │  behavior   │ │  behavior   │
+└─────────────┘ └─────────────┘ └─────────────┘
+     │  │            │  │            │  │
+     ▼  ▼            ▼  ▼            ▼  ▼
+  [base] [nav]   [camera] [vision]  [base] [power]  ← Components & Services
+```
+
+### AI-Powered Coordinators
+
+Coordinators can also be AI-powered, using ML models or LLMs for high-level mission planning and orchestration:
+
+```go
+// AICoordinator extends Coordinator with AI capabilities.
+type AICoordinator interface {
+    Service  // Coordinator Service
+
+    // GenerateMission creates a mission from a natural language description.
+    GenerateMission(ctx context.Context, description string) (*Mission, error)
+
+    // AdaptMission modifies the current mission based on new information.
+    AdaptMission(ctx context.Context, situation string) error
+
+    // ExplainPlan returns human-readable explanation of the mission plan.
+    ExplainPlan(ctx context.Context) (string, error)
+}
+```
+
+**AI Coordinator Capabilities:**
+
+| Capability | Description | Example |
+|------------|-------------|---------|
+| **Mission Generation** | Create missions from goals | "Patrol the warehouse and report anomalies" → multi-phase mission |
+| **Dynamic Replanning** | Adapt when situations change | Reroute when path blocked, skip phases if conditions met |
+| **Behavior Selection** | Choose which behaviors to use | Select appropriate inspection behavior for object type |
+| **Resource Optimization** | Optimize for battery, time, etc. | Reorder phases to minimize travel distance |
+| **Natural Language Reports** | Summarize mission status | "Completed 3 of 5 waypoints. Found 2 anomalies." |
+
+**Example: LLM-Powered Coordinator:**
+
+```json
+{
+    "name": "smart_coordinator",
+    "type": "coordinator",
+    "model": "gorai:ai:llm_coordinator",
+    "config": {
+        "llm_provider": "anthropic",
+        "llm_model": "claude-3-sonnet",
+        "system_prompt": "You are a mission planner for a warehouse robot...",
+        "available_behaviors": [
+            {"name": "patrol", "description": "Navigate through waypoints"},
+            {"name": "inspect", "description": "Examine objects with camera"},
+            {"name": "pickup", "description": "Pick up objects with gripper"},
+            {"name": "deliver", "description": "Deliver objects to locations"},
+            {"name": "dock", "description": "Return to charging station"}
+        ],
+        "planning_strategy": "minimize_time",
+        "replanning_triggers": [
+            "behavior_failure",
+            "battery_low",
+            "new_priority_task"
+        ],
+        "derived_sensors": [
+            {
+                "name": "mission_status",
+                "type": "sensor",
+                "description": "Current mission progress and status"
+            },
+            {
+                "name": "next_action",
+                "type": "sensor",
+                "description": "What the coordinator plans to do next"
+            }
+        ]
+    },
+    "depends_on": ["patrol", "inspect", "pickup", "deliver", "dock"]
+}
+```
+
+**Coordinator with Derived Sensors:**
+
+Like behaviors, coordinators can also expose derived sensors that provide visibility into their planning and execution state:
+
+| Coordinator | Derived Sensor | Data Provided |
+|-------------|----------------|---------------|
+| Mission Coordinator | `mission_status` | Current phase, progress, ETA |
+| Mission Coordinator | `active_behaviors` | Which behaviors are running |
+| LLM Coordinator | `current_plan` | Generated mission plan |
+| LLM Coordinator | `reasoning_log` | Why decisions were made |
+| Fleet Coordinator | `robot_assignments` | Which robot is doing what |
+
 ---
 
 ## Acceleration Layer
@@ -2712,6 +3537,7 @@ nats kv watch PARAMS ">"
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.2.0 | 2025-12-08 | Added Resource taxonomy (Component Types: sensors, actuators, power, space, links), Link types (bi-directional, broadcast), Behavior and Coordinator services, Derived Sensors, AI/ML-powered behaviors and coordinators (including LLM agents) |
 | 0.1.0 | 2024-XX-XX | Initial specification |
 
 ---
