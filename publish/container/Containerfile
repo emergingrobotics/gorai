@@ -7,10 +7,10 @@
 # Usage:
 #   podman run --rm -v ${PWD}:/workspace gorai-publish <command>
 
-FROM docker.io/library/golang:1.23-bookworm
+FROM docker.io/library/golang:1.24-bookworm
 
-# Install Rust for mdBook
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Install Rust for mdBook (quiet mode to reduce output)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -q
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install mdBook and plugins

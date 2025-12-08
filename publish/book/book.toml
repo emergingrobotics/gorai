@@ -1,0 +1,39 @@
+[book]
+title = "Gorai: Building Modern Robots with Go and NATS"
+authors = ["The Gorai Authors"]
+description = "A comprehensive guide to building robots with the Gorai framework"
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../dist/book"
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/gorai/gorai"
+edit-url-template = "https://github.com/gorai/gorai/edit/main/publish/book/{path}"
+site-url = "/book/"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.playground]
+editable = false
+copyable = true
+line-numbers = true
+
+[output.html.search]
+enable = true
+limit-results = 30
+boost-hierarchy = 2
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]

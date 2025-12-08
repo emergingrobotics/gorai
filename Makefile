@@ -564,3 +564,42 @@ version:
 	@if command -v golangci-lint >/dev/null 2>&1; then echo "lint:     $$(golangci-lint --version 2>&1 | head -1)"; fi
 	@if command -v nats-server >/dev/null 2>&1; then echo "nats:     $$(nats-server --version)"; fi
 	@if command -v tinygo >/dev/null 2>&1; then echo "tinygo:   $$(tinygo version)"; fi
+
+# =============================================================================
+# Publishing
+# =============================================================================
+
+PUBLISH_IMAGE := gorai-publish
+PUBLISH_DIR := publish
+
+.PHONY: publish-container
+publish-container: ## Build the publishing container
+	podman build -t $(PUBLISH_IMAGE) $(PUBLISH_DIR)/container/
+
+.PHONY: publish-all
+publish-all: publish-container ## Build all documentation
+	podman run --rm -v $${PWD}:/workspace:Z $(PUBLISH_IMAGE) all
+
+.PHONY: publish-book
+publish-book: publish-container ## Build the book
+	podman run --rm -v $${PWD}:/workspace:Z $(PUBLISH_IMAGE) book
+
+.PHONY: publish-website
+publish-website: publish-container ## Build the website
+	podman run --rm -v $${PWD}:/workspace:Z $(PUBLISH_IMAGE) website
+
+.PHONY: serve-book
+serve-book: publish-container ## Serve book with live reload (port 3000)
+	podman run --rm -it -p 3000:3000 -v $${PWD}:/workspace:Z $(PUBLISH_IMAGE) book-serve
+
+.PHONY: serve-website
+serve-website: publish-container ## Serve website with live reload (port 8000)
+	podman run --rm -it -p 8000:8000 -v $${PWD}:/workspace:Z $(PUBLISH_IMAGE) website-serve
+
+.PHONY: serve-api
+serve-api: publish-container ## Serve API reference (port 6060)
+	podman run --rm -it -p 6060:6060 -v $${PWD}:/workspace:Z $(PUBLISH_IMAGE) api-serve
+
+.PHONY: publish-clean
+publish-clean: ## Clean build outputs
+	rm -rf $(PUBLISH_DIR)/dist
