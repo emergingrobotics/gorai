@@ -1,6 +1,6 @@
 ## 1.5 Prerequisites
 
-Gorai is designed to be approachable, but some background knowledge will help you get the most from this book.
+GoRAI is designed to be approachable, but some background knowledge will help you get the most from this book.
 
 ### Required: Basic Go Knowledge
 
@@ -50,9 +50,9 @@ For the first several chapters, you'll work with simulated and fake components. 
 
 ### Optional: Prior Robotics Experience
 
-Experience with ROS, ROS 2, or other robotics frameworks helps you appreciate Gorai's design choices. But it's not required—we explain concepts from first principles.
+Experience with ROS, ROS 2, or other robotics frameworks helps you appreciate GoRAI's design choices. But it's not required—we explain concepts from first principles.
 
-If you're coming from ROS, you'll recognize familiar patterns: nodes, topics, publishers, subscribers, services. Gorai's versions are simpler but serve the same purposes.
+If you're coming from ROS, you'll recognize familiar patterns: nodes, topics, publishers, subscribers, services. GoRAI's versions are simpler but serve the same purposes.
 
 ### Development Environment
 
@@ -68,4 +68,4 @@ Chapter 8 covers setup in detail. For now, confirm you can run `go version` and 
 
 ---
 
-With these foundations in place, you're ready to understand how Gorai thinks about robotics. Chapter 2 introduces the mental model and architecture that makes everything else make sense.
+With these foundations in place, you're ready to understand how GoRAI thinks about robotics. Chapter 2 introduces the mental model and architecture that makes everything else make sense.

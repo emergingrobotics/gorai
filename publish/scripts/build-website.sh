@@ -49,7 +49,14 @@ echo ""
 # Check for mkdocs
 if ! command -v mkdocs &> /dev/null; then
     echo "ERROR: mkdocs is not installed"
-    echo "Install with: pip install mkdocs-material"
+    echo ""
+    echo "Install mkdocs-material with:"
+    echo ""
+    echo "  pip install mkdocs-material"
+    echo ""
+    echo "  # Or with pipx (isolated install):"
+    echo "  pipx install mkdocs-material"
+    echo ""
     exit 1
 fi
 

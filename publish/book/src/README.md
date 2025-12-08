@@ -1,4 +1,4 @@
-# Gorai
+# GoRAI
 
 ## Building Modern Robots with Go and NATS
 
@@ -6,19 +6,21 @@
 
 *Version 0.2.0 — 2025*
 
+> **GoRAI** is pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")
+
 ---
 
 ## About This Book
 
-*Gorai: Building Modern Robots with Go and NATS* is a practical guide to a new approach in robotics software. Whether you're a software developer curious about robotics, a robotics enthusiast tired of fighting complex frameworks, or an experienced engineer looking for something better, this book will get you building.
+*GoRAI: Building Modern Robots with Go and NATS* is a practical guide to a new approach in robotics software. Whether you're a software developer curious about robotics, a robotics enthusiast tired of fighting complex frameworks, or an experienced engineer looking for something better, this book will get you building.
 
-We wrote this book because we believe robotics software should be simpler. The tools exist—Go's elegant concurrency, NATS's battle-tested messaging, modern AI accelerators—but nobody had put them together in a way that prioritized developer experience. Gorai is our answer, and this book is your guide to using it.
+We wrote this book because we believe robotics software should be simpler. The tools exist—Go's elegant concurrency, NATS's battle-tested messaging, modern AI accelerators—but nobody had put them together in a way that prioritized developer experience. GoRAI is our answer, and this book is your guide to using it.
 
 ## Our Core Belief
 
 **Developer experience is as important as functionality.**
 
-A powerful framework that nobody can learn is a framework nobody uses. We aim for wide adoption and contributions—that happens only when developers enjoy using Gorai.
+A powerful framework that nobody can learn is a framework nobody uses. We aim for wide adoption and contributions—that happens only when developers enjoy using GoRAI.
 
 This book reflects that belief:
 - **Clear explanations** over clever brevity

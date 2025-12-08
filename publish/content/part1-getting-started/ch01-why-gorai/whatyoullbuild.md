@@ -1,12 +1,12 @@
 ## 1.4 What You'll Build
 
-This book is hands-on. By the end, you'll have built real, working robot components and understand Gorai deeply enough to build your own.
+This book is hands-on. By the end, you'll have built real, working robot components and understand GoRAI deeply enough to build your own.
 
 ### The Hello Sensor Example
 
 Our primary teaching example is `hello-sensor`: a CPU temperature sensor that reads system thermal data and publishes it over NATS. It sounds simple, but it demonstrates everything you need to know:
 
-- Creating a Gorai node and connecting to NATS
+- Creating a GoRAI node and connecting to NATS
 - Implementing the `Sensor` interface
 - Platform-specific code (Linux thermal zones, macOS system calls)
 - Publishing Protocol Buffer messages
@@ -21,7 +21,7 @@ By Chapter 9, you'll understand every line of this example and be ready to adapt
 
 Each chapter builds practical skills:
 
-**Chapter 2-3**: You'll run NATS, observe message flow, and understand how Gorai's distributed architecture works in practice.
+**Chapter 2-3**: You'll run NATS, observe message flow, and understand how GoRAI's distributed architecture works in practice.
 
 **Chapter 4-7**: You'll explore component interfaces—sensors, actuators, cameras, and services—understanding the contracts that make components interchangeable.
 

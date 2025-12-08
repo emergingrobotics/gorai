@@ -1,10 +1,10 @@
 ## 1.2 Design Philosophy
 
-Gorai isn't just another robotics framework—it's a deliberate set of choices about how robot software should be built. These principles guide every design decision.
+GoRAI isn't just another robotics framework—it's a deliberate set of choices about how robot software should be built. These principles guide every design decision.
 
 ### Developer Experience is Non-Negotiable
 
-**Developer experience (DX) is as important as functionality.** A framework with powerful features that nobody can learn is a framework nobody uses. We aim for wide adoption and contributions—that only happens when developers enjoy using Gorai.
+**Developer experience (DX) is as important as functionality.** A framework with powerful features that nobody can learn is a framework nobody uses. We aim for wide adoption and contributions—that only happens when developers enjoy using GoRAI.
 
 This means:
 - **Fantastic documentation**: Clear, comprehensive, with working examples
@@ -20,7 +20,7 @@ We believe great documentation and tutorials are what lower the barrier to entry
 Go was designed at Google to solve exactly the problems that plague robotics development: C++ complexity, build system nightmares, and dependency hell. It compiles to native binaries in seconds, not minutes. It has built-in concurrency primitives that match how robots actually work—many things happening at once. It produces single, statically-linked binaries that deploy trivially.
 
 ```go
-// A complete Gorai node in ~20 lines
+// A complete GoRAI node in ~20 lines
 func main() {
     n, _ := node.New("my_robot", node.WithNATS("nats://localhost:4222"))
     defer n.Close()
@@ -48,11 +48,11 @@ NATS brings:
 - **JetStream**: Persistence when you need it, fire-and-forget when you don't
 - **Clustering**: Built-in distribution across nodes and networks
 
-NATS was battle-tested at companies processing billions of messages daily before Gorai adopted it. That operational maturity matters when your robot needs to work reliably.
+NATS was battle-tested at companies processing billions of messages daily before GoRAI adopted it. That operational maturity matters when your robot needs to work reliably.
 
 ### AI-Optimized
 
-Modern robots increasingly rely on ML inference—object detection, pose estimation, voice recognition, path planning. Gorai treats AI as a first-class capability rather than an afterthought.
+Modern robots increasingly rely on ML inference—object detection, pose estimation, voice recognition, path planning. GoRAI treats AI as a first-class capability rather than an afterthought.
 
 The acceleration layer (`accel/`) provides a unified interface across different hardware:
 - **NPU**: Rockchip RK3588's 6 TOPS neural processing unit
@@ -70,7 +70,7 @@ outputs, _ := model.Infer(ctx, inputs)
 
 ### Modular by Default
 
-Gorai components communicate through messages, not method calls. This isn't just architecture astronautics—it has practical consequences:
+GoRAI components communicate through messages, not method calls. This isn't just architecture astronautics—it has practical consequences:
 
 - **Hot swapping**: Replace a motor driver without restarting the navigation stack
 - **Distributed deployment**: Run vision processing on a GPU node, control on a Pi
@@ -81,7 +81,7 @@ Every component implements the same `Resource` interface. Every resource can be 
 
 ### Low Barrier to Entry
 
-Getting started with Gorai should take minutes, not days:
+Getting started with GoRAI should take minutes, not days:
 
 ```bash
 # Install Go (if needed)
@@ -98,16 +98,16 @@ No colcon builds. No CMake configuration. No ROS workspace setup. No Docker cont
 
 This might seem frivolous, but it matters. Robotics should spark joy. When build systems frustrate and frameworks confuse, that joy disappears.
 
-Gorai aims to bring back the fun: write code, see it run on your robot, iterate quickly, and spend your time solving robotics problems rather than fighting tools.
+GoRAI aims to bring back the fun: write code, see it run on your robot, iterate quickly, and spend your time solving robotics problems rather than fighting tools.
 
 ### Community-Driven Development
 
-Gorai is built for contributors. We want you to:
+GoRAI is built for contributors. We want you to:
 - **File issues**: Found a bug? Confused by docs? Tell us.
 - **Submit PRs**: New components, better examples, typo fixes—all welcome
 - **Share your builds**: Inspire others with what you create
 - **Improve documentation**: Every clarification helps the next developer
 
-Great open-source projects grow through community contribution. We've designed Gorai to be approachable: clear code structure, consistent patterns, comprehensive tests. Not just so you can use it—so you can contribute to it.
+Great open-source projects grow through community contribution. We've designed GoRAI to be approachable: clear code structure, consistent patterns, comprehensive tests. Not just so you can use it—so you can contribute to it.
 
 The barrier to your first contribution should be as low as the barrier to your first robot.

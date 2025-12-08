@@ -1,9 +1,23 @@
 #!/bin/bash
 set -e
 
+# Setup symlinks before any build
+setup_links() {
+    echo "Setting up symlinks..."
+    /workspace/publish/scripts/setup-book-links.sh
+    /workspace/publish/scripts/setup-website-links.sh
+}
+
 case "$1" in
+    setup)
+        # Just setup symlinks
+        setup_links
+        echo "Symlinks setup complete."
+        ;;
+
     book)
         # Build the book with mdBook
+        setup_links
         cd /workspace/publish/book
         mdbook-mermaid install .
         mdbook build --dest-dir /workspace/publish/dist/book
@@ -12,6 +26,7 @@ case "$1" in
 
     book-serve)
         # Serve book with live reload
+        setup_links
         cd /workspace/publish/book
         mdbook-mermaid install .
         mdbook serve --hostname 0.0.0.0 --port 3000
@@ -19,6 +34,7 @@ case "$1" in
 
     website)
         # Build website with MkDocs
+        setup_links
         cd /workspace/publish/website
         mkdocs build --site-dir /workspace/publish/dist/website
         echo "Website built to publish/dist/website/"
@@ -26,6 +42,7 @@ case "$1" in
 
     website-serve)
         # Serve website with live reload
+        setup_links
         cd /workspace/publish/website
         mkdocs serve --dev-addr 0.0.0.0:8000
         ;;

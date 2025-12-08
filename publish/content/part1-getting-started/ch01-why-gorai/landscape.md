@@ -1,4 +1,4 @@
-# Chapter 1: Why Gorai?
+# Chapter 1: Why GoRAI?
 
 ## 1.1 The Robotics Software Landscape
 
@@ -28,10 +28,10 @@ After years of working with these platforms, recurring frustrations emerge:
 
 **Build System Complexity**: colcon, CMake, ament, package.xml, setup.py—the tooling stack has grown organically and shows it. Cross-compilation for embedded targets requires arcane knowledge. Reproducible builds demand containerization.
 
-### The Gap Gorai Fills
+### The Gap GoRAI Fills
 
 These pain points aren't inevitable. They reflect choices made in different contexts—academic research, enterprise middleware, cloud platforms—that don't always align with building practical robots.
 
 What if we started fresh? What if we took the best ideas from distributed systems and cloud computing, combined them with Go's simplicity and performance, and designed specifically for modern robotics development?
 
-That's the question Gorai answers.
+That's the question GoRAI answers.

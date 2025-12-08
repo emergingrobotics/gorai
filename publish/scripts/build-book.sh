@@ -49,7 +49,42 @@ echo ""
 # Check for mdbook
 if ! command -v mdbook &> /dev/null; then
     echo "ERROR: mdbook is not installed"
-    echo "Install with: cargo install mdbook"
+    echo ""
+    echo "Install mdbook using one of these methods:"
+    echo ""
+    echo "  # Option 1: Pre-built binary (fastest):"
+    echo "  mkdir -p ~/.cargo/bin"
+    echo "  curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/.cargo/bin"
+    echo "  export PATH=\"\$HOME/.cargo/bin:\$PATH\""
+    echo ""
+    echo "  # Option 2: Using cargo (requires Rust):"
+    echo "  cargo install mdbook"
+    echo ""
+    echo "  # Option 3: Using snap:"
+    echo "  sudo snap install mdbook"
+    echo ""
+    exit 1
+fi
+
+# Check for mdbook-mermaid
+if ! command -v mdbook-mermaid &> /dev/null; then
+    echo "ERROR: mdbook-mermaid is not installed"
+    echo ""
+    echo "Install mdbook-mermaid for diagram support:"
+    echo ""
+    echo "  cargo install mdbook-mermaid"
+    echo ""
+    exit 1
+fi
+
+# Check for mdbook-toc
+if ! command -v mdbook-toc &> /dev/null; then
+    echo "ERROR: mdbook-toc is not installed"
+    echo ""
+    echo "Install mdbook-toc for table of contents support:"
+    echo ""
+    echo "  cargo install mdbook-toc"
+    echo ""
     exit 1
 fi
 

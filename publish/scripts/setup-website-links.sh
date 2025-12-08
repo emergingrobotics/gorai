@@ -70,9 +70,10 @@ fi
 # Link examples directory
 if [ -d "$CONTENT/examples" ]; then
     # Link individual example directories to website examples
+    # Only link real directories, not symlinks (to avoid recursion)
     mkdir -p "$DOCS_DIR/examples"
     for example in "$CONTENT/examples"/*/; do
-        if [ -d "$example" ]; then
+        if [ -d "$example" ] && [ ! -L "${example%/}" ]; then
             dirname=$(basename "$example")
             ln -sf "../../../content/examples/$dirname" "$DOCS_DIR/examples/$dirname"
             echo "  Linked: examples/$dirname/"

@@ -1,18 +1,18 @@
 # Chapter 2: Architecture & Mental Model
 
-> **In This Chapter:** Learn how to think about Gorai systems—nodes, resources, distributed architecture, and network transparency.
+> **In This Chapter:** Learn how to think about GoRAI systems—nodes, resources, distributed architecture, and network transparency.
 
 ## Overview
 
-Every framework has a mental model—a way of thinking about problems that, once internalized, makes everything easier. Gorai's mental model comes from distributed systems engineering: robots are networks of communicating processes, and the communication patterns matter as much as the code.
+Every framework has a mental model—a way of thinking about problems that, once internalized, makes everything easier. GoRAI's mental model comes from distributed systems engineering: robots are networks of communicating processes, and the communication patterns matter as much as the code.
 
-This chapter establishes the conceptual foundation you'll use throughout your Gorai development. We'll cover the three-layer architecture, the node and resource abstractions, configuration patterns, and the NWS/NWC mechanism that makes location transparent.
+This chapter establishes the conceptual foundation you'll use throughout your GoRAI development. We'll cover the three-layer architecture, the node and resource abstractions, configuration patterns, and the NWS/NWC mechanism that makes location transparent.
 
 ## What You'll Learn
 
 After reading this chapter, you'll understand:
 
-- Gorai's three-layer architecture (primary, secondary, microcontroller)
+- GoRAI's three-layer architecture (primary, secondary, microcontroller)
 - What nodes are and how they manage resources
 - The difference between components and services
 - How configuration drives robot behavior
@@ -39,7 +39,7 @@ After reading this chapter, you'll understand:
 ## Prerequisites
 
 This chapter assumes you've read:
-- [Chapter 1: Why Gorai?](../ch01-why-gorai/_index.md)
+- [Chapter 1: Why GoRAI?](../ch01-why-gorai/_index.md)
 
 No coding required yet—this is conceptual foundation.
 

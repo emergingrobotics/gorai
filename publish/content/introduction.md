@@ -1,10 +1,12 @@
 # Introduction
 
+> **GoRAI** is pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")
+
 ## About This Book
 
-*Gorai: Building Modern Robots with Go and NATS* is a practical guide to a new approach in robotics software. Whether you're a software developer curious about robotics, a robotics enthusiast tired of fighting complex frameworks, or an experienced engineer looking for something better, this book will get you building.
+*GoRAI: Building Modern Robots with Go and NATS* is a practical guide to a new approach in robotics software. Whether you're a software developer curious about robotics, a robotics enthusiast tired of fighting complex frameworks, or an experienced engineer looking for something better, this book will get you building.
 
-We wrote this book because we believe robotics software should be simpler. The tools exist—Go's elegant concurrency, NATS's battle-tested messaging, modern AI accelerators—but nobody had put them together in a way that prioritized developer experience. Gorai is our answer, and this book is your guide to using it.
+We wrote this book because we believe robotics software should be simpler. The tools exist—Go's elegant concurrency, NATS's battle-tested messaging, modern AI accelerators—but nobody had put them together in a way that prioritized developer experience. GoRAI is our answer, and this book is your guide to using it.
 
 ## Who We Are
 
@@ -18,7 +20,7 @@ After the Navy, I spent decades in Silicon Valley leading engineering teams at c
 
 But robotics was always my passion on the side. I coached middle school and high school robotics teams in FIRST LEGO League and VEX competitions, watching students struggle with the same software complexity that frustrated professional engineers. At home, I built robots for fun—and ran into those same frustrations myself.
 
-Gorai grew from a simple question: why is robotics software so much harder than it needs to be? The distributed systems lessons from my career, the simplicity requirements from nuclear power, and the accessibility needs from coaching young roboticists—they all pointed to the same answer. We needed something new.
+GoRAI grew from a simple question: why is robotics software so much harder than it needs to be? The distributed systems lessons from my career, the simplicity requirements from nuclear power, and the accessibility needs from coaching young roboticists—they all pointed to the same answer. We needed something new.
 
 ### Luca Herlein
 
@@ -32,7 +34,7 @@ I studied Aerospace Engineering at CU Boulder, where I learned the formal founda
 
 A robotics framework needs two perspectives: the software architect who thinks in distributed systems and long-term maintainability, and the roboticist who thinks in actuators and sensors and "will this work when it matters."
 
-Greg brings decades of building systems that scale and survive. Luca brings years of building robots that compete and win. Gorai exists at the intersection—software engineering rigor applied to practical robotics.
+Greg brings decades of building systems that scale and survive. Luca brings years of building robots that compete and win. GoRAI exists at the intersection—software engineering rigor applied to practical robotics.
 
 This book reflects both perspectives. The architectural discussions come from hard-won experience with distributed systems. The practical examples come from actually building robots. When we disagree (and we do), we usually find that both viewpoints have merit—and the synthesis is better than either alone.
 
@@ -40,7 +42,7 @@ This book reflects both perspectives. The architectural discussions come from ha
 
 By the end of this book, you'll understand:
 
-- **The Gorai mental model**: How to think about robot software as distributed systems
+- **The GoRAI mental model**: How to think about robot software as distributed systems
 - **NATS messaging**: Pub/sub, request/reply, and streaming for robotics
 - **Component architecture**: Sensors, actuators, cameras—building blocks that compose
 - **Service design**: Vision, navigation, and custom capabilities
@@ -68,7 +70,7 @@ When we don't know something, we say so. When multiple approaches work, we expla
 
 ## Let's Build
 
-The best way to learn robotics is to build robots. The best way to learn Gorai is to use it.
+The best way to learn robotics is to build robots. The best way to learn GoRAI is to use it.
 
 Fire up your terminal. Clone the repository. Let's get started.
 
