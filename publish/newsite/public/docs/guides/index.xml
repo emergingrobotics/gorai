@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Guides on Gorai</title>
+    <link>https://gorai.dev/docs/guides/</link>
+    <description>Recent content in Guides on Gorai</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <atom:link href="https://gorai.dev/docs/guides/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Working with Components</title>
+      <link>https://gorai.dev/docs/working-with-components/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gorai.dev/docs/working-with-components/</guid>
+      <description>Working with Components Components are the building blocks that interface with robot hardware. They abstract physical devices behind consistent interfaces.&#xA;The Resource Interface All components implement the base Resource interface:&#xA;1 2 3 4 5 6 type Resource interface { Name() resource.Name Reconfigure(ctx context.Context, deps Dependencies, conf Config) error DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) Close(ctx context.Context) error } Sensors Sensors measure physical quantities and return readings. They implement:&#xA;1 2 3 4 type Sensor interface { Resource Readings(ctx context.</description>
+    </item>
+    <item>
+      <title>Working with Services</title>
+      <link>https://gorai.dev/docs/working-with-services/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gorai.dev/docs/working-with-services/</guid>
+      <description>Working with Services Services are software capabilities that process data, make decisions, and coordinate actions. Unlike components that abstract hardware, services are pure software.&#xA;Components vs Services Aspect Components Services Purpose Hardware abstraction Software capabilities Examples Motors, cameras, sensors Vision, navigation, SLAM Dependencies Physical hardware Other resources Location Close to hardware Anywhere on network Components answer: &amp;ldquo;What does this hardware do?&amp;rdquo; Services answer: &amp;ldquo;What can this robot accomplish?&amp;rdquo;&#xA;The Service Interface Services implement the base Resource interface:</description>
+    </item>
+    <item>
+      <title>NATS Messaging</title>
+      <link>https://gorai.dev/docs/nats-messaging/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gorai.dev/docs/nats-messaging/</guid>
+      <description>NATS Messaging Guide Gorai uses NATS for all component communication. This guide covers the patterns you&amp;rsquo;ll use most often.&#xA;Quick Reference Pattern Use Case Example Pub/Sub Sensor data Temperature readings Request/Reply Commands Motor control Queue Groups Load balancing Multiple processors JetStream Persistence Message replay Pub/Sub The most common pattern for sensor data.&#xA;Publishing 1 nc.Publish(&amp;#34;sensors.temp.reading&amp;#34;, []byte(&amp;#34;25.5&amp;#34;)) Subscribing 1 2 3 nc.Subscribe(&amp;#34;sensors.&amp;gt;&amp;#34;, func(msg *nats.Msg) { fmt.Printf(&amp;#34;Received: %s on %s\n&amp;#34;, msg.Data, msg.Subject) }) Wildcards * — Match single token: sensors.</description>
+    </item>
+    <item>
+      <title>Configuration</title>
+      <link>https://gorai.dev/docs/configuration/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gorai.dev/docs/configuration/</guid>
+      <description>Configuration Guide Gorai supports configuration through YAML files and environment variables.&#xA;YAML Configuration 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 # config.yaml robot: name: my-robot nats: url: nats://localhost:4222 components: - name: temp-sensor type: sensor driver: ds18b20 pin: 4 - name: left-motor type: actuator driver: pwm pins: [17, 18] Environment Variables Override configuration with environment variables:&#xA;1 2 export GORAI_NATS_URL=nats://192.168.1.100:4222 export GORAI_LOG_LEVEL=debug Loading Configuration 1 2 3 4 5 6 7 cfg, err := config.</description>
+    </item>
+    <item>
+      <title>Testing</title>
+      <link>https://gorai.dev/docs/testing/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gorai.dev/docs/testing/</guid>
+      <description>Testing Guide Robots are safety-critical systems. Testing is not optional—it&amp;rsquo;s essential. Gorai provides patterns and tools for comprehensive testing.&#xA;The Testing Pyramid 1 2 3 4 5 6 7 8 /\ / \ Hardware Tests (1%) / \ System Tests (4%) / \ Module Tests (5%) / \ Integration Tests (10%) / \ Component Tests (20%) / \ Unit Tests (60%) /______________\ Catch bugs at the lowest level possible. Unit tests are fast and pinpoint problems.</description>
+    </item>
+  </channel>
+</rss>

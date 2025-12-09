@@ -1,0 +1,6 @@
+Placeholder for logo files.
+
+Add these files:
+- gorai-logo.svg
+- gorai-logo.png
+- cover.png (book cover)

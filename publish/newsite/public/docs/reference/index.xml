@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Reference on Gorai</title>
+    <link>https://gorai.dev/docs/reference/</link>
+    <description>Recent content in Reference on Gorai</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <atom:link href="https://gorai.dev/docs/reference/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>CLI Reference</title>
+      <link>https://gorai.dev/docs/cli-reference/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://gorai.dev/docs/cli-reference/</guid>
+      <description>CLI Reference The gorai command-line tool provides utilities for development and deployment.&#xA;Commands gorai init Create a new Gorai project:&#xA;1 gorai init &amp;lt;project-name&amp;gt; gorai run Run a Gorai application:&#xA;1 gorai run [--config config.yaml] gorai build Build for deployment:&#xA;1 gorai build [--target linux/arm64] gorai version Show version information:&#xA;1 gorai version Global Flags Flag Description --config Configuration file path --log-level Log level (debug, info, warn, error) --nats-url NATS server URL </description>
+    </item>
+  </channel>
+</rss>

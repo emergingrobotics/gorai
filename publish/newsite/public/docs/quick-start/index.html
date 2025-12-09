@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Start | Gorai</title>
+  <meta name="description" content="Build your first Gorai component in 5 minutes">
+  <style>
+    :root {
+      --primary: #663399;
+      --text: #333;
+      --bg: #fff;
+      --code-bg: #f5f5f5;
+      --border: #ddd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 0;
+    }
+    header a { color: white; text-decoration: none; }
+    header nav { display: flex; gap: 1.5rem; align-items: center; }
+    header nav a:hover { text-decoration: underline; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    main { padding: 2rem 0; }
+    h1, h2, h3, h4 { color: #1a1a1a; margin-top: 1.5rem; }
+    h1 { border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
+    a { color: var(--primary); }
+    code {
+      font-family: "SF Mono", Monaco, monospace;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
+    th { background: var(--code-bg); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 3rem; color: #666; }
+    .callout { margin: 1rem 0; padding: 1rem; border-radius: 4px; border-left: 4px solid; }
+    .callout-info { background: #e7f3ff; border-color: #2196F3; }
+    .callout-warning { background: #fff3e0; border-color: #ff9800; }
+    .callout-title { font-weight: bold; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <h1><a href="/">Gorai</a></h1>
+        
+        <a href="/docs/">Docs</a>
+        
+        <a href="/examples/">Examples</a>
+        
+        <a href="/community/">Community</a>
+        
+        <a href="/book/">Book</a>
+        
+        <a href="https://github.com/gorai/gorai">GitHub</a>
+        
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    
+<article>
+  <h1 id="quick-start">Quick Start</h1>
+<p>Let&rsquo;s build a simple temperature sensor that publishes readings to NATS.</p>
+<h2 id="1-start-nats">1. Start NATS</h2>
+<p>In a terminal, start the NATS server:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nats-server
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="2-create-a-project">2. Create a Project</h2>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir hello-sensor <span style="color:#ff79c6">&amp;&amp;</span> <span style="color:#8be9fd;font-style:italic">cd</span> hello-sensor
+</span></span><span style="display:flex;"><span>go mod init hello-sensor
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="3-write-the-sensor">3. Write the Sensor</h2>
+<p>Create <code>main.go</code>:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#ff79c6">package</span> main
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff79c6">import</span> (
+</span></span><span style="display:flex;"><span>    <span style="color:#f1fa8c">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f1fa8c">&#34;math/rand&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f1fa8c">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f1fa8c">&#34;github.com/nats-io/nats.go&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">main</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// Connect to NATS
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    nc, err <span style="color:#ff79c6">:=</span> nats.<span style="color:#50fa7b">Connect</span>(nats.DefaultURL)
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#8be9fd;font-style:italic">panic</span>(err)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">defer</span> nc.<span style="color:#50fa7b">Close</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    fmt.<span style="color:#50fa7b">Println</span>(<span style="color:#f1fa8c">&#34;Connected to NATS, publishing temperature readings...&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// Publish temperature readings every second
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    ticker <span style="color:#ff79c6">:=</span> time.<span style="color:#50fa7b">NewTicker</span>(time.Second)
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">for</span> <span style="color:#ff79c6">range</span> ticker.C {
+</span></span><span style="display:flex;"><span>        temp <span style="color:#ff79c6">:=</span> <span style="color:#bd93f9">20.0</span> <span style="color:#ff79c6">+</span> rand.<span style="color:#50fa7b">Float64</span>()<span style="color:#ff79c6">*</span><span style="color:#bd93f9">10.0</span> <span style="color:#6272a4">// 20-30°C
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>        msg <span style="color:#ff79c6">:=</span> fmt.<span style="color:#50fa7b">Sprintf</span>(<span style="color:#f1fa8c">&#34;%.2f&#34;</span>, temp)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        nc.<span style="color:#50fa7b">Publish</span>(<span style="color:#f1fa8c">&#34;sensors.temperature.reading&#34;</span>, []<span style="color:#8be9fd;font-style:italic">byte</span>(msg))
+</span></span><span style="display:flex;"><span>        fmt.<span style="color:#50fa7b">Printf</span>(<span style="color:#f1fa8c">&#34;Published: %s°C\n&#34;</span>, msg)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="4-run-it">4. Run It</h2>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go mod tidy
+</span></span><span style="display:flex;"><span>go run main.go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>You should see:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>Connected to NATS, publishing temperature readings...
+</span></span><span style="display:flex;"><span>Published: 24.56°C
+</span></span><span style="display:flex;"><span>Published: 21.33°C
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="5-subscribe-to-messages">5. Subscribe to Messages</h2>
+<p>In another terminal, use the NATS CLI to see messages:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nats sub <span style="color:#f1fa8c">&#34;sensors.&gt;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="next-steps">Next Steps</h2>
+<ul>
+<li>Learn about <a href="../concepts/">Core Concepts</a></li>
+<li>Explore the <a href="/docs/guides/components/">Components Guide</a></li>
+<li>Try the <a href="/examples/hello-sensor/">Hello Sensor Example</a></li>
+</ul>
+
+</article>
+
+  </main>
+  <footer>
+    <div class="container">
+      <p>Copyright &copy; 2025 Greg Herlein &amp; Luca Herlein. Apache 2.0 License.</p>
+      <p><em>Pronounced "go-ray" (like "sting-ray")</em></p>
+    </div>
+  </footer>
+</body>
+</html>

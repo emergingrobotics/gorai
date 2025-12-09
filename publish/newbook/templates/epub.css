@@ -1,0 +1,249 @@
+/* Gorai Book - ePub Stylesheet */
+
+/* Base typography */
+body {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1em;
+  line-height: 1.6;
+  color: #333;
+  margin: 1em;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #1a1a1a;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2em;
+  border-bottom: 2px solid #663399;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.2em;
+}
+
+h3 {
+  font-size: 1.25em;
+}
+
+h4 {
+  font-size: 1.1em;
+}
+
+/* Chapter titles */
+.chapter-title {
+  font-size: 2.5em;
+  text-align: center;
+  margin-top: 2em;
+  margin-bottom: 1em;
+}
+
+/* Paragraphs */
+p {
+  margin: 0.8em 0;
+  text-align: justify;
+}
+
+/* Links */
+a {
+  color: #663399;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Code */
+code {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.9em;
+  background-color: #f5f5f5;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.85em;
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1em;
+  overflow-x: auto;
+  line-height: 1.4;
+  margin: 1em 0;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Block quotes */
+blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #663399;
+  background-color: #f9f9f9;
+  font-style: italic;
+}
+
+blockquote p {
+  margin: 0.5em 0;
+}
+
+/* Lists */
+ul, ol {
+  margin: 0.8em 0;
+  padding-left: 2em;
+}
+
+li {
+  margin: 0.3em 0;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.9em;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 0.5em;
+  text-align: left;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+}
+
+figure {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+figcaption {
+  font-size: 0.9em;
+  font-style: italic;
+  color: #666;
+  margin-top: 0.5em;
+}
+
+/* Definition lists */
+dl {
+  margin: 1em 0;
+}
+
+dt {
+  font-weight: bold;
+  margin-top: 0.5em;
+}
+
+dd {
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Horizontal rules */
+hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 2em 0;
+}
+
+/* Notes and warnings */
+.note, .warning, .tip {
+  margin: 1em 0;
+  padding: 1em;
+  border-radius: 4px;
+}
+
+.note {
+  background-color: #e7f3ff;
+  border-left: 4px solid #2196F3;
+}
+
+.warning {
+  background-color: #fff3e0;
+  border-left: 4px solid #ff9800;
+}
+
+.tip {
+  background-color: #e8f5e9;
+  border-left: 4px solid #4caf50;
+}
+
+/* Title page */
+.title-page {
+  text-align: center;
+  margin-top: 3em;
+}
+
+.title-page h1 {
+  font-size: 2.5em;
+  border: none;
+}
+
+.title-page .subtitle {
+  font-size: 1.3em;
+  font-style: italic;
+  color: #666;
+}
+
+.title-page .author {
+  font-size: 1.2em;
+  margin-top: 2em;
+}
+
+/* Table of contents */
+.toc {
+  margin: 2em 0;
+}
+
+.toc ul {
+  list-style-type: none;
+  padding-left: 1em;
+}
+
+.toc li {
+  margin: 0.5em 0;
+}
+
+.toc a {
+  text-decoration: none;
+}
+
+/* Page breaks for print/ebook */
+.page-break {
+  page-break-after: always;
+}
+
+.chapter {
+  page-break-before: always;
+}

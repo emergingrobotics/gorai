@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testing | Gorai</title>
+  <meta name="description" content="Test Gorai components and services">
+  <style>
+    :root {
+      --primary: #663399;
+      --text: #333;
+      --bg: #fff;
+      --code-bg: #f5f5f5;
+      --border: #ddd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 0;
+    }
+    header a { color: white; text-decoration: none; }
+    header nav { display: flex; gap: 1.5rem; align-items: center; }
+    header nav a:hover { text-decoration: underline; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    main { padding: 2rem 0; }
+    h1, h2, h3, h4 { color: #1a1a1a; margin-top: 1.5rem; }
+    h1 { border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
+    a { color: var(--primary); }
+    code {
+      font-family: "SF Mono", Monaco, monospace;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
+    th { background: var(--code-bg); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 3rem; color: #666; }
+    .callout { margin: 1rem 0; padding: 1rem; border-radius: 4px; border-left: 4px solid; }
+    .callout-info { background: #e7f3ff; border-color: #2196F3; }
+    .callout-warning { background: #fff3e0; border-color: #ff9800; }
+    .callout-title { font-weight: bold; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <h1><a href="/">Gorai</a></h1>
+        
+        <a href="/docs/">Docs</a>
+        
+        <a href="/examples/">Examples</a>
+        
+        <a href="/community/">Community</a>
+        
+        <a href="/book/">Book</a>
+        
+        <a href="https://github.com/gorai/gorai">GitHub</a>
+        
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    
+<article>
+  <h1 id="testing-guide">Testing Guide</h1>
+<p>Robots are safety-critical systems. Testing is not optional—it&rsquo;s essential. Gorai provides patterns and tools for comprehensive testing.</p>
+<h2 id="the-testing-pyramid">The Testing Pyramid</h2>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>        /\
+</span></span><span style="display:flex;"><span>       /  \  Hardware Tests (1%)
+</span></span><span style="display:flex;"><span>      /    \  System Tests (4%)
+</span></span><span style="display:flex;"><span>     /      \  Module Tests (5%)
+</span></span><span style="display:flex;"><span>    /        \  Integration Tests (10%)
+</span></span><span style="display:flex;"><span>   /          \  Component Tests (20%)
+</span></span><span style="display:flex;"><span>  /            \  Unit Tests (60%)
+</span></span><span style="display:flex;"><span> /______________\
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Catch bugs at the lowest level possible. Unit tests are fast and pinpoint problems.</p>
+<h2 id="test-categories-and-build-tags">Test Categories and Build Tags</h2>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Purpose</th>
+<th>Speed</th>
+<th>NATS</th>
+<th>Hardware</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(none)</td>
+<td>Unit tests</td>
+<td>&lt;1s</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>component</code></td>
+<td>Single component</td>
+<td>1-5s</td>
+<td>Embedded</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>integration</code></td>
+<td>Multi-component</td>
+<td>5-30s</td>
+<td>Embedded</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>hardware</code></td>
+<td>Real hardware</td>
+<td>Variable</td>
+<td>Real</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>Run specific categories:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#8be9fd;font-style:italic">test</span> ./...                                    <span style="color:#6272a4"># Unit only</span>
+</span></span><span style="display:flex;"><span>go <span style="color:#8be9fd;font-style:italic">test</span> -tags<span style="color:#ff79c6">=</span>component ./...                   <span style="color:#6272a4"># Component</span>
+</span></span><span style="display:flex;"><span>go <span style="color:#8be9fd;font-style:italic">test</span> -tags<span style="color:#ff79c6">=</span>integration ./...                 <span style="color:#6272a4"># Integration</span>
+</span></span><span style="display:flex;"><span>go <span style="color:#8be9fd;font-style:italic">test</span> -tags<span style="color:#ff79c6">=</span><span style="color:#f1fa8c">&#34;component integration&#34;</span> ./...     <span style="color:#6272a4"># Both</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="unit-testing-patterns">Unit Testing Patterns</h2>
+<h3 id="table-driven-tests">Table-Driven Tests</h3>
+<p>The Go idiom for comprehensive testing:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">TestCelsiusToFahrenheit</span>(t <span style="color:#ff79c6">*</span>testing.T) {
+</span></span><span style="display:flex;"><span>    tests <span style="color:#ff79c6">:=</span> []<span style="color:#8be9fd;font-style:italic">struct</span> {
+</span></span><span style="display:flex;"><span>        name       <span style="color:#8be9fd">string</span>
+</span></span><span style="display:flex;"><span>        celsius    <span style="color:#8be9fd">float64</span>
+</span></span><span style="display:flex;"><span>        fahrenheit <span style="color:#8be9fd">float64</span>
+</span></span><span style="display:flex;"><span>    }{
+</span></span><span style="display:flex;"><span>        {<span style="color:#f1fa8c">&#34;freezing&#34;</span>, <span style="color:#bd93f9">0</span>, <span style="color:#bd93f9">32</span>},
+</span></span><span style="display:flex;"><span>        {<span style="color:#f1fa8c">&#34;boiling&#34;</span>, <span style="color:#bd93f9">100</span>, <span style="color:#bd93f9">212</span>},
+</span></span><span style="display:flex;"><span>        {<span style="color:#f1fa8c">&#34;body temp&#34;</span>, <span style="color:#bd93f9">37</span>, <span style="color:#bd93f9">98.6</span>},
+</span></span><span style="display:flex;"><span>        {<span style="color:#f1fa8c">&#34;negative&#34;</span>, <span style="color:#ff79c6">-</span><span style="color:#bd93f9">40</span>, <span style="color:#ff79c6">-</span><span style="color:#bd93f9">40</span>},
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">for</span> _, tt <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">range</span> tests {
+</span></span><span style="display:flex;"><span>        t.<span style="color:#50fa7b">Run</span>(tt.name, <span style="color:#8be9fd;font-style:italic">func</span>(t <span style="color:#ff79c6">*</span>testing.T) {
+</span></span><span style="display:flex;"><span>            got <span style="color:#ff79c6">:=</span> <span style="color:#50fa7b">CelsiusToFahrenheit</span>(tt.celsius)
+</span></span><span style="display:flex;"><span>            <span style="color:#ff79c6">if</span> math.<span style="color:#50fa7b">Abs</span>(got<span style="color:#ff79c6">-</span>tt.fahrenheit) &gt; <span style="color:#bd93f9">0.1</span> {
+</span></span><span style="display:flex;"><span>                t.<span style="color:#50fa7b">Errorf</span>(<span style="color:#f1fa8c">&#34;CelsiusToFahrenheit(%v) = %v, want %v&#34;</span>,
+</span></span><span style="display:flex;"><span>                    tt.celsius, got, tt.fahrenheit)
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        })
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="test-helpers">Test Helpers</h3>
+<p>Mark helper functions with <code>t.Helper()</code>:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">assertNoError</span>(t <span style="color:#ff79c6">*</span>testing.T, err <span style="color:#8be9fd">error</span>) {
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Helper</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+</span></span><span style="display:flex;"><span>        t.<span style="color:#50fa7b">Fatalf</span>(<span style="color:#f1fa8c">&#34;unexpected error: %v&#34;</span>, err)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">createTestSensor</span>(t <span style="color:#ff79c6">*</span>testing.T) <span style="color:#ff79c6">*</span>TemperatureSensor {
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Helper</span>()
+</span></span><span style="display:flex;"><span>    fake <span style="color:#ff79c6">:=</span> fake.<span style="color:#50fa7b">New</span>()
+</span></span><span style="display:flex;"><span>    fake.<span style="color:#50fa7b">SetTemperature</span>(<span style="color:#bd93f9">25.0</span>)
+</span></span><span style="display:flex;"><span>    sensor, err <span style="color:#ff79c6">:=</span> sensor.<span style="color:#50fa7b">New</span>(<span style="color:#ff79c6">nil</span>, fake, sensor.<span style="color:#50fa7b">DefaultConfig</span>())
+</span></span><span style="display:flex;"><span>    <span style="color:#50fa7b">assertNoError</span>(t, err)
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Cleanup</span>(<span style="color:#8be9fd;font-style:italic">func</span>() {
+</span></span><span style="display:flex;"><span>        sensor.<span style="color:#50fa7b">Close</span>(context.<span style="color:#50fa7b">Background</span>())
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">return</span> sensor
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="parallel-tests">Parallel Tests</h3>
+<p>Speed up test suites:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">TestMotor_SetPower</span>(t <span style="color:#ff79c6">*</span>testing.T) {
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Parallel</span>()
+</span></span><span style="display:flex;"><span>    motor <span style="color:#ff79c6">:=</span> fake.<span style="color:#50fa7b">NewMotor</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// Test...
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="fake-implementations">Fake Implementations</h2>
+<p>Every component needs a fake for testing without hardware.</p>
+<h3 id="basic-fake">Basic Fake</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">type</span> FakeReader <span style="color:#8be9fd;font-style:italic">struct</span> {
+</span></span><span style="display:flex;"><span>    mu          sync.RWMutex
+</span></span><span style="display:flex;"><span>    temperature <span style="color:#8be9fd">float64</span>
+</span></span><span style="display:flex;"><span>    shouldError <span style="color:#8be9fd">bool</span>
+</span></span><span style="display:flex;"><span>    errorMsg    <span style="color:#8be9fd">string</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> (f <span style="color:#ff79c6">*</span>FakeReader) <span style="color:#50fa7b">SetTemperature</span>(celsius <span style="color:#8be9fd">float64</span>) {
+</span></span><span style="display:flex;"><span>    f.mu.<span style="color:#50fa7b">Lock</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">defer</span> f.mu.<span style="color:#50fa7b">Unlock</span>()
+</span></span><span style="display:flex;"><span>    f.temperature = celsius
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> (f <span style="color:#ff79c6">*</span>FakeReader) <span style="color:#50fa7b">SetError</span>(msg <span style="color:#8be9fd">string</span>) {
+</span></span><span style="display:flex;"><span>    f.mu.<span style="color:#50fa7b">Lock</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">defer</span> f.mu.<span style="color:#50fa7b">Unlock</span>()
+</span></span><span style="display:flex;"><span>    f.shouldError = <span style="color:#ff79c6">true</span>
+</span></span><span style="display:flex;"><span>    f.errorMsg = msg
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> (f <span style="color:#ff79c6">*</span>FakeReader) <span style="color:#50fa7b">Read</span>(ctx context.Context, zone <span style="color:#8be9fd">string</span>) (Reading, <span style="color:#8be9fd">error</span>) {
+</span></span><span style="display:flex;"><span>    f.mu.<span style="color:#50fa7b">RLock</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">defer</span> f.mu.<span style="color:#50fa7b">RUnlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> f.shouldError {
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">return</span> Reading{}, fmt.<span style="color:#50fa7b">Errorf</span>(f.errorMsg)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">return</span> Reading{
+</span></span><span style="display:flex;"><span>        Zone:         zone,
+</span></span><span style="display:flex;"><span>        TemperatureC: f.temperature,
+</span></span><span style="display:flex;"><span>    }, <span style="color:#ff79c6">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="error-injection">Error Injection</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">TestSensor_HandlesReadError</span>(t <span style="color:#ff79c6">*</span>testing.T) {
+</span></span><span style="display:flex;"><span>    fake <span style="color:#ff79c6">:=</span> fake.<span style="color:#50fa7b">NewReader</span>()
+</span></span><span style="display:flex;"><span>    fake.<span style="color:#50fa7b">SetError</span>(<span style="color:#f1fa8c">&#34;I2C timeout&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    sensor, _ <span style="color:#ff79c6">:=</span> sensor.<span style="color:#50fa7b">New</span>(<span style="color:#ff79c6">nil</span>, fake, cfg)
+</span></span><span style="display:flex;"><span>    _, err <span style="color:#ff79c6">:=</span> sensor.<span style="color:#50fa7b">Readings</span>(context.<span style="color:#50fa7b">Background</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    assert.<span style="color:#50fa7b">Error</span>(t, err)
+</span></span><span style="display:flex;"><span>    assert.<span style="color:#50fa7b">Contains</span>(t, err.<span style="color:#50fa7b">Error</span>(), <span style="color:#f1fa8c">&#34;I2C timeout&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="testing-with-nats">Testing with NATS</h2>
+<h3 id="embedded-nats-server">Embedded NATS Server</h3>
+<p>For tests needing real NATS:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#6272a4">//go:build component
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">startTestNATS</span>(t <span style="color:#ff79c6">*</span>testing.T) <span style="color:#ff79c6">*</span>nats.Conn {
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Helper</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    opts <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">&amp;</span>server.Options{
+</span></span><span style="display:flex;"><span>        Host:      <span style="color:#f1fa8c">&#34;127.0.0.1&#34;</span>,
+</span></span><span style="display:flex;"><span>        Port:      <span style="color:#ff79c6">-</span><span style="color:#bd93f9">1</span>,  <span style="color:#6272a4">// Random port
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>        JetStream: <span style="color:#ff79c6">true</span>,
+</span></span><span style="display:flex;"><span>        StoreDir:  t.<span style="color:#50fa7b">TempDir</span>(),
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    ns, err <span style="color:#ff79c6">:=</span> server.<span style="color:#50fa7b">NewServer</span>(opts)
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+</span></span><span style="display:flex;"><span>        t.<span style="color:#50fa7b">Fatal</span>(err)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">go</span> ns.<span style="color:#50fa7b">Start</span>()
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> !ns.<span style="color:#50fa7b">ReadyForConnections</span>(<span style="color:#bd93f9">10</span> <span style="color:#ff79c6">*</span> time.Second) {
+</span></span><span style="display:flex;"><span>        t.<span style="color:#50fa7b">Fatal</span>(<span style="color:#f1fa8c">&#34;NATS server not ready&#34;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Cleanup</span>(<span style="color:#8be9fd;font-style:italic">func</span>() {
+</span></span><span style="display:flex;"><span>        ns.<span style="color:#50fa7b">Shutdown</span>()
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    nc, err <span style="color:#ff79c6">:=</span> nats.<span style="color:#50fa7b">Connect</span>(ns.<span style="color:#50fa7b">ClientURL</span>())
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+</span></span><span style="display:flex;"><span>        t.<span style="color:#50fa7b">Fatal</span>(err)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    t.<span style="color:#50fa7b">Cleanup</span>(<span style="color:#8be9fd;font-style:italic">func</span>() {
+</span></span><span style="display:flex;"><span>        nc.<span style="color:#50fa7b">Close</span>()
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">return</span> nc
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="testing-pubsub">Testing Pub/Sub</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">TestSensor_PublishesReadings</span>(t <span style="color:#ff79c6">*</span>testing.T) {
+</span></span><span style="display:flex;"><span>    nc <span style="color:#ff79c6">:=</span> <span style="color:#50fa7b">startTestNATS</span>(t)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    received <span style="color:#ff79c6">:=</span> <span style="color:#8be9fd;font-style:italic">make</span>(<span style="color:#8be9fd;font-style:italic">chan</span> []<span style="color:#8be9fd">byte</span>, <span style="color:#bd93f9">1</span>)
+</span></span><span style="display:flex;"><span>    nc.<span style="color:#50fa7b">Subscribe</span>(<span style="color:#f1fa8c">&#34;sensors.temp.data&#34;</span>, <span style="color:#8be9fd;font-style:italic">func</span>(m <span style="color:#ff79c6">*</span>nats.Msg) {
+</span></span><span style="display:flex;"><span>        received <span style="color:#ff79c6">&lt;-</span> m.Data
+</span></span><span style="display:flex;"><span>    })
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#6272a4">// Create and start sensor
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    sensor <span style="color:#ff79c6">:=</span> <span style="color:#50fa7b">createSensor</span>(nc)
+</span></span><span style="display:flex;"><span>    sensor.<span style="color:#50fa7b">Start</span>(context.<span style="color:#50fa7b">Background</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">select</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">case</span> msg <span style="color:#ff79c6">:=</span> <span style="color:#ff79c6">&lt;-</span>received:
+</span></span><span style="display:flex;"><span>        <span style="color:#6272a4">// Verify message content
+</span></span></span><span style="display:flex;"><span><span style="color:#6272a4"></span>    <span style="color:#ff79c6">case</span> <span style="color:#ff79c6">&lt;-</span>time.<span style="color:#50fa7b">After</span>(<span style="color:#bd93f9">5</span> <span style="color:#ff79c6">*</span> time.Second):
+</span></span><span style="display:flex;"><span>        t.<span style="color:#50fa7b">Fatal</span>(<span style="color:#f1fa8c">&#34;timeout waiting for message&#34;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="coverage-requirements">Coverage Requirements</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pkg/*</td>
+<td>80%</td>
+</tr>
+<tr>
+<td>component/*</td>
+<td>75%</td>
+</tr>
+<tr>
+<td>examples/*</td>
+<td>80%</td>
+</tr>
+</tbody>
+</table>
+<p>Check coverage:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go <span style="color:#8be9fd;font-style:italic">test</span> -coverprofile<span style="color:#ff79c6">=</span>coverage.out ./...
+</span></span><span style="display:flex;"><span>go tool cover -html<span style="color:#ff79c6">=</span>coverage.out
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="cicd-integration">CI/CD Integration</h2>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#ff79c6">name</span>: Test
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff79c6">on</span>: [push, pull_request]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ff79c6">jobs</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#ff79c6">test</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">runs-on</span>: ubuntu-latest
+</span></span><span style="display:flex;"><span>    <span style="color:#ff79c6">steps</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ff79c6">uses</span>: actions/checkout@v4
+</span></span><span style="display:flex;"><span>      - <span style="color:#ff79c6">uses</span>: actions/setup-go@v5
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">with</span>:
+</span></span><span style="display:flex;"><span>          <span style="color:#ff79c6">go-version</span>: <span style="color:#f1fa8c">&#39;1.22&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ff79c6">name</span>: Unit Tests
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">run</span>: go test -race ./...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ff79c6">name</span>: Component Tests
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">run</span>: go test -race -tags=component ./...
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ff79c6">name</span>: Coverage
+</span></span><span style="display:flex;"><span>        <span style="color:#ff79c6">run</span>: |<span style="color:#f1fa8c">
+</span></span></span><span style="display:flex;"><span><span style="color:#f1fa8c">          go test -coverprofile=coverage.out ./...
+</span></span></span><span style="display:flex;"><span><span style="color:#f1fa8c">          go tool cover -func=coverage.out</span>          
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="next-steps">Next Steps</h2>
+<ul>
+<li><a href="/examples/">Examples</a></li>
+<li><a href="../configuration/">Configuration Guide</a></li>
+<li><a href="/docs/reference/cli/">CLI Reference</a></li>
+</ul>
+
+</article>
+
+  </main>
+  <footer>
+    <div class="container">
+      <p>Copyright &copy; 2025 Greg Herlein &amp; Luca Herlein. Apache 2.0 License.</p>
+      <p><em>Pronounced "go-ray" (like "sting-ray")</em></p>
+    </div>
+  </footer>
+</body>
+</html>

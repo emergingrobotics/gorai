@@ -1,0 +1,83 @@
+# Gorai Website Configuration
+
+baseURL = "https://gorai.dev/"
+title = "Gorai"
+languageCode = "en-us"
+defaultContentLanguage = "en"
+
+# Theme - using built-in styling for now, can add theme later
+# theme = "doks"
+
+# Build settings
+enableRobotsTXT = true
+enableGitInfo = true
+enableEmoji = true
+
+# Disable kinds we don't need
+disableKinds = ["taxonomy", "term"]
+
+# Markup configuration
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true  # Allow raw HTML in markdown
+  [markup.highlight]
+    style = "dracula"
+    lineNos = true
+    lineNumbersInTable = true
+    guessSyntax = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 4
+
+# Main menu
+[menu]
+  [[menu.main]]
+    identifier = "docs"
+    name = "Docs"
+    url = "/docs/"
+    weight = 10
+  [[menu.main]]
+    identifier = "examples"
+    name = "Examples"
+    url = "/examples/"
+    weight = 20
+  [[menu.main]]
+    identifier = "community"
+    name = "Community"
+    url = "/community/"
+    weight = 30
+  [[menu.main]]
+    identifier = "book"
+    name = "Book"
+    url = "/book/"
+    weight = 40
+  [[menu.main]]
+    identifier = "github"
+    name = "GitHub"
+    url = "https://github.com/gorai/gorai"
+    weight = 50
+
+# Site parameters
+[params]
+  description = "A lightweight, Go-based robotics framework built on NATS.io"
+  author = "Greg Herlein & Luca Herlein"
+  github = "https://github.com/gorai/gorai"
+
+  # Features
+  darkMode = true
+  search = true
+
+  # Social
+  [params.social]
+    github = "gorai/gorai"
+
+# Output formats
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML", "RSS"]
+
+# Permalink structure
+[permalinks]
+  docs = "/docs/:slug/"
+  examples = "/examples/:slug/"
