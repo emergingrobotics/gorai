@@ -1,106 +1,67 @@
-# Gorai Documentation Build System
-#
-# This Makefile builds both the book (lean-back) and website (lean-forward)
-# experiences from a single source of content.
-#
-# Usage (with container - recommended):
-#   make container     - Build the publishing container
-#   make docker-all    - Build both book and website using container
-#   make docker-book   - Build only the book using container
-#   make docker-web    - Build only the website using container
-#
-# Usage (local tools):
-#   make all          - Build both book and website
-#   make book         - Build only the book
-#   make website      - Build only the website
-#   make serve-book   - Start book development server
-#   make serve-web    - Start website development server
-#   make clean        - Remove all build artifacts
+.PHONY: all book website clean serve-book serve-website help book-pdf book-epub website-with-book validate
 
-.PHONY: all book website serve-book serve-web clean setup help
-.PHONY: container docker-all docker-book docker-web docker-serve-book docker-serve-web
+# Default target
+all: book website
 
-SCRIPTS_DIR := scripts
-DIST_DIR := dist
-CONTAINER_NAME := gorai-publish
-CONTAINER_CMD := podman
-
-# Detect if podman is available, fallback to docker
-ifeq ($(shell which podman 2>/dev/null),)
-    CONTAINER_CMD := docker
-endif
-
+# Help
 help:
-	@echo "Gorai Documentation Build System"
+	@echo "Gorai Publishing Build System"
 	@echo ""
-	@echo "Container targets (recommended - no local installs needed):"
-	@echo "  container        Build the publishing container"
-	@echo "  docker-all       Build both book and website"
-	@echo "  docker-book      Build only the book"
-	@echo "  docker-web       Build only the website"
-	@echo "  docker-serve-book  Serve book with live reload (port 3000)"
-	@echo "  docker-serve-web   Serve website with live reload (port 8000)"
+	@echo "Targets:"
+	@echo "  all              - Build book and website (default)"
+	@echo "  book             - Build PDF and ePub"
+	@echo "  book-pdf         - Build PDF only"
+	@echo "  book-epub        - Build ePub only"
+	@echo "  website          - Build Hugo website"
+	@echo "  website-with-book - Build website and copy book downloads"
+	@echo "  serve-book       - Preview book as HTML"
+	@echo "  serve-website    - Start Hugo dev server"
+	@echo "  validate         - Validate content structure"
+	@echo "  clean            - Remove all build artifacts"
 	@echo ""
-	@echo "Local targets (requires mdbook, mkdocs installed locally):"
-	@echo "  all              Build both book and website"
-	@echo "  book             Build the book (mdBook)"
-	@echo "  website          Build the website (MkDocs)"
-	@echo "  serve-book       Start book development server"
-	@echo "  serve-web        Start website development server"
-	@echo ""
-	@echo "Other:"
-	@echo "  setup            Setup symlinks only"
-	@echo "  clean            Remove all build artifacts"
+	@echo "Requirements:"
+	@echo "  Book:    pandoc, texlive-xetex"
+	@echo "  Website: hugo"
 
-# =============================================================================
-# Container targets (recommended)
-# =============================================================================
-
-container:
-	@echo "Building publishing container..."
-	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) -f container/Containerfile container/
-
-docker-all: container
-	$(CONTAINER_CMD) run --rm -v $(CURDIR)/..:/workspace:Z $(CONTAINER_NAME) all
-
-docker-book: container
-	$(CONTAINER_CMD) run --rm -v $(CURDIR)/..:/workspace:Z $(CONTAINER_NAME) book
-
-docker-web: container
-	$(CONTAINER_CMD) run --rm -v $(CURDIR)/..:/workspace:Z $(CONTAINER_NAME) website
-
-docker-serve-book: container
-	@echo "Starting book server on http://localhost:3000"
-	$(CONTAINER_CMD) run --rm -p 3000:3000 -v $(CURDIR)/..:/workspace:Z $(CONTAINER_NAME) book-serve
-
-docker-serve-web: container
-	@echo "Starting website server on http://localhost:8000"
-	$(CONTAINER_CMD) run --rm -p 8000:8000 -v $(CURDIR)/..:/workspace:Z $(CONTAINER_NAME) website-serve
-
-# =============================================================================
-# Local targets (requires tools installed locally)
-# =============================================================================
-
-all:
-	@$(SCRIPTS_DIR)/build-all.sh
-
+# Book targets
 book:
-	@$(SCRIPTS_DIR)/build-book.sh
+	$(MAKE) -C newbook all
 
-website:
-	@$(SCRIPTS_DIR)/build-website.sh
+book-pdf:
+	$(MAKE) -C newbook pdf
+
+book-epub:
+	$(MAKE) -C newbook epub
 
 serve-book:
-	@$(SCRIPTS_DIR)/build-book.sh --serve
+	$(MAKE) -C newbook html
+	@echo "Starting preview server at http://localhost:8000"
+	python3 -m http.server 8000 --directory newbook/dist
 
-serve-web:
-	@$(SCRIPTS_DIR)/build-website.sh --serve
+# Website targets
+website:
+	$(MAKE) -C newsite build
 
-setup:
-	@$(SCRIPTS_DIR)/setup-book-links.sh
-	@$(SCRIPTS_DIR)/setup-website-links.sh
+serve-website:
+	$(MAKE) -C newsite serve
 
+# Build website with book downloads
+website-with-book: book
+	$(MAKE) -C newsite downloads
+	$(MAKE) -C newsite build
+
+# Clean all
 clean:
-	@echo "Cleaning build artifacts..."
-	@rm -rf $(DIST_DIR)
-	@echo "Clean complete."
+	$(MAKE) -C newbook clean
+	$(MAKE) -C newsite clean
+	@echo "All build artifacts cleaned"
+
+# Validate content structure
+validate:
+	@echo "Validating content structure..."
+	@test -f newbook/metadata.yaml || (echo "ERROR: newbook/metadata.yaml missing" && exit 1)
+	@test -d newbook/chapters || (echo "ERROR: newbook/chapters missing" && exit 1)
+	@test -f newsite/hugo.toml || (echo "ERROR: newsite/hugo.toml missing" && exit 1)
+	@test -d newsite/content || (echo "ERROR: newsite/content missing" && exit 1)
+	@test -d images || (echo "ERROR: images directory missing" && exit 1)
+	@echo "Validation passed!"
