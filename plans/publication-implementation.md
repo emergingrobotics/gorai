@@ -1072,7 +1072,7 @@ hide:
 
 **A lightweight, Go-based robotics framework built on NATS.io**
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+*Pronounced "go-ray" (like "sting-ray")*
 
 <div class="grid cards" markdown>
 

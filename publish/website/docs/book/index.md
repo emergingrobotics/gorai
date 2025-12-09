@@ -120,4 +120,4 @@ Want to read offline?
 
 ---
 
-*Pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")*
+*Pronounced "go-ray" (like "sting-ray")*

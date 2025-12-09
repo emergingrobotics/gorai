@@ -1,6 +1,6 @@
 # Part I: Getting Started
 
-> **GoRAI** is pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")
+> **GoRAI** is pronounced "go-ray" (like "sting-ray")
 
 > **In This Part:** Understand why GoRAI exists, who it's for, and how to think about robot software as distributed systems.
 

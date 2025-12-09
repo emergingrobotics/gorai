@@ -4,7 +4,7 @@
 
 This specification defines the tooling, folder structure, and workflow for publishing Gorai documentation, including the book, developer website, and API reference.
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+*Pronounced "go-ray" (like "sting-ray")*
 
 ---
 

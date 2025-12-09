@@ -6,7 +6,7 @@
 
 *Version 0.2.0 — 2025*
 
-> **GoRAI** is pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")
+> **GoRAI** is pronounced "go-ray" (like "sting-ray")
 
 ---
 
@@ -69,4 +69,4 @@ Fire up your terminal. Clone the repository. Let's get started.
 
 ---
 
-*Pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")*
+*Pronounced "go-ray" (like "sting-ray")*

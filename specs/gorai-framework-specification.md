@@ -4,7 +4,7 @@
 
 A lightweight, Go-based robotics framework built on NATS.io with first-class AI/ML support.
 
-*Pronounced "Go-ray-I" (rhymes with "samurai")*
+*Pronounced "go-ray" (like "sting-ray")*
 
 ---
 

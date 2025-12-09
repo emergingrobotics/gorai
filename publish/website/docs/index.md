@@ -2,7 +2,7 @@
 
 **A lightweight, Go-based robotics framework built on NATS.io**
 
-*Pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")*
+*Pronounced "go-ray" (like "sting-ray")*
 
 ---
 

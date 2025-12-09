@@ -1,6 +1,6 @@
 # Introduction
 
-> **GoRAI** is pronounced "Go-Ray-Eye" (like "Go" + "RAI" rhyming with "sky")
+> **GoRAI** is pronounced "go-ray" (like "sting-ray")
 
 ## About This Book
 
