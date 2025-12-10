@@ -405,8 +405,7 @@ func TestLinkType_String(t *testing.T) {
 		want string
 	}{
 		{resource.LinkTypeSerial, "serial"},
-		{resource.LinkTypeIP, "ip"},
-		{resource.LinkTypeNATS, "nats"},
+		{resource.LinkTypeRadio, "radio"},
 		{resource.LinkTypeCAN, "can"},
 		{resource.LinkTypeI2C, "i2c"},
 		{resource.LinkTypeSPI, "spi"},

@@ -26,6 +26,7 @@ type Space struct {
 	usedVolume float64
 	maxWeight  float64
 	weight     float64
+	components []resource.Name // Associated components (valves, doors, sensors)
 }
 
 // New creates a new fake space.
@@ -56,6 +57,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		usedVolume: 0,
 		maxWeight:  maxWeight,
 		weight:     0,
+		components: []resource.Name{},
 	}
 
 	return s, nil
@@ -75,6 +77,7 @@ func NewWithName(name resource.Name) *Space {
 		usedVolume: 0,
 		maxWeight:  100.0,
 		weight:     0,
+		components: []resource.Name{},
 	}
 }
 
@@ -164,12 +167,23 @@ func (s *Space) IsEmpty(ctx context.Context) (bool, error) {
 	return len(s.contents) == 0, nil
 }
 
+// GetComponents returns the names of components associated with this space.
+func (s *Space) GetComponents(ctx context.Context) ([]resource.Name, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]resource.Name, len(s.components))
+	copy(result, s.components)
+	return result, nil
+}
+
 // Extended interface methods
 
 // GetProperties returns the space properties.
 func (s *Space) GetProperties(ctx context.Context) (space.Properties, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	componentsCopy := make([]resource.Name, len(s.components))
+	copy(componentsCopy, s.components)
 	return space.Properties{
 		Type:             s.spaceType,
 		Name:             s.name.Name,
@@ -177,6 +191,7 @@ func (s *Space) GetProperties(ctx context.Context) (space.Properties, error) {
 		MaxWeight:        s.maxWeight,
 		CanTrackContents: true,
 		CanMeasureVolume: true,
+		ComponentNames:   componentsCopy,
 	}, nil
 }
 
@@ -270,6 +285,21 @@ func (s *Space) SetType(spaceType space.SpaceType) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.spaceType = spaceType
+}
+
+// AddComponent adds a component to the space (for testing).
+func (s *Space) AddComponent(name resource.Name) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.components = append(s.components, name)
+}
+
+// SetComponents sets the associated components (for testing).
+func (s *Space) SetComponents(components []resource.Name) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.components = make([]resource.Name, len(components))
+	copy(s.components, components)
 }
 
 // Verify interface compliance.

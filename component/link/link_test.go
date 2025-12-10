@@ -20,15 +20,15 @@ func TestFakeLink_Type(t *testing.T) {
 	name := resource.NewComponentName("gorai", "link", "test")
 	l := fake.NewWithName(name)
 
-	// Default is NATS
-	if l.Type() != resource.LinkTypeNATS {
-		t.Errorf("type = %v, want LinkTypeNATS", l.Type())
-	}
-
-	// Change type
-	l.SetType(resource.LinkTypeSerial)
+	// Default is Serial (for bridging to microcontrollers)
 	if l.Type() != resource.LinkTypeSerial {
 		t.Errorf("type = %v, want LinkTypeSerial", l.Type())
+	}
+
+	// Change type to Radio
+	l.SetType(resource.LinkTypeRadio)
+	if l.Type() != resource.LinkTypeRadio {
+		t.Errorf("type = %v, want LinkTypeRadio", l.Type())
 	}
 }
 
@@ -36,15 +36,15 @@ func TestFakeLink_Direction(t *testing.T) {
 	name := resource.NewComponentName("gorai", "link", "test")
 	l := fake.NewWithName(name)
 
-	// Default is broadcast
-	if l.Direction() != resource.LinkBroadcast {
-		t.Errorf("direction = %v, want LinkBroadcast", l.Direction())
-	}
-
-	// Change direction
-	l.SetDirection(resource.LinkBidirectional)
+	// Default is bidirectional (serial links are point-to-point)
 	if l.Direction() != resource.LinkBidirectional {
 		t.Errorf("direction = %v, want LinkBidirectional", l.Direction())
+	}
+
+	// Change direction to broadcast (e.g., for CAN bus)
+	l.SetDirection(resource.LinkBroadcast)
+	if l.Direction() != resource.LinkBroadcast {
+		t.Errorf("direction = %v, want LinkBroadcast", l.Direction())
 	}
 }
 
@@ -187,7 +187,7 @@ func TestFakeLink_SendWhenDisconnected(t *testing.T) {
 
 func TestFakeLink_GetProperties(t *testing.T) {
 	ctx := context.Background()
-	name := resource.NewComponentName("gorai", "link", "nats_link")
+	name := resource.NewComponentName("gorai", "link", "serial_mcu")
 	l := fake.NewWithName(name)
 
 	props, err := l.GetProperties(ctx)
@@ -195,20 +195,21 @@ func TestFakeLink_GetProperties(t *testing.T) {
 		t.Fatalf("GetProperties failed: %v", err)
 	}
 
-	if props.Type != resource.LinkTypeNATS {
-		t.Errorf("type = %v, want LinkTypeNATS", props.Type)
+	if props.Type != resource.LinkTypeSerial {
+		t.Errorf("type = %v, want LinkTypeSerial", props.Type)
 	}
-	if props.Direction != resource.LinkBroadcast {
-		t.Errorf("direction = %v, want LinkBroadcast", props.Direction)
+	if props.Direction != resource.LinkBidirectional {
+		t.Errorf("direction = %v, want LinkBidirectional", props.Direction)
 	}
-	if props.Name != "nats_link" {
-		t.Errorf("name = %q, want 'nats_link'", props.Name)
+	if props.Name != "serial_mcu" {
+		t.Errorf("name = %q, want 'serial_mcu'", props.Name)
 	}
-	if !props.SupportsQoS {
-		t.Error("expected SupportsQoS to be true for NATS link")
+	// Serial links don't support QoS or persistence (NATS does, but NATS isn't a Link)
+	if props.SupportsQoS {
+		t.Error("expected SupportsQoS to be false for serial link")
 	}
-	if !props.SupportsPersistence {
-		t.Error("expected SupportsPersistence to be true for NATS link")
+	if props.SupportsPersistence {
+		t.Error("expected SupportsPersistence to be false for serial link")
 	}
 }
 
@@ -340,58 +341,74 @@ func TestFakeLink_Serial(t *testing.T) {
 	}
 }
 
-func TestFakeLink_IP(t *testing.T) {
+func TestFakeLink_Radio(t *testing.T) {
 	ctx := context.Background()
-	name := resource.NewComponentName("gorai", "link", "test")
+	name := resource.NewComponentName("gorai", "link", "lora_telemetry")
 	l := fake.NewWithName(name)
-	l.SetType(resource.LinkTypeIP)
+	l.SetType(resource.LinkTypeRadio)
 
-	// Test remote address
-	addr, err := l.GetRemoteAddress(ctx)
+	// Test frequency
+	freq, err := l.GetFrequency(ctx)
 	if err != nil {
-		t.Fatalf("GetRemoteAddress failed: %v", err)
+		t.Fatalf("GetFrequency failed: %v", err)
 	}
-	if addr != "127.0.0.1" {
-		t.Errorf("remote address = %q, want '127.0.0.1'", addr)
-	}
-
-	l.SetRemoteAddress("192.168.1.100")
-	addr, _ = l.GetRemoteAddress(ctx)
-	if addr != "192.168.1.100" {
-		t.Errorf("remote address = %q, want '192.168.1.100'", addr)
+	if freq != 915e6 {
+		t.Errorf("frequency = %v, want 915MHz", freq)
 	}
 
-	// Test local address
-	local, err := l.GetLocalAddress(ctx)
+	if err := l.SetFrequency(ctx, 868e6); err != nil {
+		t.Fatalf("SetFrequency failed: %v", err)
+	}
+	freq, _ = l.GetFrequency(ctx)
+	if freq != 868e6 {
+		t.Errorf("frequency = %v, want 868MHz", freq)
+	}
+
+	// Test transmit power
+	power, err := l.GetTxPower(ctx)
 	if err != nil {
-		t.Fatalf("GetLocalAddress failed: %v", err)
+		t.Fatalf("GetTxPower failed: %v", err)
 	}
-	if local != "127.0.0.1" {
-		t.Errorf("local address = %q, want '127.0.0.1'", local)
+	if power != 14 {
+		t.Errorf("tx power = %d dBm, want 14 dBm", power)
 	}
 
-	// Test port
-	port, err := l.GetPort(ctx)
+	if err := l.SetTxPower(ctx, 20); err != nil {
+		t.Fatalf("SetTxPower failed: %v", err)
+	}
+	power, _ = l.GetTxPower(ctx)
+	if power != 20 {
+		t.Errorf("tx power = %d dBm, want 20 dBm", power)
+	}
+
+	// Test RSSI
+	rssi, err := l.GetRSSI(ctx)
 	if err != nil {
-		t.Fatalf("GetPort failed: %v", err)
+		t.Fatalf("GetRSSI failed: %v", err)
 	}
-	if port != 4222 {
-		t.Errorf("port = %d, want 4222", port)
-	}
-
-	l.SetPort(8080)
-	port, _ = l.GetPort(ctx)
-	if port != 8080 {
-		t.Errorf("port = %d, want 8080", port)
+	if rssi != -80 {
+		t.Errorf("rssi = %d dBm, want -80 dBm", rssi)
 	}
 
-	// Test protocol
-	protocol, err := l.GetProtocol(ctx)
+	l.SetRSSI(-60)
+	rssi, _ = l.GetRSSI(ctx)
+	if rssi != -60 {
+		t.Errorf("rssi = %d dBm, want -60 dBm", rssi)
+	}
+
+	// Test SNR
+	snr, err := l.GetSNR(ctx)
 	if err != nil {
-		t.Fatalf("GetProtocol failed: %v", err)
+		t.Fatalf("GetSNR failed: %v", err)
 	}
-	if protocol != "tcp" {
-		t.Errorf("protocol = %q, want 'tcp'", protocol)
+	if snr != 10 {
+		t.Errorf("snr = %v dB, want 10 dB", snr)
+	}
+
+	l.SetSNR(15.5)
+	snr, _ = l.GetSNR(ctx)
+	if snr != 15.5 {
+		t.Errorf("snr = %v dB, want 15.5 dB", snr)
 	}
 }
 
@@ -417,8 +434,8 @@ func TestFakeLink_DoCommand(t *testing.T) {
 		t.Fatalf("DoCommand get_state failed: %v", err)
 	}
 
-	if result["type"].(string) != "nats" {
-		t.Errorf("type = %v, want 'nats'", result["type"])
+	if result["type"].(string) != "serial" {
+		t.Errorf("type = %v, want 'serial'", result["type"])
 	}
 	if result["connected"].(bool) != true {
 		t.Errorf("connected = %v, want true", result["connected"])
@@ -484,5 +501,26 @@ func TestFakeLink_Close(t *testing.T) {
 	connected, _ := l.IsConnected(ctx)
 	if connected {
 		t.Error("expected disconnected after Close")
+	}
+}
+
+func TestLinkType_String(t *testing.T) {
+	tests := []struct {
+		lt   resource.LinkType
+		want string
+	}{
+		{resource.LinkTypeSerial, "serial"},
+		{resource.LinkTypeRadio, "radio"},
+		{resource.LinkTypeCAN, "can"},
+		{resource.LinkTypeI2C, "i2c"},
+		{resource.LinkTypeSPI, "spi"},
+		{resource.LinkType(99), "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := tt.lt.String()
+		if got != tt.want {
+			t.Errorf("LinkType(%d).String() = %q, want %q", tt.lt, got, tt.want)
+		}
 	}
 }

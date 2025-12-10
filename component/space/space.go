@@ -1,7 +1,18 @@
 // Package space defines the space component interface.
 //
-// Space components represent physical volumes that can contain things, such as
-// containers, cargo bays, workspaces, and defined zones.
+// Space components represent virtual abstractions over physical volumes on the robot.
+// A Space doesn't directly interface with hardware—it aggregates and coordinates
+// other components (actuators, sensors) that control or monitor a physical area.
+//
+// Use Spaces for:
+//   - Storage areas with doors or hatches (cargo bay, sample drawer)
+//   - Tanks with valves and level sensors (ballast tank, fuel tank)
+//   - Compartments with environmental controls (battery bay, equipment compartment)
+//
+// Example: A ballast tank Space would reference:
+//   - A fill valve (actuator)
+//   - A drain valve (actuator)
+//   - A level sensor (sensor)
 package space
 
 import (
@@ -11,7 +22,7 @@ import (
 	"github.com/gorai/gorai/pkg/resource"
 )
 
-// Space represents a physical volume that can contain things.
+// Space represents a virtual container on the robot that aggregates other components.
 type Space interface {
 	component.Component
 	resource.Space
@@ -21,12 +32,12 @@ type Space interface {
 type SpaceType int
 
 const (
-	// SpaceTypeContainer is a generic container (cargo bay, hopper, tank).
+	// SpaceTypeContainer is a storage volume (cargo bay, hopper, sample drawer).
 	SpaceTypeContainer SpaceType = iota
-	// SpaceTypeWorkspace is a robot's operating area.
-	SpaceTypeWorkspace
-	// SpaceTypeZone is a defined region (safety zone, charging zone).
-	SpaceTypeZone
+	// SpaceTypeTank is a fluid storage space (ballast tank, fuel tank, coolant reservoir).
+	SpaceTypeTank
+	// SpaceTypeCompartment is an enclosed area (equipment bay, battery compartment).
+	SpaceTypeCompartment
 )
 
 // String returns the string representation of a SpaceType.
@@ -34,10 +45,10 @@ func (st SpaceType) String() string {
 	switch st {
 	case SpaceTypeContainer:
 		return "container"
-	case SpaceTypeWorkspace:
-		return "workspace"
-	case SpaceTypeZone:
-		return "zone"
+	case SpaceTypeTank:
+		return "tank"
+	case SpaceTypeCompartment:
+		return "compartment"
 	default:
 		return "unknown"
 	}
@@ -62,6 +73,9 @@ type Properties struct {
 
 	// CanMeasureVolume indicates whether actual volume can be measured.
 	CanMeasureVolume bool
+
+	// ComponentNames lists the names of associated components (valves, doors, sensors).
+	ComponentNames []resource.Name
 }
 
 // Extended is an optional extended interface for space components with

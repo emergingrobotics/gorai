@@ -71,8 +71,16 @@ type Bounds struct {
 	MaxX, MaxY, MaxZ float64
 }
 
-// Space represents physical volumes that can contain things.
-// Examples: containers, cargo bays, workspaces, zones.
+// Space represents a virtual abstraction over a physical volume on the robot.
+// A Space doesn't directly interface with hardware—it aggregates and coordinates
+// other components (actuators, sensors) that control or monitor a physical area.
+//
+// Use Spaces for:
+//   - Storage areas with doors or hatches (cargo bay, sample drawer)
+//   - Tanks with valves and level sensors (ballast tank, fuel tank)
+//   - Compartments with environmental controls (battery bay, equipment compartment)
+//
+// Examples: ballast tank (with valves + level sensor), cargo bay (with door servo).
 type Space interface {
 	Resource
 
@@ -87,17 +95,38 @@ type Space interface {
 
 	// IsEmpty returns true if space contains nothing.
 	IsEmpty(ctx context.Context) (bool, error)
+
+	// GetComponents returns the names of components associated with this space.
+	// These are the actuators and sensors that control/monitor this space
+	// (e.g., valves, doors, level sensors, temperature sensors).
+	GetComponents(ctx context.Context) ([]Name, error)
 }
 
 // LinkType identifies the transport mechanism of a link.
+// Note: NATS connectivity is assumed infrastructure for all components—
+// it's not modeled as a Link. Links exist for additional communication
+// channels that NATS cannot reach (microcontrollers, radios, etc.).
 type LinkType int
 
 const (
+	// LinkTypeSerial is for UART, RS-232, RS-485 connections.
+	// Common use: bridging to microcontrollers without IP capability.
 	LinkTypeSerial LinkType = iota
-	LinkTypeIP
-	LinkTypeNATS
+
+	// LinkTypeRadio is for RF, LoRa, cellular, or other wireless links.
+	// Common use: telemetry when out of WiFi range, long-range control.
+	LinkTypeRadio
+
+	// LinkTypeCAN is for CAN bus connections.
+	// Common use: vehicle systems, industrial automation.
 	LinkTypeCAN
+
+	// LinkTypeI2C is for I2C bus connections.
+	// Common use: local sensor buses on SBCs.
 	LinkTypeI2C
+
+	// LinkTypeSPI is for SPI bus connections.
+	// Common use: high-speed local peripherals.
 	LinkTypeSPI
 )
 
@@ -106,10 +135,8 @@ func (lt LinkType) String() string {
 	switch lt {
 	case LinkTypeSerial:
 		return "serial"
-	case LinkTypeIP:
-		return "ip"
-	case LinkTypeNATS:
-		return "nats"
+	case LinkTypeRadio:
+		return "radio"
 	case LinkTypeCAN:
 		return "can"
 	case LinkTypeI2C:
@@ -153,8 +180,17 @@ type LinkStats struct {
 	Latency       time.Duration
 }
 
-// Link represents a communication link between nodes.
-// Links can be bidirectional (serial, TCP) or broadcast (NATS, CAN).
+// Link represents an additional communication channel beyond the primary NATS connection.
+// All Gorai components assume IP connectivity to a NATS server—that's the baseline
+// infrastructure, not a "Link." A Link component represents an extra communication
+// path, typically for:
+//
+//   - Microcontroller bridges: Serial connections to TinyGo devices without IP
+//   - Telemetry channels: Radio links for remote monitoring or control
+//   - Legacy protocols: CAN bus, RS-485, or other industrial networks
+//   - Redundant paths: Backup communication for safety-critical systems
+//
+// Links can be bidirectional (serial, I2C) or broadcast (CAN).
 type Link interface {
 	Resource
 

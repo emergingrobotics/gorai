@@ -389,8 +389,8 @@ func TestSpaceType_String(t *testing.T) {
 		want string
 	}{
 		{space.SpaceTypeContainer, "container"},
-		{space.SpaceTypeWorkspace, "workspace"},
-		{space.SpaceTypeZone, "zone"},
+		{space.SpaceTypeTank, "tank"},
+		{space.SpaceTypeCompartment, "compartment"},
 		{space.SpaceType(99), "unknown"},
 	}
 
@@ -399,5 +399,92 @@ func TestSpaceType_String(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("SpaceType(%d).String() = %q, want %q", tt.st, got, tt.want)
 		}
+	}
+}
+
+func TestFakeSpace_GetComponents(t *testing.T) {
+	ctx := context.Background()
+	name := resource.NewComponentName("gorai", "space", "ballast_tank")
+	s := fake.NewWithName(name)
+
+	// Initially empty
+	components, err := s.GetComponents(ctx)
+	if err != nil {
+		t.Fatalf("GetComponents failed: %v", err)
+	}
+	if len(components) != 0 {
+		t.Errorf("initial components count = %d, want 0", len(components))
+	}
+
+	// Add components (valves and sensors that would control/monitor this space)
+	fillValve := resource.NewComponentName("gorai", "actuator", "fill_valve")
+	drainValve := resource.NewComponentName("gorai", "actuator", "drain_valve")
+	levelSensor := resource.NewComponentName("gorai", "sensor", "level_sensor")
+
+	s.AddComponent(fillValve)
+	s.AddComponent(drainValve)
+	s.AddComponent(levelSensor)
+
+	components, err = s.GetComponents(ctx)
+	if err != nil {
+		t.Fatalf("GetComponents failed: %v", err)
+	}
+	if len(components) != 3 {
+		t.Errorf("components count = %d, want 3", len(components))
+	}
+
+	// Verify component names
+	found := map[string]bool{}
+	for _, c := range components {
+		found[c.Name] = true
+	}
+	if !found["fill_valve"] || !found["drain_valve"] || !found["level_sensor"] {
+		t.Error("expected to find fill_valve, drain_valve, and level_sensor")
+	}
+}
+
+func TestFakeSpace_SetComponents(t *testing.T) {
+	ctx := context.Background()
+	name := resource.NewComponentName("gorai", "space", "cargo_bay")
+	s := fake.NewWithName(name)
+
+	// Set components directly
+	doorServo := resource.NewComponentName("gorai", "actuator", "door_servo")
+	presenceSensor := resource.NewComponentName("gorai", "sensor", "presence_sensor")
+
+	s.SetComponents([]resource.Name{doorServo, presenceSensor})
+
+	components, err := s.GetComponents(ctx)
+	if err != nil {
+		t.Fatalf("GetComponents failed: %v", err)
+	}
+	if len(components) != 2 {
+		t.Errorf("components count = %d, want 2", len(components))
+	}
+}
+
+func TestFakeSpace_GetProperties_WithComponents(t *testing.T) {
+	ctx := context.Background()
+	name := resource.NewComponentName("gorai", "space", "ballast_tank")
+	s := fake.NewWithName(name)
+	s.SetType(space.SpaceTypeTank)
+
+	// Add components
+	fillValve := resource.NewComponentName("gorai", "actuator", "fill_valve")
+	s.AddComponent(fillValve)
+
+	props, err := s.GetProperties(ctx)
+	if err != nil {
+		t.Fatalf("GetProperties failed: %v", err)
+	}
+
+	if props.Type != space.SpaceTypeTank {
+		t.Errorf("type = %v, want SpaceTypeTank", props.Type)
+	}
+	if len(props.ComponentNames) != 1 {
+		t.Errorf("component names count = %d, want 1", len(props.ComponentNames))
+	}
+	if props.ComponentNames[0].Name != "fill_valve" {
+		t.Errorf("component name = %q, want 'fill_valve'", props.ComponentNames[0].Name)
 	}
 }

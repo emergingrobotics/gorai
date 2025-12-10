@@ -1,8 +1,16 @@
 // Package link defines the link component interface.
 //
-// Link components represent communication channels between nodes, which can be
-// either bidirectional (point-to-point) or broadcast (one-to-many). Supports
-// various transport mechanisms including serial, IP, NATS, CAN, I2C, and SPI.
+// Link components represent additional communication channels beyond the primary
+// NATS connection. All Gorai components assume IP connectivity to a NATS server—
+// that's the baseline infrastructure, not a "Link."
+//
+// A Link component represents an extra communication path, typically for:
+//   - Microcontroller bridges: Serial connections to TinyGo devices without IP
+//   - Telemetry channels: Radio links for remote monitoring or control
+//   - Legacy protocols: CAN bus, RS-485, or other industrial networks
+//   - Redundant paths: Backup communication for safety-critical systems
+//
+// Links can be bidirectional (serial, I2C) or broadcast (CAN).
 package link
 
 import (
@@ -10,10 +18,9 @@ import (
 
 	"github.com/gorai/gorai/component"
 	"github.com/gorai/gorai/pkg/resource"
-	"github.com/nats-io/nats.go"
 )
 
-// Link represents a communication link between nodes.
+// Link represents an additional communication channel beyond NATS.
 type Link interface {
 	component.Component
 	resource.Link
@@ -70,32 +77,8 @@ type Extended interface {
 	Reset(ctx context.Context) error
 }
 
-// NATSLink is a specialized link interface for NATS connections.
-// NATS is a special kind of IP-based link that provides broadcast semantics
-// via pub/sub, optional persistence via JetStream, and built-in clustering.
-type NATSLink interface {
-	Link
-
-	// GetConnection returns the underlying NATS connection.
-	GetConnection() *nats.Conn
-
-	// GetSubject returns the primary subject for this link.
-	GetSubject() string
-
-	// Publish publishes a message to the subject.
-	Publish(ctx context.Context, data []byte) error
-
-	// Subscribe subscribes to messages on the subject.
-	Subscribe(ctx context.Context, handler func([]byte)) error
-
-	// Unsubscribe removes the subscription.
-	Unsubscribe(ctx context.Context) error
-
-	// Request performs a request-reply operation.
-	Request(ctx context.Context, data []byte) ([]byte, error)
-}
-
 // SerialLink is a specialized link interface for serial connections.
+// Common use: bridging NATS to microcontrollers without IP capability.
 type SerialLink interface {
 	Link
 
@@ -127,19 +110,26 @@ type SerialLink interface {
 	Available(ctx context.Context) (int, error)
 }
 
-// IPLink is a specialized link interface for IP-based connections.
-type IPLink interface {
+// RadioLink is a specialized link interface for RF/wireless connections.
+// Common use: telemetry when out of WiFi range, long-range robot control.
+type RadioLink interface {
 	Link
 
-	// GetRemoteAddress returns the remote address.
-	GetRemoteAddress(ctx context.Context) (string, error)
+	// GetFrequency returns the operating frequency in Hz.
+	GetFrequency(ctx context.Context) (float64, error)
 
-	// GetLocalAddress returns the local address.
-	GetLocalAddress(ctx context.Context) (string, error)
+	// SetFrequency sets the operating frequency in Hz.
+	SetFrequency(ctx context.Context, freq float64) error
 
-	// GetPort returns the port number.
-	GetPort(ctx context.Context) (int, error)
+	// GetTxPower returns the transmit power in dBm.
+	GetTxPower(ctx context.Context) (int, error)
 
-	// GetProtocol returns the protocol (tcp, udp).
-	GetProtocol(ctx context.Context) (string, error)
+	// SetTxPower sets the transmit power in dBm.
+	SetTxPower(ctx context.Context, power int) error
+
+	// GetRSSI returns the received signal strength indicator.
+	GetRSSI(ctx context.Context) (int, error)
+
+	// GetSNR returns the signal-to-noise ratio.
+	GetSNR(ctx context.Context) (float64, error)
 }

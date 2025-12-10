@@ -36,11 +36,11 @@ type Link struct {
 	stopBits float64
 	parity   string
 
-	// IP-specific
-	remoteAddr string
-	localAddr  string
-	port       int
-	protocol   string
+	// Radio-specific
+	frequency float64 // Hz
+	txPower   int     // dBm
+	rssi      int     // dBm
+	snr       float64 // dB
 }
 
 // New creates a new fake link.
@@ -48,12 +48,14 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	nameStr, _ := conf["name"].(string)
 	name := resource.NewComponentName("gorai", "link", nameStr)
 
-	linkType := resource.LinkTypeNATS
+	// Default to Serial (common use case: bridging to microcontrollers)
+	linkType := resource.LinkTypeSerial
 	if lt, ok := conf["link_type"].(float64); ok {
 		linkType = resource.LinkType(int(lt))
 	}
 
-	direction := resource.LinkBroadcast
+	// Default to Bidirectional for serial
+	direction := resource.LinkBidirectional
 	if dir, ok := conf["direction"].(float64); ok {
 		direction = resource.LinkDirection(int(dir))
 	}
@@ -71,21 +73,22 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		dataBits:      8,
 		stopBits:      1,
 		parity:        "none",
-		remoteAddr:    "127.0.0.1",
-		localAddr:     "127.0.0.1",
-		port:          4222,
-		protocol:      "tcp",
+		frequency:     915e6, // 915 MHz (common LoRa frequency)
+		txPower:       14,    // 14 dBm
+		rssi:          -80,   // -80 dBm
+		snr:           10,    // 10 dB
 	}
 
 	return l, nil
 }
 
 // NewWithName creates a fake link with a specific resource name.
+// Defaults to a serial link (common use case: bridging to microcontrollers).
 func NewWithName(name resource.Name) *Link {
 	return &Link{
 		name:          name,
-		linkType:      resource.LinkTypeNATS,
-		direction:     resource.LinkBroadcast,
+		linkType:      resource.LinkTypeSerial,
+		direction:     resource.LinkBidirectional,
 		connected:     true,
 		stats:         resource.LinkStats{},
 		sendBuffer:    [][]byte{},
@@ -95,10 +98,10 @@ func NewWithName(name resource.Name) *Link {
 		dataBits:      8,
 		stopBits:      1,
 		parity:        "none",
-		remoteAddr:    "127.0.0.1",
-		localAddr:     "127.0.0.1",
-		port:          4222,
-		protocol:      "tcp",
+		frequency:     915e6,
+		txPower:       14,
+		rssi:          -80,
+		snr:           10,
 	}
 }
 
@@ -200,14 +203,14 @@ func (l *Link) GetProperties(ctx context.Context) (link.Properties, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	return link.Properties{
-		Type:               l.linkType,
-		Direction:          l.direction,
-		Name:               l.name.Name,
-		MaxBandwidth:       1000000, // 1MB/s
-		MaxMessageSize:     65536,
-		SupportsQoS:        l.linkType == resource.LinkTypeNATS,
-		SupportsEncryption: true,
-		SupportsPersistence: l.linkType == resource.LinkTypeNATS,
+		Type:                l.linkType,
+		Direction:           l.direction,
+		Name:                l.name.Name,
+		MaxBandwidth:        1000000, // 1MB/s
+		MaxMessageSize:      65536,
+		SupportsQoS:         false, // Links are typically simple transports
+		SupportsEncryption:  l.linkType == resource.LinkTypeRadio, // Radio links often support encryption
+		SupportsPersistence: false, // Links don't persist messages (NATS does, but NATS isn't a Link)
 	}, nil
 }
 
@@ -343,34 +346,50 @@ func (l *Link) Available(ctx context.Context) (int, error) {
 	return total, nil
 }
 
-// IP-specific methods
+// Radio-specific methods
 
-// GetRemoteAddress returns the remote address.
-func (l *Link) GetRemoteAddress(ctx context.Context) (string, error) {
+// GetFrequency returns the operating frequency in Hz.
+func (l *Link) GetFrequency(ctx context.Context) (float64, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.remoteAddr, nil
+	return l.frequency, nil
 }
 
-// GetLocalAddress returns the local address.
-func (l *Link) GetLocalAddress(ctx context.Context) (string, error) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-	return l.localAddr, nil
+// SetFrequency sets the operating frequency in Hz.
+func (l *Link) SetFrequency(ctx context.Context, freq float64) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.frequency = freq
+	return nil
 }
 
-// GetPort returns the port number.
-func (l *Link) GetPort(ctx context.Context) (int, error) {
+// GetTxPower returns the transmit power in dBm.
+func (l *Link) GetTxPower(ctx context.Context) (int, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.port, nil
+	return l.txPower, nil
 }
 
-// GetProtocol returns the protocol.
-func (l *Link) GetProtocol(ctx context.Context) (string, error) {
+// SetTxPower sets the transmit power in dBm.
+func (l *Link) SetTxPower(ctx context.Context, power int) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.txPower = power
+	return nil
+}
+
+// GetRSSI returns the received signal strength indicator.
+func (l *Link) GetRSSI(ctx context.Context) (int, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.protocol, nil
+	return l.rssi, nil
+}
+
+// GetSNR returns the signal-to-noise ratio.
+func (l *Link) GetSNR(ctx context.Context) (float64, error) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.snr, nil
 }
 
 // Test helper methods
@@ -412,18 +431,18 @@ func (l *Link) GetSendBuffer() [][]byte {
 	return result
 }
 
-// SetRemoteAddress sets the remote address (for testing).
-func (l *Link) SetRemoteAddress(addr string) {
+// SetRSSI sets the RSSI (for testing).
+func (l *Link) SetRSSI(rssi int) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.remoteAddr = addr
+	l.rssi = rssi
 }
 
-// SetPort sets the port (for testing).
-func (l *Link) SetPort(port int) {
+// SetSNR sets the SNR (for testing).
+func (l *Link) SetSNR(snr float64) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.port = port
+	l.snr = snr
 }
 
 // SetLatency sets the latency in stats (for testing).
@@ -437,4 +456,4 @@ func (l *Link) SetLatency(latency time.Duration) {
 var _ link.Link = (*Link)(nil)
 var _ link.Extended = (*Link)(nil)
 var _ link.SerialLink = (*Link)(nil)
-var _ link.IPLink = (*Link)(nil)
+var _ link.RadioLink = (*Link)(nil)
