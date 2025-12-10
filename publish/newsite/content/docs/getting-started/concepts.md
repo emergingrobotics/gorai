@@ -8,54 +8,117 @@ weight: 30
 
 This page introduces the key concepts you'll use throughout Gorai development.
 
-## Resources
+## The Object Model - Explained Simply
 
-Everything in Gorai is a **Resource**. Resources are the fundamental building block with a consistent interface:
+Think of Gorai like building with LEGO blocks for robots. Every single piece in the system—whether it's a camera, a motor, an AI vision system, or a communication channel—is built from the same fundamental building block called a **Resource**.
 
-- **Name** — Unique identifier
-- **Type** — Category (sensor, actuator, service)
-- **Configure** — Accept configuration
-- **Start/Stop** — Lifecycle management
-
-## Components
-
-Components are resources that interface with hardware:
-
-| Type | Purpose | Examples |
-|------|---------|----------|
-| **Sensor** | Measure physical quantities | Temperature, IMU, GPS |
-| **Actuator** | Produce physical action | Motor, servo, relay |
-| **Camera** | Capture visual data | USB camera, CSI camera |
-
-## Services
-
-Services are resources that provide capabilities:
-
-- **Vision** — Object detection, image processing
-- **Navigation** — Path planning, localization
-- **Custom** — Your application-specific services
-
-## NATS Topics
-
-Gorai uses NATS for all communication. Topics follow a hierarchical naming convention:
+### The Resource: The Universal Building Block
 
 ```
-gorai.{robot}.{component-type}.{name}.{action}
+                    Resource (the base block)
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+   Component          Service          Module
+   (hardware)       (software)       (plugins)
 ```
 
-Examples:
-- `gorai.robot1.sensor.temperature.reading`
-- `gorai.robot1.actuator.motor.command`
-- `gorai.robot1.service.vision.detect`
+Every Resource has four basic abilities:
+
+1. **Name** - A unique ID like `gorai:component:camera/front_camera`
+2. **Reconfigure** - Can update settings without restarting
+3. **DoCommand** - Can receive arbitrary commands
+4. **Close** - Knows how to shut itself down cleanly
+
+## Components: The Physical Stuff
+
+Components represent **hardware**. They're organized into 5 categories based on what they do in the physical world:
+
+| Category | What It Does | Examples |
+|----------|--------------|----------|
+| **Sensor** | Observes the world (read-only) | Camera, GPS, temperature sensor |
+| **Actuator** | Changes the world (does stuff) | Motor, robotic arm, gripper |
+| **Power** | Manages energy | Battery, power supply |
+| **Space** | Defines physical volumes | Cargo bay, work envelope |
+| **Link** | Enables communication | Serial port, NATS connection |
+
+## Services: The Brain Power
+
+Services are **software** that processes data or makes decisions:
+
+- **Vision** - Understands what cameras see
+- **SLAM** - Builds maps and knows where the robot is
+- **Navigation** - Plans paths from A to B
+- **Behavior** - AI-powered decision making
+
+## How They Talk to Each Other
+
+Everything communicates via **NATS** (a messaging system). Messages follow a naming pattern:
+
+```
+gorai.{robot}.{node}.{topic}
+
+Example: gorai.sentinel.camera_front.data.compressed
+         │      │        │            │
+         │      │        │            └─ the actual topic
+         │      │        └─ which component
+         │      └─ which robot
+         └─ framework prefix
+```
+
+## The Interface Philosophy
+
+The design uses **interfaces** (contracts that define what something can do):
+
+```go
+// If something is a Sensor, it MUST be able to give Readings
+type Sensor interface {
+    Readings() map[string]any
+}
+
+// If something is an Actuator, it MUST be able to Stop and tell you if it's Moving
+type Actuator interface {
+    IsMoving() bool
+    Stop()
+}
+```
+
+This means you can write code that works with "any sensor" or "any actuator" without caring about the specific hardware.
+
+## Why This Design?
+
+1. **Uniform treatment** - Everything is a Resource, so management code works on everything
+2. **Hot reconfiguration** - Change settings without rebooting the robot
+3. **Discoverable** - Find components by type (`GetByType("motor")`)
+4. **Extensible** - Add new components by implementing the interface
+
+## A Concrete Example
+
+Imagine a robot with a camera and wheels:
+
+```
+Camera (Sensor)
+  └─ publishes images to: gorai.mybot.camera.data
+
+Vision Service (Service)
+  └─ subscribes to camera images
+  └─ publishes detections to: gorai.mybot.vision.detections
+
+Motor Left (Actuator)
+  └─ subscribes to: gorai.mybot.drive.command
+  └─ publishes state to: gorai.mybot.motor_left.state
+```
+
+All three are Resources, so they all can be reconfigured, queried, and managed the same way—but each implements different interfaces based on what it actually does.
 
 ## NWS and NWC
 
 Gorai nodes come in two types:
 
-- **NWS (Node With Sensors)** — Microcontrollers running TinyGo, interfacing with hardware
-- **NWC (Node With Compute)** — Linux devices running full Go, handling computation
+- **NWS (Network Wrapper Server)** - Exposes local resources over NATS for remote access
+- **NWC (Network Wrapper Client)** - Creates local proxies that forward calls to remote resources
 
-These communicate over NATS, allowing you to distribute processing across devices.
+This enables **network transparency**: you can use resources the same way whether they're local or running on another machine.
 
 ## Next Steps
 

@@ -1,12 +1,10 @@
-# Core Concepts
+# Gorai Object Model & Interfaces - Explained Simply
 
-This page introduces the key concepts you'll use throughout Gorai development.
+## The Big Picture
 
-## The Object Model - Explained Simply
+Think of Gorai like building with LEGO blocks for robots. Every single piece in the system - whether it's a camera, a motor, an AI vision system, or a communication channel - is built from the same fundamental building block called a **Resource**.
 
-Think of Gorai like building with LEGO blocks for robots. Every single piece in the system—whether it's a camera, a motor, an AI vision system, or a communication channel—is built from the same fundamental building block called a **Resource**.
-
-### The Resource: The Universal Building Block
+## The Resource: The Universal Building Block
 
 ```
                     Resource (the base block)
@@ -105,15 +103,6 @@ Motor Left (Actuator)
 
 All three are Resources, so they all can be reconfigured, queried, and managed the same way—but each implements different interfaces based on what it actually does.
 
-## Communication Patterns
+## Learn More
 
-| Pattern | Use Case | NATS Primitive |
-|---------|----------|----------------|
-| Topics | Sensor streams | Pub/Sub |
-| Services | Synchronous RPC | Request/Reply |
-| Actions | Long-running tasks | Request/Reply + Pub/Sub |
-
-## Next Steps
-
-- [Components Guide](../guides/components.md)
-- [NATS Messaging](../guides/nats.md)
+For the complete technical specification, see [Framework Specification](../specs/gorai-framework-specification.md).

@@ -1,12 +1,12 @@
 ---
 title: "Working with Components"
-description: "Build and use sensors, actuators, and cameras"
+description: "Build and use sensors, actuators, and other hardware abstractions"
 weight: 10
 ---
 
 # Working with Components
 
-Components are the building blocks that interface with robot hardware. They abstract physical devices behind consistent interfaces.
+Components are Resources that interface with robot hardware. They abstract physical devices behind consistent interfaces, organized into five categories based on their relationship with the physical world.
 
 ## The Resource Interface
 
@@ -21,9 +21,21 @@ type Resource interface {
 }
 ```
 
+## Component Categories
+
+Components are organized by what they do in the physical world:
+
+| Category | What It Does | Interface |
+|----------|--------------|-----------|
+| **Sensor** | Observes the world (read-only) | `Readings()` |
+| **Actuator** | Changes the world | `IsMoving()`, `Stop()` |
+| **Power** | Manages energy | `GetCapacity()`, `GetLevel()` |
+| **Space** | Defines physical volumes | `GetVolume()`, `GetBounds()` |
+| **Link** | Enables communication | `IsConnected()`, `GetStats()` |
+
 ## Sensors
 
-Sensors measure physical quantities and return readings. They implement:
+Sensors observe the environment without changing it. They implement:
 
 ```go
 type Sensor interface {
@@ -75,7 +87,7 @@ func (s *TemperatureSensor) Readings(ctx context.Context) (map[string]any, error
 
 ## Actuators
 
-Actuators receive commands and produce physical action. They implement:
+Actuators change the environment. They implement:
 
 ```go
 type Actuator interface {
@@ -146,9 +158,52 @@ func (m *DRV8833Motor) SetPower(ctx context.Context, power float64) error {
 }
 ```
 
+## Power Components
+
+Power components manage energy storage and distribution:
+
+```go
+type Power interface {
+    Resource
+    GetCapacity(ctx context.Context) (float64, error)
+    GetLevel(ctx context.Context) (float64, error)
+    GetVoltage(ctx context.Context) (float64, error)
+    GetCurrent(ctx context.Context) (float64, error)
+    IsCharging(ctx context.Context) (bool, error)
+}
+```
+
+## Space Components
+
+Space components represent physical volumes:
+
+```go
+type Space interface {
+    Resource
+    GetVolume(ctx context.Context) (float64, error)
+    GetBounds(ctx context.Context) (*geometry.Box, error)
+    GetContents(ctx context.Context) ([]string, error)
+    IsEmpty(ctx context.Context) (bool, error)
+}
+```
+
+## Link Components
+
+Links provide communication between nodes:
+
+```go
+type Link interface {
+    Resource
+    Type() LinkType
+    Direction() LinkDirection
+    IsConnected(ctx context.Context) (bool, error)
+    GetStats(ctx context.Context) (*LinkStats, error)
+}
+```
+
 ## Cameras
 
-Cameras capture visual data:
+Cameras capture visual data and are a special type that bridges sensors and vision:
 
 ```go
 type Camera interface {

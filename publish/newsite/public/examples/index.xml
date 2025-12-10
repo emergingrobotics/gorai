@@ -1,18 +1,2 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>Examples on Gorai</title>
-    <link>http://localhost:1313/examples/</link>
-    <description>Recent content in Examples on Gorai</description>
-    <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <atom:link href="http://localhost:1313/examples/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Hello Sensor</title>
-      <link>http://localhost:1313/examples/hello-sensor/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/examples/hello-sensor/</guid>
-      <description>Hello Sensor Example This example demonstrates a simple temperature sensor that publishes readings to NATS.&#xA;Prerequisites Go 1.21+ NATS server running locally Code 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 package main import ( &amp;#34;fmt&amp;#34; &amp;#34;math/rand&amp;#34; &amp;#34;time&amp;#34; &amp;#34;github.com/nats-io/nats.go&amp;#34; ) func main() { // Connect to NATS nc, err := nats.</description>
-    </item>
-  </channel>
-</rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Examples on Gorai</title><link>https://gorai.dev/examples/</link><description>Recent content in Examples on Gorai</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><atom:link href="https://gorai.dev/examples/index.xml" rel="self" type="application/rss+xml"/><item><title>Hello Sensor</title><link>https://gorai.dev/examples/hello-sensor/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/examples/hello-sensor/</guid><description>Hello Sensor Example This example demonstrates a simple temperature sensor that publishes readings to NATS.
+Prerequisites Go 1.21+ NATS server running locally Code 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 package main import ( &amp;#34;fmt&amp;#34; &amp;#34;math/rand&amp;#34; &amp;#34;time&amp;#34; &amp;#34;github.com/nats-io/nats.go&amp;#34; ) func main() { // Connect to NATS nc, err := nats.</description></item></channel></rss>

@@ -1,12 +1,48 @@
 ## 2.2 Core Concepts
 
-Three concepts form GoRAI's foundation: Nodes, Resources, and the Resource Model. Master these, and the framework becomes intuitive.
+Three concepts form Gorai's foundation: Nodes, Resources, and the Resource Model. Master these, and the framework becomes intuitive.
 
 > **Design Note**: These abstractions exist to make your life easier, not to impress. If something seems unnecessarily complex, file an issue—we probably got it wrong. The goal is concepts you can explain to a teammate in two minutes.
 
+### The Object Model - Explained Simply
+
+Before diving into details, let's establish the fundamental mental model. Think of Gorai like building with LEGO blocks for robots. Every single piece in the system—whether it's a camera, a motor, an AI vision system, or a communication channel—is built from the same fundamental building block called a **Resource**.
+
+```
+                    Resource (the base block)
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+   Component          Service          Module
+   (hardware)       (software)       (plugins)
+```
+
+Every Resource has four basic abilities:
+
+1. **Name** - A unique ID like `gorai:component:camera/front_camera`
+2. **Reconfigure** - Can update settings without restarting
+3. **DoCommand** - Can receive arbitrary commands
+4. **Close** - Knows how to shut itself down cleanly
+
+**Components** represent hardware, organized into 5 categories:
+
+| Category | What It Does | Examples |
+|----------|--------------|----------|
+| **Sensor** | Observes the world (read-only) | Camera, GPS, temperature sensor |
+| **Actuator** | Changes the world (does stuff) | Motor, robotic arm, gripper |
+| **Power** | Manages energy | Battery, power supply |
+| **Space** | Defines physical volumes | Cargo bay, work envelope |
+| **Link** | Enables communication | Serial port, NATS connection |
+
+**Services** are software that processes data or makes decisions: Vision, SLAM, Navigation, and Behavior.
+
+This design enables **uniform treatment** (management code works on everything), **hot reconfiguration** (change settings without rebooting), **discoverability** (find components by type), and **extensibility** (add new components by implementing interfaces).
+
+Now let's dive into the details.
+
 ### 2.2.1 Nodes
 
-A **Node** is the fundamental unit of execution in GoRAI. It represents a process that:
+A **Node** is the fundamental unit of execution in Gorai. It represents a process that:
 
 - Connects to the NATS message bus
 - Manages one or more resources
@@ -84,7 +120,7 @@ n.FullName() // Returns "robot1.sensors"
 
 ### 2.2.2 Resources
 
-A **Resource** is anything managed by GoRAI: a motor, a camera, a navigation service, a sensor. All resources implement a common interface defined in `pkg/resource/resource.go`:
+A **Resource** is anything managed by Gorai: a motor, a camera, a navigation service, a sensor. All resources implement a common interface defined in `pkg/resource/resource.go`:
 
 ```go
 type Resource interface {
@@ -155,7 +191,7 @@ This distinction matters for organization but not for the core interface—both 
 
 ### 2.2.3 The Resource Model
 
-GoRAI's resource model creates a consistent hierarchy:
+Gorai's resource model creates a consistent hierarchy:
 
 ```
 Resource (base interface)

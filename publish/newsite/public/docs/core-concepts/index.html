@@ -1,174 +1,74 @@
-<!DOCTYPE html>
-<html lang="en-us">
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Core Concepts | Gorai</title>
-  <meta name="description" content="Understand Gorai&#39;s architecture and design">
-  <style>
-    :root {
-      --primary: #663399;
-      --text: #333;
-      --bg: #fff;
-      --code-bg: #f5f5f5;
-      --border: #ddd;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      line-height: 1.6;
-      color: var(--text);
-      background: var(--bg);
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 1rem;
-    }
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 1rem 0;
-    }
-    header a { color: white; text-decoration: none; }
-    header nav { display: flex; gap: 1.5rem; align-items: center; }
-    header nav a:hover { text-decoration: underline; }
-    header h1 { margin: 0; font-size: 1.5rem; }
-    main { padding: 2rem 0; }
-    h1, h2, h3, h4 { color: #1a1a1a; margin-top: 1.5rem; }
-    h1 { border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
-    a { color: var(--primary); }
-    code {
-      font-family: "SF Mono", Monaco, monospace;
-      background: var(--code-bg);
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-size: 0.9em;
-    }
-    pre {
-      background: #282c34;
-      color: #abb2bf;
-      padding: 1rem;
-      border-radius: 6px;
-      overflow-x: auto;
-    }
-    pre code { background: none; color: inherit; padding: 0; }
-    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-    th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
-    th { background: var(--code-bg); }
-    footer { border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 3rem; color: #666; }
-    .callout { margin: 1rem 0; padding: 1rem; border-radius: 4px; border-left: 4px solid; }
-    .callout-info { background: #e7f3ff; border-color: #2196F3; }
-    .callout-warning { background: #fff3e0; border-color: #ff9800; }
-    .callout-title { font-weight: bold; margin-bottom: 0.5rem; }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="container">
-      <nav>
-        <h1><a href="/">Gorai</a></h1>
-        
-        <a href="/docs/">Docs</a>
-        
-        <a href="/examples/">Examples</a>
-        
-        <a href="/community/">Community</a>
-        
-        <a href="/book/">Book</a>
-        
-        <a href="https://github.com/gorai/gorai">GitHub</a>
-        
-      </nav>
-    </div>
-  </header>
-  <main class="container">
-    
-<article>
-  <h1 id="core-concepts">Core Concepts</h1>
-<p>This page introduces the key concepts you&rsquo;ll use throughout Gorai development.</p>
-<h2 id="resources">Resources</h2>
-<p>Everything in Gorai is a <strong>Resource</strong>. Resources are the fundamental building block with a consistent interface:</p>
-<ul>
-<li><strong>Name</strong> — Unique identifier</li>
-<li><strong>Type</strong> — Category (sensor, actuator, service)</li>
-<li><strong>Configure</strong> — Accept configuration</li>
-<li><strong>Start/Stop</strong> — Lifecycle management</li>
-</ul>
-<h2 id="components">Components</h2>
-<p>Components are resources that interface with hardware:</p>
-<table>
-<thead>
-<tr>
-<th>Type</th>
-<th>Purpose</th>
-<th>Examples</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Sensor</strong></td>
-<td>Measure physical quantities</td>
-<td>Temperature, IMU, GPS</td>
-</tr>
-<tr>
-<td><strong>Actuator</strong></td>
-<td>Produce physical action</td>
-<td>Motor, servo, relay</td>
-</tr>
-<tr>
-<td><strong>Camera</strong></td>
-<td>Capture visual data</td>
-<td>USB camera, CSI camera</td>
-</tr>
-</tbody>
-</table>
-<h2 id="services">Services</h2>
-<p>Services are resources that provide capabilities:</p>
-<ul>
-<li><strong>Vision</strong> — Object detection, image processing</li>
-<li><strong>Navigation</strong> — Path planning, localization</li>
-<li><strong>Custom</strong> — Your application-specific services</li>
-</ul>
-<h2 id="nats-topics">NATS Topics</h2>
-<p>Gorai uses NATS for all communication. Topics follow a hierarchical naming convention:</p>
-<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
-<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
-</span></code></pre></td>
-<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
-<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>gorai.{robot}.{component-type}.{name}.{action}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Examples:</p>
-<ul>
-<li><code>gorai.robot1.sensor.temperature.reading</code></li>
-<li><code>gorai.robot1.actuator.motor.command</code></li>
-<li><code>gorai.robot1.service.vision.detect</code></li>
-</ul>
-<h2 id="nws-and-nwc">NWS and NWC</h2>
-<p>Gorai nodes come in two types:</p>
-<ul>
-<li><strong>NWS (Node With Sensors)</strong> — Microcontrollers running TinyGo, interfacing with hardware</li>
-<li><strong>NWC (Node With Compute)</strong> — Linux devices running full Go, handling computation</li>
-</ul>
-<p>These communicate over NATS, allowing you to distribute processing across devices.</p>
-<h2 id="next-steps">Next Steps</h2>
-<ul>
-<li><a href="/docs/guides/components/">Working with Components</a></li>
-<li><a href="/docs/guides/nats/">NATS Messaging Guide</a></li>
-</ul>
-
-</article>
-
-  </main>
-  <footer>
-    <div class="container">
-      <p>Copyright &copy; 2025 Greg Herlein &amp; Luca Herlein. Apache 2.0 License.</p>
-      <p><em>Pronounced "go-ray" (like "sting-ray")</em></p>
-    </div>
-  </footer>
-</body>
-</html>
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Core Concepts | Gorai</title>
+<meta name=description content="Understand Gorai's architecture and design"><style>:root{--primary:#663399;--text:#333;--bg:#fff;--code-bg:#f5f5f5;--border:#ddd}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,segoe ui,Roboto,sans-serif;line-height:1.6;color:var(--text);background:var(--bg);margin:0;padding:0}.container{max-width:900px;margin:0 auto;padding:0 1rem}header{background:var(--primary);color:#fff;padding:1rem 0}header a{color:#fff;text-decoration:none}header nav{display:flex;gap:1.5rem;align-items:center}header nav a:hover{text-decoration:underline}header h1{margin:0;font-size:1.5rem}main{padding:2rem 0}h1,h2,h3,h4{color:#1a1a1a;margin-top:1.5rem}h1{border-bottom:2px solid var(--primary);padding-bottom:.5rem}a{color:var(--primary)}code{font-family:sf mono,Monaco,monospace;background:var(--code-bg);padding:.2em .4em;border-radius:3px;font-size:.9em}pre{background:#282c34;color:#abb2bf;padding:1rem;border-radius:6px;overflow-x:auto}pre code{background:0 0;color:inherit;padding:0}table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid var(--border);padding:.5rem;text-align:left}th{background:var(--code-bg)}footer{border-top:1px solid var(--border);padding:2rem 0;margin-top:3rem;color:#666}.callout{margin:1rem 0;padding:1rem;border-radius:4px;border-left:4px solid}.callout-info{background:#e7f3ff;border-color:#2196f3}.callout-warning{background:#fff3e0;border-color:#ff9800}.callout-title{font-weight:700;margin-bottom:.5rem}</style></head><body><header><div class=container><nav><h1><a href=/>Gorai</a></h1><a href=/docs/>Docs</a>
+<a href=/examples/>Examples</a>
+<a href=/community/>Community</a>
+<a href=/book/>Book</a>
+<a href=https://github.com/gorai/gorai>GitHub</a></nav></div></header><main class=container><article><h1 id=core-concepts>Core Concepts</h1><p>This page introduces the key concepts you&rsquo;ll use throughout Gorai development.</p><h2 id=the-object-model---explained-simply>The Object Model - Explained Simply</h2><p>Think of Gorai like building with LEGO blocks for robots. Every single piece in the system—whether it&rsquo;s a camera, a motor, an AI vision system, or a communication channel—is built from the same fundamental building block called a <strong>Resource</strong>.</p><h3 id=the-resource-the-universal-building-block>The Resource: The Universal Building Block</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-fallback data-lang=fallback><span style=display:flex><span>                    Resource (the base block)
+</span></span><span style=display:flex><span>                         │
+</span></span><span style=display:flex><span>        ┌────────────────┼────────────────┐
+</span></span><span style=display:flex><span>        │                │                │
+</span></span><span style=display:flex><span>   Component          Service          Module
+</span></span><span style=display:flex><span>   (hardware)       (software)       (plugins)
+</span></span></code></pre></td></tr></table></div></div><p>Every Resource has four basic abilities:</p><ol><li><strong>Name</strong> - A unique ID like <code>gorai:component:camera/front_camera</code></li><li><strong>Reconfigure</strong> - Can update settings without restarting</li><li><strong>DoCommand</strong> - Can receive arbitrary commands</li><li><strong>Close</strong> - Knows how to shut itself down cleanly</li></ol><h2 id=components-the-physical-stuff>Components: The Physical Stuff</h2><p>Components represent <strong>hardware</strong>. They&rsquo;re organized into 5 categories based on what they do in the physical world:</p><table><thead><tr><th>Category</th><th>What It Does</th><th>Examples</th></tr></thead><tbody><tr><td><strong>Sensor</strong></td><td>Observes the world (read-only)</td><td>Camera, GPS, temperature sensor</td></tr><tr><td><strong>Actuator</strong></td><td>Changes the world (does stuff)</td><td>Motor, robotic arm, gripper</td></tr><tr><td><strong>Power</strong></td><td>Manages energy</td><td>Battery, power supply</td></tr><tr><td><strong>Space</strong></td><td>Defines physical volumes</td><td>Cargo bay, work envelope</td></tr><tr><td><strong>Link</strong></td><td>Enables communication</td><td>Serial port, NATS connection</td></tr></tbody></table><h2 id=services-the-brain-power>Services: The Brain Power</h2><p>Services are <strong>software</strong> that processes data or makes decisions:</p><ul><li><strong>Vision</strong> - Understands what cameras see</li><li><strong>SLAM</strong> - Builds maps and knows where the robot is</li><li><strong>Navigation</strong> - Plans paths from A to B</li><li><strong>Behavior</strong> - AI-powered decision making</li></ul><h2 id=how-they-talk-to-each-other>How They Talk to Each Other</h2><p>Everything communicates via <strong>NATS</strong> (a messaging system). Messages follow a naming pattern:</p><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-fallback data-lang=fallback><span style=display:flex><span>gorai.{robot}.{node}.{topic}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Example: gorai.sentinel.camera_front.data.compressed
+</span></span><span style=display:flex><span>         │      │        │            │
+</span></span><span style=display:flex><span>         │      │        │            └─ the actual topic
+</span></span><span style=display:flex><span>         │      │        └─ which component
+</span></span><span style=display:flex><span>         │      └─ which robot
+</span></span><span style=display:flex><span>         └─ framework prefix
+</span></span></code></pre></td></tr></table></div></div><h2 id=the-interface-philosophy>The Interface Philosophy</h2><p>The design uses <strong>interfaces</strong> (contracts that define what something can do):</p><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=display:flex><span><span style=color:#6272a4>// If something is a Sensor, it MUST be able to give Readings
+</span></span></span><span style=display:flex><span><span style=color:#6272a4></span><span style=color:#8be9fd;font-style:italic>type</span> Sensor <span style=color:#8be9fd;font-style:italic>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#50fa7b>Readings</span>() <span style=color:#8be9fd;font-style:italic>map</span>[<span style=color:#8be9fd>string</span>]any
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#6272a4>// If something is an Actuator, it MUST be able to Stop and tell you if it&#39;s Moving
+</span></span></span><span style=display:flex><span><span style=color:#6272a4></span><span style=color:#8be9fd;font-style:italic>type</span> Actuator <span style=color:#8be9fd;font-style:italic>interface</span> {
+</span></span><span style=display:flex><span>    <span style=color:#50fa7b>IsMoving</span>() <span style=color:#8be9fd>bool</span>
+</span></span><span style=display:flex><span>    <span style=color:#50fa7b>Stop</span>()
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></td></tr></table></div></div><p>This means you can write code that works with &ldquo;any sensor&rdquo; or &ldquo;any actuator&rdquo; without caring about the specific hardware.</p><h2 id=why-this-design>Why This Design?</h2><ol><li><strong>Uniform treatment</strong> - Everything is a Resource, so management code works on everything</li><li><strong>Hot reconfiguration</strong> - Change settings without rebooting the robot</li><li><strong>Discoverable</strong> - Find components by type (<code>GetByType("motor")</code>)</li><li><strong>Extensible</strong> - Add new components by implementing the interface</li></ol><h2 id=a-concrete-example>A Concrete Example</h2><p>Imagine a robot with a camera and wheels:</p><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-fallback data-lang=fallback><span style=display:flex><span>Camera (Sensor)
+</span></span><span style=display:flex><span>  └─ publishes images to: gorai.mybot.camera.data
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Vision Service (Service)
+</span></span><span style=display:flex><span>  └─ subscribes to camera images
+</span></span><span style=display:flex><span>  └─ publishes detections to: gorai.mybot.vision.detections
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Motor Left (Actuator)
+</span></span><span style=display:flex><span>  └─ subscribes to: gorai.mybot.drive.command
+</span></span><span style=display:flex><span>  └─ publishes state to: gorai.mybot.motor_left.state
+</span></span></code></pre></td></tr></table></div></div><p>All three are Resources, so they all can be reconfigured, queried, and managed the same way—but each implements different interfaces based on what it actually does.</p><h2 id=nws-and-nwc>NWS and NWC</h2><p>Gorai nodes come in two types:</p><ul><li><strong>NWS (Network Wrapper Server)</strong> - Exposes local resources over NATS for remote access</li><li><strong>NWC (Network Wrapper Client)</strong> - Creates local proxies that forward calls to remote resources</li></ul><p>This enables <strong>network transparency</strong>: you can use resources the same way whether they&rsquo;re local or running on another machine.</p><h2 id=next-steps>Next Steps</h2><ul><li><a href=/docs/guides/components/>Working with Components</a></li><li><a href=/docs/guides/nats/>NATS Messaging Guide</a></li></ul></article></main><footer><div class=container><p>Copyright &copy; 2025 Greg Herlein & Luca Herlein. Apache 2.0 License.</p><p><em>Pronounced "go-ray" (like "sting-ray")</em></p></div></footer></body></html>
