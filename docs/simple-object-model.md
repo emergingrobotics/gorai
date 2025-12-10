@@ -24,15 +24,26 @@ Every Resource has four basic abilities:
 
 ## Components: The Physical Stuff
 
-Components represent **hardware**. They're organized into 5 categories based on what they do in the physical world:
+Components represent **hardware** (or virtual aggregations of hardware). They're organized into 5 categories:
 
 | Category | What It Does | Examples |
 |----------|--------------|----------|
 | **Sensor** | Observes the world (read-only) | Camera, GPS, temperature sensor |
 | **Actuator** | Changes the world (does stuff) | Motor, robotic arm, gripper |
 | **Power** | Manages energy | Battery, power supply |
-| **Space** | Defines physical volumes | Cargo bay, work envelope |
-| **Link** | Enables communication | Serial port, NATS connection |
+| **Space** | Virtual container on robot | Ballast tank, cargo bay with door |
+| **Link** | Extra communication channel | Serial to MCU, radio telemetry |
+
+### Important Clarifications
+
+**NATS is assumed infrastructure, not a Link.** All components assume IP connectivity to a NATS server—that's the baseline. Links exist for *additional* communication paths that NATS cannot reach.
+
+**Space is a virtual abstraction.** A Space represents a physical area on the robot (like a ballast tank or cargo bay) but doesn't directly interface with hardware. Instead, it coordinates other components—valves, doors, level sensors, etc.—that control or monitor that area.
+
+**Link bridges to non-NATS devices.** Common examples:
+- Serial connection to a TinyGo microcontroller
+- Radio link for telemetry when out of WiFi range
+- CAN bus for vehicle systems
 
 ## Services: The Brain Power
 

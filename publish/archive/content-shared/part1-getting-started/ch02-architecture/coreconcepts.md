@@ -24,15 +24,17 @@ Every Resource has four basic abilities:
 3. **DoCommand** - Can receive arbitrary commands
 4. **Close** - Knows how to shut itself down cleanly
 
-**Components** represent hardware, organized into 5 categories:
+**Components** represent hardware (or virtual aggregations of hardware), organized into 5 categories:
 
 | Category | What It Does | Examples |
 |----------|--------------|----------|
 | **Sensor** | Observes the world (read-only) | Camera, GPS, temperature sensor |
 | **Actuator** | Changes the world (does stuff) | Motor, robotic arm, gripper |
 | **Power** | Manages energy | Battery, power supply |
-| **Space** | Defines physical volumes | Cargo bay, work envelope |
-| **Link** | Enables communication | Serial port, NATS connection |
+| **Space** | Virtual container on robot | Ballast tank, cargo bay with door |
+| **Link** | Extra communication channel | Serial to MCU, radio telemetry |
+
+**Note**: NATS is assumed infrastructure, not a "Link." A Space is a virtual abstraction coordinating other components (valves, doors, sensors). A Link bridges to devices that can't connect to NATS (microcontrollers, radios).
 
 **Services** are software that processes data or makes decisions: Vision, SLAM, Navigation, and Behavior.
 

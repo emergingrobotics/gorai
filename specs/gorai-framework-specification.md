@@ -377,16 +377,27 @@ type Power interface {
 
 #### Space
 
-**Space components represent physical volumes that can contain things.** They define boundaries and may track contents.
+**Space components represent physical volumes on the robot that can contain things or be managed.** A Space is a virtual abstraction over a physical area—it doesn't directly interface with hardware, but it aggregates and coordinates other components (actuators, sensors) that do.
+
+Spaces are useful for modeling:
+- Storage areas with doors or access hatches
+- Tanks with valves and level sensors
+- Compartments with lighting or environmental controls
+- Work envelopes with safety interlocks
 
 | Subtype | Description | Examples |
 |---------|-------------|----------|
-| `container` | Storage volume | Cargo bay, hopper, tank |
-| `workspace` | Operating area | Robot work envelope |
-| `zone` | Defined region | Safety zone, charging zone |
+| `container` | Storage volume | Cargo bay, hopper, sample drawer |
+| `tank` | Fluid storage | Ballast tank, fuel tank, coolant reservoir |
+| `compartment` | Enclosed area | Equipment bay, battery compartment |
+
+A Space typically references other components:
+- **Actuators**: Door servos, valve motors, latch mechanisms
+- **Sensors**: Level sensors, presence detectors, temperature monitors
+- **Power**: Lighting, heating/cooling elements
 
 ```go
-// Space represents a physical volume
+// Space represents a physical volume on the robot
 type Space interface {
     Component
     // GetVolume returns volume in cubic meters
@@ -397,23 +408,52 @@ type Space interface {
     GetContents(ctx context.Context) ([]string, error)
     // IsEmpty returns true if space contains nothing
     IsEmpty(ctx context.Context) (bool, error)
+    // GetComponents returns components associated with this space
+    GetComponents(ctx context.Context) ([]resource.Name, error)
+}
+```
+
+**Example: Ballast Tank**
+
+```go
+// A ballast tank Space coordinates multiple components
+type BallastTank struct {
+    name        resource.Name
+    volume      float64
+    fillValve   actuator.Valve   // Controls water intake
+    drainValve  actuator.Valve   // Controls water release
+    levelSensor sensor.Level     // Measures fill percentage
+    // ...
+}
+
+func (t *BallastTank) GetContents(ctx context.Context) ([]string, error) {
+    level, _ := t.levelSensor.Readings(ctx)
+    return []string{fmt.Sprintf("water:%.1f%%", level["percent"])}, nil
 }
 ```
 
 #### Links
 
-**Links provide communication between nodes.** They are either bi-directional (point-to-point) or broadcast (one-to-many), and use various transport mechanisms.
+**Links provide additional communication channels beyond the primary NATS connection.** All Gorai components assume IP connectivity to a NATS server—that's the baseline infrastructure, not a "Link." A Link component represents an *extra* communication path, typically for:
 
-| Subtype | Direction | Transport | Examples |
+- **Microcontroller bridges**: Serial connections to TinyGo devices without IP capability
+- **Telemetry channels**: Radio links for remote monitoring or control
+- **Legacy protocols**: CAN bus, RS-485, or other industrial networks
+- **Redundant paths**: Backup communication for safety-critical systems
+
+Links are bi-directional (point-to-point) or broadcast (one-to-many), and abstract various transport mechanisms.
+
+| Subtype | Direction | Transport | Use Case |
 |---------|-----------|-----------|----------|
-| `serial_link` | Bi-directional | Serial | UART, RS-232, RS-485 |
-| `ip_link` | Bi-directional | IP | TCP socket, UDP |
-| `nats_link` | Broadcast | NATS | Pub/sub topics |
-| `can_link` | Broadcast | CAN bus | CANopen, J1939 |
-| `i2c_link` | Bi-directional | I2C | Sensor buses |
+| `serial_link` | Bi-directional | UART/RS-232/RS-485 | Microcontroller gateway, legacy devices |
+| `radio_link` | Bi-directional | RF/LoRa/cellular | Remote telemetry, long-range control |
+| `can_link` | Broadcast | CAN bus | Vehicle systems, industrial automation |
+| `i2c_link` | Bi-directional | I2C | Local sensor buses on SBCs |
+
+**Important**: The NATS connection is *not* modeled as a Link—it's assumed infrastructure. Every component publishes/subscribes via NATS. Links exist for communication paths that NATS cannot reach.
 
 ```go
-// Link provides communication between nodes
+// Link provides an additional communication channel
 type Link interface {
     Component
     // Type returns the link type
@@ -429,8 +469,7 @@ type Link interface {
 type LinkType int
 const (
     LinkTypeSerial LinkType = iota
-    LinkTypeIP
-    LinkTypeNATS
+    LinkTypeRadio
     LinkTypeCAN
     LinkTypeI2C
     LinkTypeSPI
@@ -452,41 +491,64 @@ type LinkStats struct {
 }
 ```
 
-**Link Direction Characteristics:**
+**Example: Serial Gateway to Microcontroller**
 
-| Direction | Description | Use Cases |
-|-----------|-------------|-----------|
-| **Bi-directional** | Point-to-point, request/response | Serial communication, TCP sockets, I2C |
-| **Broadcast** | One-to-many, pub/sub | NATS topics, CAN bus, multicast |
-
-**NATS as a Special Link:**
-
-NATS is a special kind of IP-based link that provides:
-- Broadcast semantics via pub/sub
-- Optional persistence via JetStream
-- Built-in clustering and fault tolerance
-- Request/reply patterns (bi-directional over broadcast)
+A common pattern is a serial link bridging NATS to a TinyGo microcontroller:
 
 ```go
-// NATSLink is a specialized Link using NATS
-type NATSLink interface {
-    Link
-    // GetConnection returns the underlying NATS connection
-    GetConnection() *nats.Conn
-    // GetSubject returns the primary subject for this link
-    GetSubject() string
+// SerialLink bridges NATS messages to/from a microcontroller
+type SerialLink struct {
+    name     resource.Name
+    port     string           // e.g., "/dev/ttyUSB0"
+    baudRate int
+    conn     serial.Port
+    // ...
 }
+
+// The gateway subscribes to NATS topics and forwards commands over serial,
+// then publishes serial responses back to NATS
+func (l *SerialLink) Run(ctx context.Context) {
+    // Subscribe to motor commands on NATS
+    l.nc.Subscribe("gorai.robot.motor.command", func(msg *nats.Msg) {
+        // Forward to microcontroller over serial
+        l.conn.Write(encodeCommand(msg.Data))
+    })
+
+    // Read sensor data from serial, publish to NATS
+    go func() {
+        for {
+            data := l.conn.Read()
+            l.nc.Publish("gorai.robot.mcu.sensors", data)
+        }
+    }()
+}
+```
+
+**Example: Radio Telemetry Link**
+
+```go
+// RadioLink provides long-range telemetry via LoRa or similar
+type RadioLink struct {
+    name      resource.Name
+    frequency float64
+    power     int  // transmit power in dBm
+    // ...
+}
+
+// Used for remote monitoring when the robot is out of WiFi range
 ```
 
 ### Component Type Summary
 
-| Type | Can Observe | Can Change | Has Capacity | Has Volume | Provides Communication |
-|------|-------------|------------|--------------|------------|------------------------|
-| Sensor | ✓ | ✗ | ✗ | ✗ | ✗ |
-| Actuator | Optional | ✓ | ✗ | ✗ | ✗ |
-| Power | ✓ (levels) | ✗ | ✓ | ✗ | ✗ |
-| Space | ✓ (contents) | ✗ | ✗ | ✓ | ✗ |
-| Link | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Type | Purpose | Key Characteristic |
+|------|---------|-------------------|
+| Sensor | Observes the environment | Returns readings, read-only |
+| Actuator | Changes the environment | Can move, can be stopped |
+| Power | Manages energy | Has capacity and level |
+| Space | Virtual container on robot | Aggregates other components (valves, doors, sensors) |
+| Link | Extra communication channel | Bridges to devices without NATS (MCUs, radios) |
+
+**Note on NATS**: All components assume NATS connectivity as baseline infrastructure. NATS is not a "Link"—it's the assumed communication fabric. Links exist for additional channels that NATS cannot reach.
 
 ---
 

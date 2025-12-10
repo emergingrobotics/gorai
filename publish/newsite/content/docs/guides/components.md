@@ -23,15 +23,17 @@ type Resource interface {
 
 ## Component Categories
 
-Components are organized by what they do in the physical world:
+Components are organized by what they do:
 
 | Category | What It Does | Interface |
 |----------|--------------|-----------|
 | **Sensor** | Observes the world (read-only) | `Readings()` |
 | **Actuator** | Changes the world | `IsMoving()`, `Stop()` |
 | **Power** | Manages energy | `GetCapacity()`, `GetLevel()` |
-| **Space** | Defines physical volumes | `GetVolume()`, `GetBounds()` |
-| **Link** | Enables communication | `IsConnected()`, `GetStats()` |
+| **Space** | Virtual container on robot | `GetVolume()`, `GetComponents()` |
+| **Link** | Extra communication channel | `IsConnected()`, `GetStats()` |
+
+**Note**: All components assume NATS connectivity as baseline infrastructure. NATS is not a "Link"—Links exist for additional channels that NATS cannot reach (serial to MCUs, radio telemetry, etc.).
 
 ## Sensors
 
@@ -175,7 +177,12 @@ type Power interface {
 
 ## Space Components
 
-Space components represent physical volumes:
+Space components represent **virtual containers on the robot**. A Space doesn't directly interface with hardware—it aggregates and coordinates other components that do.
+
+Use Spaces for:
+- Storage areas with doors or hatches (cargo bay, sample drawer)
+- Tanks with valves and level sensors (ballast tank, fuel tank)
+- Compartments with environmental controls (battery bay, equipment compartment)
 
 ```go
 type Space interface {
@@ -184,12 +191,42 @@ type Space interface {
     GetBounds(ctx context.Context) (*geometry.Box, error)
     GetContents(ctx context.Context) ([]string, error)
     IsEmpty(ctx context.Context) (bool, error)
+    GetComponents(ctx context.Context) ([]resource.Name, error)
+}
+```
+
+### Space Example: Ballast Tank
+
+```go
+type BallastTank struct {
+    name        resource.Name
+    volume      float64
+    fillValve   actuator.Valve   // Controls water intake
+    drainValve  actuator.Valve   // Controls water release
+    levelSensor sensor.Level     // Measures fill percentage
+}
+
+func (t *BallastTank) GetContents(ctx context.Context) ([]string, error) {
+    level, _ := t.levelSensor.Readings(ctx)
+    return []string{fmt.Sprintf("water:%.1f%%", level["percent"])}, nil
+}
+
+func (t *BallastTank) GetComponents(ctx context.Context) ([]resource.Name, error) {
+    return []resource.Name{
+        t.fillValve.Name(),
+        t.drainValve.Name(),
+        t.levelSensor.Name(),
+    }, nil
 }
 ```
 
 ## Link Components
 
-Links provide communication between nodes:
+Links provide **additional communication channels beyond NATS**. All components assume NATS connectivity—that's the baseline. Links exist for communication paths that NATS cannot reach:
+
+- **Serial links**: Bridge to TinyGo microcontrollers without IP capability
+- **Radio links**: Remote telemetry when out of WiFi range
+- **CAN bus**: Vehicle systems, industrial protocols
 
 ```go
 type Link interface {
@@ -198,6 +235,34 @@ type Link interface {
     Direction() LinkDirection
     IsConnected(ctx context.Context) (bool, error)
     GetStats(ctx context.Context) (*LinkStats, error)
+}
+```
+
+### Link Example: Serial Gateway
+
+```go
+type SerialLink struct {
+    name     resource.Name
+    port     string           // e.g., "/dev/ttyUSB0"
+    baudRate int
+    conn     serial.Port
+    nc       *nats.Conn
+}
+
+// Bridges NATS messages to/from a microcontroller
+func (l *SerialLink) Run(ctx context.Context) {
+    // Forward NATS commands to MCU over serial
+    l.nc.Subscribe("gorai.robot.motor.command", func(msg *nats.Msg) {
+        l.conn.Write(encodeCommand(msg.Data))
+    })
+
+    // Publish MCU sensor data back to NATS
+    go func() {
+        for {
+            data := l.conn.Read()
+            l.nc.Publish("gorai.robot.mcu.sensors", data)
+        }
+    }()
 }
 ```
 
