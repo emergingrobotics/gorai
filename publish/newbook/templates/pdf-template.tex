@@ -160,7 +160,16 @@ $endif$
 % Title page
 \begin{titlepage}
 \centering
-\vspace*{2cm}
+\vspace*{1cm}
+
+% Logo
+\IfFileExists{images/gorai.png}{%
+  \includegraphics[width=0.4\textwidth]{images/gorai.png}%
+}{%
+  \vspace{3cm}% Fallback spacing if logo not found
+}
+
+\vspace{1.5cm}
 {\Huge\bfseries $title$\par}
 \vspace{1cm}
 $if(subtitle)$

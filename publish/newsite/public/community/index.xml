@@ -1,2 +1,18 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Community on Gorai</title><link>https://gorai.dev/community/</link><description>Recent content in Community on Gorai</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><atom:link href="https://gorai.dev/community/index.xml" rel="self" type="application/rss+xml"/><item><title>Contributing</title><link>https://gorai.dev/community/contributing/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/community/contributing/</guid><description>Contributing to Gorai Thank you for your interest in contributing! Here&amp;rsquo;s how to get started.
-Ways to Contribute Bug reports — Found a bug? Open an issue Feature requests — Have an idea? Start a discussion Documentation — Improve docs, fix typos Code — Fix bugs, implement features Development Setup 1 2 3 4 5 6 7 8 9 # Clone the repository git clone https://github.com/gorai/gorai.git cd gorai # Install dependencies go mod download # Run tests go test .</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Community on Gorai</title>
+    <link>http://localhost:1313/community/</link>
+    <description>Recent content in Community on Gorai</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <atom:link href="http://localhost:1313/community/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Contributing</title>
+      <link>http://localhost:1313/community/contributing/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/community/contributing/</guid>
+      <description>Contributing to Gorai Thank you for your interest in contributing! Here&amp;rsquo;s how to get started.&#xA;Ways to Contribute Bug reports — Found a bug? Open an issue Feature requests — Have an idea? Start a discussion Documentation — Improve docs, fix typos Code — Fix bugs, implement features Development Setup 1 2 3 4 5 6 7 8 9 # Clone the repository git clone https://github.com/gorai/gorai.git cd gorai # Install dependencies go mod download # Run tests go test .</description>
+    </item>
+  </channel>
+</rss>

@@ -35,6 +35,8 @@ dist/gorai-book.pdf: $(ALL_CHAPTERS) metadata.yaml templates/pdf-template.tex
 		--metadata-file=metadata.yaml \
 		--template=templates/pdf-template.tex \
 		--pdf-engine=xelatex \
+		--pdf-engine-opt=-output-directory=dist \
+		--resource-path=.:images:../images/logos \
 		--toc \
 		--number-sections \
 		--highlight-style=tango \

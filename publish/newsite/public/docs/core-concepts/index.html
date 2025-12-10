@@ -1,8 +1,174 @@
-<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Core Concepts | Gorai</title>
-<meta name=description content="Understand Gorai's architecture and design"><style>:root{--primary:#663399;--text:#333;--bg:#fff;--code-bg:#f5f5f5;--border:#ddd}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,segoe ui,Roboto,sans-serif;line-height:1.6;color:var(--text);background:var(--bg);margin:0;padding:0}.container{max-width:900px;margin:0 auto;padding:0 1rem}header{background:var(--primary);color:#fff;padding:1rem 0}header a{color:#fff;text-decoration:none}header nav{display:flex;gap:1.5rem;align-items:center}header nav a:hover{text-decoration:underline}header h1{margin:0;font-size:1.5rem}main{padding:2rem 0}h1,h2,h3,h4{color:#1a1a1a;margin-top:1.5rem}h1{border-bottom:2px solid var(--primary);padding-bottom:.5rem}a{color:var(--primary)}code{font-family:sf mono,Monaco,monospace;background:var(--code-bg);padding:.2em .4em;border-radius:3px;font-size:.9em}pre{background:#282c34;color:#abb2bf;padding:1rem;border-radius:6px;overflow-x:auto}pre code{background:0 0;color:inherit;padding:0}table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid var(--border);padding:.5rem;text-align:left}th{background:var(--code-bg)}footer{border-top:1px solid var(--border);padding:2rem 0;margin-top:3rem;color:#666}.callout{margin:1rem 0;padding:1rem;border-radius:4px;border-left:4px solid}.callout-info{background:#e7f3ff;border-color:#2196f3}.callout-warning{background:#fff3e0;border-color:#ff9800}.callout-title{font-weight:700;margin-bottom:.5rem}</style></head><body><header><div class=container><nav><h1><a href=/>Gorai</a></h1><a href=/docs/>Docs</a>
-<a href=/examples/>Examples</a>
-<a href=/community/>Community</a>
-<a href=/book/>Book</a>
-<a href=https://github.com/gorai/gorai>GitHub</a></nav></div></header><main class=container><article><h1 id=core-concepts>Core Concepts</h1><p>This page introduces the key concepts you&rsquo;ll use throughout Gorai development.</p><h2 id=resources>Resources</h2><p>Everything in Gorai is a <strong>Resource</strong>. Resources are the fundamental building block with a consistent interface:</p><ul><li><strong>Name</strong> — Unique identifier</li><li><strong>Type</strong> — Category (sensor, actuator, service)</li><li><strong>Configure</strong> — Accept configuration</li><li><strong>Start/Stop</strong> — Lifecycle management</li></ul><h2 id=components>Components</h2><p>Components are resources that interface with hardware:</p><table><thead><tr><th>Type</th><th>Purpose</th><th>Examples</th></tr></thead><tbody><tr><td><strong>Sensor</strong></td><td>Measure physical quantities</td><td>Temperature, IMU, GPS</td></tr><tr><td><strong>Actuator</strong></td><td>Produce physical action</td><td>Motor, servo, relay</td></tr><tr><td><strong>Camera</strong></td><td>Capture visual data</td><td>USB camera, CSI camera</td></tr></tbody></table><h2 id=services>Services</h2><p>Services are resources that provide capabilities:</p><ul><li><strong>Vision</strong> — Object detection, image processing</li><li><strong>Navigation</strong> — Path planning, localization</li><li><strong>Custom</strong> — Your application-specific services</li></ul><h2 id=nats-topics>NATS Topics</h2><p>Gorai uses NATS for all communication. Topics follow a hierarchical naming convention:</p><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-fallback data-lang=fallback><span style=display:flex><span>gorai.{robot}.{component-type}.{name}.{action}
-</span></span></code></pre></td></tr></table></div></div><p>Examples:</p><ul><li><code>gorai.robot1.sensor.temperature.reading</code></li><li><code>gorai.robot1.actuator.motor.command</code></li><li><code>gorai.robot1.service.vision.detect</code></li></ul><h2 id=nws-and-nwc>NWS and NWC</h2><p>Gorai nodes come in two types:</p><ul><li><strong>NWS (Node With Sensors)</strong> — Microcontrollers running TinyGo, interfacing with hardware</li><li><strong>NWC (Node With Compute)</strong> — Linux devices running full Go, handling computation</li></ul><p>These communicate over NATS, allowing you to distribute processing across devices.</p><h2 id=next-steps>Next Steps</h2><ul><li><a href=/docs/guides/components/>Working with Components</a></li><li><a href=/docs/guides/nats/>NATS Messaging Guide</a></li></ul></article></main><footer><div class=container><p>Copyright &copy; 2025 Greg Herlein & Luca Herlein. Apache 2.0 License.</p><p><em>Pronounced "go-ray" (like "sting-ray")</em></p></div></footer></body></html>
+<!DOCTYPE html>
+<html lang="en-us">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Core Concepts | Gorai</title>
+  <meta name="description" content="Understand Gorai&#39;s architecture and design">
+  <style>
+    :root {
+      --primary: #663399;
+      --text: #333;
+      --bg: #fff;
+      --code-bg: #f5f5f5;
+      --border: #ddd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 0;
+    }
+    header a { color: white; text-decoration: none; }
+    header nav { display: flex; gap: 1.5rem; align-items: center; }
+    header nav a:hover { text-decoration: underline; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    main { padding: 2rem 0; }
+    h1, h2, h3, h4 { color: #1a1a1a; margin-top: 1.5rem; }
+    h1 { border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
+    a { color: var(--primary); }
+    code {
+      font-family: "SF Mono", Monaco, monospace;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
+    th { background: var(--code-bg); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 3rem; color: #666; }
+    .callout { margin: 1rem 0; padding: 1rem; border-radius: 4px; border-left: 4px solid; }
+    .callout-info { background: #e7f3ff; border-color: #2196F3; }
+    .callout-warning { background: #fff3e0; border-color: #ff9800; }
+    .callout-title { font-weight: bold; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <h1><a href="/">Gorai</a></h1>
+        
+        <a href="/docs/">Docs</a>
+        
+        <a href="/examples/">Examples</a>
+        
+        <a href="/community/">Community</a>
+        
+        <a href="/book/">Book</a>
+        
+        <a href="https://github.com/gorai/gorai">GitHub</a>
+        
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    
+<article>
+  <h1 id="core-concepts">Core Concepts</h1>
+<p>This page introduces the key concepts you&rsquo;ll use throughout Gorai development.</p>
+<h2 id="resources">Resources</h2>
+<p>Everything in Gorai is a <strong>Resource</strong>. Resources are the fundamental building block with a consistent interface:</p>
+<ul>
+<li><strong>Name</strong> — Unique identifier</li>
+<li><strong>Type</strong> — Category (sensor, actuator, service)</li>
+<li><strong>Configure</strong> — Accept configuration</li>
+<li><strong>Start/Stop</strong> — Lifecycle management</li>
+</ul>
+<h2 id="components">Components</h2>
+<p>Components are resources that interface with hardware:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Purpose</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sensor</strong></td>
+<td>Measure physical quantities</td>
+<td>Temperature, IMU, GPS</td>
+</tr>
+<tr>
+<td><strong>Actuator</strong></td>
+<td>Produce physical action</td>
+<td>Motor, servo, relay</td>
+</tr>
+<tr>
+<td><strong>Camera</strong></td>
+<td>Capture visual data</td>
+<td>USB camera, CSI camera</td>
+</tr>
+</tbody>
+</table>
+<h2 id="services">Services</h2>
+<p>Services are resources that provide capabilities:</p>
+<ul>
+<li><strong>Vision</strong> — Object detection, image processing</li>
+<li><strong>Navigation</strong> — Path planning, localization</li>
+<li><strong>Custom</strong> — Your application-specific services</li>
+</ul>
+<h2 id="nats-topics">NATS Topics</h2>
+<p>Gorai uses NATS for all communication. Topics follow a hierarchical naming convention:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>gorai.{robot}.{component-type}.{name}.{action}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Examples:</p>
+<ul>
+<li><code>gorai.robot1.sensor.temperature.reading</code></li>
+<li><code>gorai.robot1.actuator.motor.command</code></li>
+<li><code>gorai.robot1.service.vision.detect</code></li>
+</ul>
+<h2 id="nws-and-nwc">NWS and NWC</h2>
+<p>Gorai nodes come in two types:</p>
+<ul>
+<li><strong>NWS (Node With Sensors)</strong> — Microcontrollers running TinyGo, interfacing with hardware</li>
+<li><strong>NWC (Node With Compute)</strong> — Linux devices running full Go, handling computation</li>
+</ul>
+<p>These communicate over NATS, allowing you to distribute processing across devices.</p>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li><a href="/docs/guides/components/">Working with Components</a></li>
+<li><a href="/docs/guides/nats/">NATS Messaging Guide</a></li>
+</ul>
+
+</article>
+
+  </main>
+  <footer>
+    <div class="container">
+      <p>Copyright &copy; 2025 Greg Herlein &amp; Luca Herlein. Apache 2.0 License.</p>
+      <p><em>Pronounced "go-ray" (like "sting-ray")</em></p>
+    </div>
+  </footer>
+</body>
+</html>

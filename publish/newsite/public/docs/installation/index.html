@@ -1,38 +1,201 @@
-<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Installation | Gorai</title>
-<meta name=description content="Install Gorai and its dependencies"><style>:root{--primary:#663399;--text:#333;--bg:#fff;--code-bg:#f5f5f5;--border:#ddd}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,segoe ui,Roboto,sans-serif;line-height:1.6;color:var(--text);background:var(--bg);margin:0;padding:0}.container{max-width:900px;margin:0 auto;padding:0 1rem}header{background:var(--primary);color:#fff;padding:1rem 0}header a{color:#fff;text-decoration:none}header nav{display:flex;gap:1.5rem;align-items:center}header nav a:hover{text-decoration:underline}header h1{margin:0;font-size:1.5rem}main{padding:2rem 0}h1,h2,h3,h4{color:#1a1a1a;margin-top:1.5rem}h1{border-bottom:2px solid var(--primary);padding-bottom:.5rem}a{color:var(--primary)}code{font-family:sf mono,Monaco,monospace;background:var(--code-bg);padding:.2em .4em;border-radius:3px;font-size:.9em}pre{background:#282c34;color:#abb2bf;padding:1rem;border-radius:6px;overflow-x:auto}pre code{background:0 0;color:inherit;padding:0}table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid var(--border);padding:.5rem;text-align:left}th{background:var(--code-bg)}footer{border-top:1px solid var(--border);padding:2rem 0;margin-top:3rem;color:#666}.callout{margin:1rem 0;padding:1rem;border-radius:4px;border-left:4px solid}.callout-info{background:#e7f3ff;border-color:#2196f3}.callout-warning{background:#fff3e0;border-color:#ff9800}.callout-title{font-weight:700;margin-bottom:.5rem}</style></head><body><header><div class=container><nav><h1><a href=/>Gorai</a></h1><a href=/docs/>Docs</a>
-<a href=/examples/>Examples</a>
-<a href=/community/>Community</a>
-<a href=/book/>Book</a>
-<a href=https://github.com/gorai/gorai>GitHub</a></nav></div></header><main class=container><article><h1 id=installation>Installation</h1><p>This guide covers installing Gorai and its dependencies on your development machine.</p><h2 id=prerequisites>Prerequisites</h2><ul><li><strong>Go 1.21+</strong> — <a href=https://go.dev/dl/>Download Go</a></li><li><strong>NATS Server</strong> — Local or remote NATS installation</li><li><strong>Git</strong> — For cloning repositories</li></ul><h2 id=install-go>Install Go</h2><h3 id=macos>macOS</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>brew install go
-</span></span></code></pre></td></tr></table></div></div><h3 id=ubuntudebian>Ubuntu/Debian</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>sudo apt update
-</span></span><span style=display:flex><span>sudo apt install golang-go
-</span></span></code></pre></td></tr></table></div></div><h3 id=verify-installation>Verify Installation</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>go version
-</span></span><span style=display:flex><span><span style=color:#6272a4># go version go1.21.0 linux/amd64</span>
-</span></span></code></pre></td></tr></table></div></div><h2 id=install-nats>Install NATS</h2><h3 id=option-1-binary>Option 1: Binary</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#6272a4># macOS</span>
-</span></span><span style=display:flex><span>brew install nats-server
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#6272a4># Linux</span>
-</span></span><span style=display:flex><span>curl -L https://github.com/nats-io/nats-server/releases/download/v2.10.0/nats-server-v2.10.0-linux-amd64.tar.gz | tar xz
-</span></span><span style=display:flex><span>sudo mv nats-server-v2.10.0-linux-amd64/nats-server /usr/local/bin/
-</span></span></code></pre></td></tr></table></div></div><h3 id=option-2-docker>Option 2: Docker</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>docker run -p 4222:4222 nats:latest
-</span></span></code></pre></td></tr></table></div></div><h3 id=verify-installation-1>Verify Installation</h3><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>nats-server --version
-</span></span><span style=display:flex><span><span style=color:#6272a4># nats-server: v2.10.0</span>
-</span></span></code></pre></td></tr></table></div></div><h2 id=install-gorai-cli>Install Gorai CLI</h2><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>go install github.com/gorai/gorai/cmd/gorai@latest
-</span></span></code></pre></td></tr></table></div></div><p>Verify:</p><div class=highlight><div style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
-</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre tabindex=0 style=color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>gorai version
-</span></span></code></pre></td></tr></table></div></div><h2 id=next-steps>Next Steps</h2><p>With everything installed, proceed to the <a href=../quickstart/>Quick Start</a> to build your first component.</p></article></main><footer><div class=container><p>Copyright &copy; 2025 Greg Herlein & Luca Herlein. Apache 2.0 License.</p><p><em>Pronounced "go-ray" (like "sting-ray")</em></p></div></footer></body></html>
+<!DOCTYPE html>
+<html lang="en-us">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Installation | Gorai</title>
+  <meta name="description" content="Install Gorai and its dependencies">
+  <style>
+    :root {
+      --primary: #663399;
+      --text: #333;
+      --bg: #fff;
+      --code-bg: #f5f5f5;
+      --border: #ddd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem 0;
+    }
+    header a { color: white; text-decoration: none; }
+    header nav { display: flex; gap: 1.5rem; align-items: center; }
+    header nav a:hover { text-decoration: underline; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    main { padding: 2rem 0; }
+    h1, h2, h3, h4 { color: #1a1a1a; margin-top: 1.5rem; }
+    h1 { border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; }
+    a { color: var(--primary); }
+    code {
+      font-family: "SF Mono", Monaco, monospace;
+      background: var(--code-bg);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
+    th { background: var(--code-bg); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 3rem; color: #666; }
+    .callout { margin: 1rem 0; padding: 1rem; border-radius: 4px; border-left: 4px solid; }
+    .callout-info { background: #e7f3ff; border-color: #2196F3; }
+    .callout-warning { background: #fff3e0; border-color: #ff9800; }
+    .callout-title { font-weight: bold; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav>
+        <h1><a href="/">Gorai</a></h1>
+        
+        <a href="/docs/">Docs</a>
+        
+        <a href="/examples/">Examples</a>
+        
+        <a href="/community/">Community</a>
+        
+        <a href="/book/">Book</a>
+        
+        <a href="https://github.com/gorai/gorai">GitHub</a>
+        
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    
+<article>
+  <h1 id="installation">Installation</h1>
+<p>This guide covers installing Gorai and its dependencies on your development machine.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><strong>Go 1.21+</strong> — <a href="https://go.dev/dl/">Download Go</a></li>
+<li><strong>NATS Server</strong> — Local or remote NATS installation</li>
+<li><strong>Git</strong> — For cloning repositories</li>
+</ul>
+<h2 id="install-go">Install Go</h2>
+<h3 id="macos">macOS</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>brew install go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="ubuntudebian">Ubuntu/Debian</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo apt update
+</span></span><span style="display:flex;"><span>sudo apt install golang-go
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="verify-installation">Verify Installation</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go version
+</span></span><span style="display:flex;"><span><span style="color:#6272a4"># go version go1.21.0 linux/amd64</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="install-nats">Install NATS</h2>
+<h3 id="option-1-binary">Option 1: Binary</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#6272a4"># macOS</span>
+</span></span><span style="display:flex;"><span>brew install nats-server
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#6272a4"># Linux</span>
+</span></span><span style="display:flex;"><span>curl -L https://github.com/nats-io/nats-server/releases/download/v2.10.0/nats-server-v2.10.0-linux-amd64.tar.gz | tar xz
+</span></span><span style="display:flex;"><span>sudo mv nats-server-v2.10.0-linux-amd64/nats-server /usr/local/bin/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="option-2-docker">Option 2: Docker</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -p 4222:4222 nats:latest
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="verify-installation-1">Verify Installation</h3>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nats-server --version
+</span></span><span style="display:flex;"><span><span style="color:#6272a4"># nats-server: v2.10.0</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="install-gorai-cli">Install Gorai CLI</h2>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go install github.com/gorai/gorai/cmd/gorai@latest
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Verify:</p>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>gorai version
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="next-steps">Next Steps</h2>
+<p>With everything installed, proceed to the <a href="../quickstart/">Quick Start</a> to build your first component.</p>
+
+</article>
+
+  </main>
+  <footer>
+    <div class="container">
+      <p>Copyright &copy; 2025 Greg Herlein &amp; Luca Herlein. Apache 2.0 License.</p>
+      <p><em>Pronounced "go-ray" (like "sting-ray")</em></p>
+    </div>
+  </footer>
+</body>
+</html>
