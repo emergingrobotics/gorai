@@ -1,4 +1,4 @@
-.PHONY: all book website clean serve-book serve-website help book-pdf book-epub website-with-book validate
+.PHONY: all book website clean serve-book serve-website help book-pdf book-epub website-with-book validate publish
 
 # Default target
 all: book website
@@ -17,6 +17,8 @@ help:
 	@echo "  serve-book       - Preview book as HTML"
 	@echo "  serve-website    - Start Hugo dev server"
 	@echo "  validate         - Validate content structure"
+	@echo "  publish          - Build and deploy to remote host"
+	@echo "                     Usage: make publish DEST=host:path"
 	@echo "  clean            - Remove all build artifacts"
 	@echo ""
 	@echo "Requirements:"
@@ -55,6 +57,16 @@ clean:
 	$(MAKE) -C book clean
 	$(MAKE) -C website clean
 	@echo "All build artifacts cleaned"
+
+# Publish website to remote host
+# Usage: make publish DEST=user@host:/path/to/webroot
+publish: website
+ifndef DEST
+	$(error DEST is required. Usage: make publish DEST=host:path)
+endif
+	@echo "Publishing website to $(DEST)..."
+	scp -r website/public/* $(DEST)
+	@echo "Published successfully to $(DEST)"
 
 # Validate content structure
 validate:

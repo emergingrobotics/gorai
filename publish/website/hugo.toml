@@ -53,8 +53,8 @@ disableKinds = ["taxonomy", "term"]
   # Site description
   description = "A lightweight, Go-based robotics framework built on NATS.io"
 
-  # (Optional) Set the path to a logo for the book
-  # BookLogo = "/images/logo.png"
+  # Set the path to a logo for the book
+  BookLogo = "/images/gorai.png"
 
   # Set source repository location
   BookRepo = "https://github.com/gorai/gorai"

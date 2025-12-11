@@ -1,927 +1,188 @@
-<!DOCTYPE html>
-<html lang="en-us" dir="ltr">
-<head>
-  <!--
-Made with Book Theme
-https://github.com/alex-shpak/hugo-book
--->
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Build and use sensors, actuators, and other hardware abstractions">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
-<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://gorai.dev/docs/guides/components/">
-  <meta property="og:site_name" content="Gorai">
-  <meta property="og:title" content="Working with Components">
-  <meta property="og:description" content="Build and use sensors, actuators, and other hardware abstractions">
-  <meta property="og:locale" content="en_us">
-  <meta property="og:type" content="article">
-    <meta property="article:section" content="docs">
-
-
-  <meta itemprop="name" content="Working with Components">
-  <meta itemprop="description" content="Build and use sensors, actuators, and other hardware abstractions">
-  <meta itemprop="wordCount" content="1110">
-
-<title>Working with Components | Gorai</title>
-<link rel="icon" href="/favicon.png" >
-<link rel="manifest" href="/manifest.json">
-<link rel="canonical" href="https://gorai.dev/docs/guides/components/">
-<link rel="stylesheet" href="/book.min.f21d99da4b268e0046277313e7867ebe88e94ce65694bfcd5aa2ea17738796cc.css" integrity="sha256-8h2Z2ksmjgBGJ3MT54Z&#43;vojpTOZWlL/NWqLqF3OHlsw=" crossorigin="anonymous">
-
-
-  <script defer src="/fuse.min.js"></script>
-  <script defer src="/en.search.min.e261d98f1e2080b37f4b6302df8c6bcaf990dba6c79e079edae13bcc3a1b5197.js" integrity="sha256-4mHZjx4ggLN/S2MC34xryvmQ26bHngee2uE7zDobUZc=" crossorigin="anonymous"></script>
-
-
-
-  
-</head>
-<body dir="ltr" class="book-kind-page book-type-docs">
-  <input type="checkbox" class="hidden toggle" id="menu-control" />
-  <input type="checkbox" class="hidden toggle" id="toc-control" />
-  <main class="container flex">
-    
-<aside class="book-menu">
-  <div class="book-menu-content">
-    
-  <nav>
-<h2 class="book-brand">
-  <a class="flex align-center" href="/"><span>Gorai</span>
-  </a>
-</h2>
-
-
-<div class="book-search hidden">
-  <input id="book-search-input" type="text" 
-    placeholder="Search"
-    aria-label="Search"
-    maxlength="64" data-hotkeys="s/" />
-  <div class="book-search-spinner hidden"></div>
-  <ul id="book-search-results"></ul>
-</div>
-<script>document.querySelector(".book-search").classList.remove("hidden")</script>
-
-
-
-
-
-
-<ul><li><a href="/docs/">Documentation</a></li></ul>
-
-
-
-
-
-
-
-
-  
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-400d69a699366cb0649f753c045195ad" class="toggle"  />
-    <label for="section-400d69a699366cb0649f753c045195ad" class="flex">
-      <a href="/docs/getting-started/" class="">
-        Getting Started</a>
-      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/getting-started/installation/" class="">
-      Installation</a>
-  
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/getting-started/quickstart/" class="">
-      Quick Start</a>
-  
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/getting-started/concepts/" class="">
-      Core Concepts</a>
-  
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-427fceb1088260b05915c13eb9a205f9" class="toggle" checked />
-    <label for="section-427fceb1088260b05915c13eb9a205f9" class="flex">
-      <a href="/docs/guides/" class="">
-        Guides</a>
-      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/guides/components/" class="active">
-      Working with Components</a>
-  
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/guides/services/" class="">
-      Working with Services</a>
-  
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/guides/nats/" class="">
-      NATS Messaging</a>
-  
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/guides/configuration/" class="">
-      Configuration</a>
-  
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/guides/testing/" class="">
-      Testing</a>
-  
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <input type="checkbox" id="section-e0e300610bc7f463db35528946c8046c" class="toggle"  />
-    <label for="section-e0e300610bc7f463db35528946c8046c" class="flex">
-      <a href="/docs/reference/" class="">
-        Reference</a>
-      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
-    </label>
-  
-
-          
-  <ul>
-    
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/docs/reference/cli/" class="">
-      CLI Reference</a>
-  
-
-        </li>
-      
-    
-  </ul>
-
-        </li>
-      
-    
-  </ul>
-
-
-
-
-
-
-
-
-
-
-<ul><li><a href="https://github.com/gorai/gorai" target="_blank" rel="noopener">GitHub</a></li></ul>
-
-
-
-
-</nav>
-
-
-
-
-  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
-
-
-
-  </div>
-</aside>
- 
-
-    <div class="book-page">
-      <header class="book-header hidden">
-        
-  <div class="flex align-center justify-between">
-  <label for="menu-control">
-    <img src="/icons/menu.svg" class="book-icon" alt="Menu" />
-  </label>
-
-  <h3>Working with Components</h3>
-
-  <label for="toc-control">
-    
-    <img src="/icons/toc.svg" class="book-icon" alt="Table of Contents" />
-    
-  </label>
-</div>
-
-
-  
-  <aside class="hidden">
-    
-  
-<nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-resource-interface">The Resource Interface</a></li>
-    <li><a href="#component-categories">Component Categories</a></li>
-    <li><a href="#sensors">Sensors</a>
-      <ul>
-        <li><a href="#implementing-a-sensor">Implementing a Sensor</a></li>
-        <li><a href="#built-in-sensor-types">Built-in Sensor Types</a></li>
-      </ul>
-    </li>
-    <li><a href="#actuators">Actuators</a>
-      <ul>
-        <li><a href="#motors">Motors</a></li>
-        <li><a href="#built-in-actuator-types">Built-in Actuator Types</a></li>
-        <li><a href="#servo-interface">Servo Interface</a></li>
-        <li><a href="#stepper-interface">Stepper Interface</a></li>
-        <li><a href="#thruster-interface">Thruster Interface</a></li>
-        <li><a href="#valve-interface">Valve Interface</a></li>
-      </ul>
-    </li>
-    <li><a href="#power-components">Power Components</a></li>
-    <li><a href="#space-components">Space Components</a>
-      <ul>
-        <li><a href="#space-example-ballast-tank">Space Example: Ballast Tank</a></li>
-      </ul>
-    </li>
-    <li><a href="#link-components">Link Components</a>
-      <ul>
-        <li><a href="#link-example-serial-gateway">Link Example: Serial Gateway</a></li>
-      </ul>
-    </li>
-    <li><a href="#cameras">Cameras</a>
-      <ul>
-        <li><a href="#camera-example">Camera Example</a></li>
-      </ul>
-    </li>
-    <li><a href="#concurrency-model">Concurrency Model</a></li>
-    <li><a href="#fake-implementations">Fake Implementations</a></li>
-    <li><a href="#next-steps">Next Steps</a></li>
-  </ul>
-</nav>
-
-
-
-  </aside>
-  
- 
-      </header>
-
-      
-      
-  <article class="markdown book-article"><h1 id="working-with-components">Working with Components<a class="anchor" href="#working-with-components">#</a></h1>
-<p>Components are Resources that interface with robot hardware. They abstract physical devices behind consistent interfaces, organized into five categories based on their relationship with the physical world.</p>
-<h2 id="the-resource-interface">The Resource Interface<a class="anchor" href="#the-resource-interface">#</a></h2>
-<p>All components implement the base Resource interface:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Resource</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Name</span><span class="p">()</span> <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Reconfigure</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">deps</span> <span class="nx">Dependencies</span><span class="p">,</span> <span class="nx">conf</span> <span class="nx">Config</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">DoCommand</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">cmd</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">)</span> <span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Close</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="component-categories">Component Categories<a class="anchor" href="#component-categories">#</a></h2>
-<p>Components are organized by what they do:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Category</th>
-          <th>What It Does</th>
-          <th>Interface</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Sensor</strong></td>
-          <td>Observes the world (read-only)</td>
-          <td><code>Readings()</code></td>
-      </tr>
-      <tr>
-          <td><strong>Actuator</strong></td>
-          <td>Changes the world</td>
-          <td><code>IsMoving()</code>, <code>Stop()</code></td>
-      </tr>
-      <tr>
-          <td><strong>Power</strong></td>
-          <td>Manages energy</td>
-          <td><code>GetCapacity()</code>, <code>GetLevel()</code></td>
-      </tr>
-      <tr>
-          <td><strong>Space</strong></td>
-          <td>Virtual container on robot</td>
-          <td><code>GetVolume()</code>, <code>GetComponents()</code></td>
-      </tr>
-      <tr>
-          <td><strong>Link</strong></td>
-          <td>Extra communication channel</td>
-          <td><code>IsConnected()</code>, <code>GetStats()</code></td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>Note</strong>: All components assume NATS connectivity as baseline infrastructure. NATS is not a &ldquo;Link&rdquo;—Links exist for additional channels that NATS cannot reach (serial to MCUs, radio telemetry, etc.).</p>
-<h2 id="sensors">Sensors<a class="anchor" href="#sensors">#</a></h2>
-<p>Sensors observe the environment without changing it. They implement:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Sensor</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Resource</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Readings</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="implementing-a-sensor">Implementing a Sensor<a class="anchor" href="#implementing-a-sensor">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">TemperatureSensor</span> <span class="kd">struct</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">name</span>   <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">config</span> <span class="nx">Config</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">reader</span> <span class="nx">reader</span><span class="p">.</span><span class="nx">Reader</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">nc</span>     <span class="o">*</span><span class="nx">nats</span><span class="p">.</span><span class="nx">Conn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nx">mu</span>          <span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">lastReading</span> <span class="kt">float64</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">TemperatureSensor</span><span class="p">)</span> <span class="nf">Name</span><span class="p">()</span> <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">s</span><span class="p">.</span><span class="nx">name</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">TemperatureSensor</span><span class="p">)</span> <span class="nf">Readings</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">reading</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nx">reader</span><span class="p">.</span><span class="nf">Read</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span> <span class="nx">s</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">Zone</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s">&#34;temperature_celsius&#34;</span><span class="p">:</span>    <span class="nx">reading</span><span class="p">.</span><span class="nx">TemperatureC</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s">&#34;temperature_fahrenheit&#34;</span><span class="p">:</span> <span class="nf">celsiusToFahrenheit</span><span class="p">(</span><span class="nx">reading</span><span class="p">.</span><span class="nx">TemperatureC</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="s">&#34;zone&#34;</span><span class="p">:</span>                   <span class="nx">reading</span><span class="p">.</span><span class="nx">Zone</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">},</span> <span class="kc">nil</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="built-in-sensor-types">Built-in Sensor Types<a class="anchor" href="#built-in-sensor-types">#</a></h3>
-<table>
-  <thead>
-      <tr>
-          <th>Sensor</th>
-          <th>Key Methods</th>
-          <th>Use Case</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>IMU</strong></td>
-          <td>LinearAcceleration, AngularVelocity, Orientation, GetMagneticField</td>
-          <td>Motion sensing</td>
-      </tr>
-      <tr>
-          <td><strong>AHRS</strong></td>
-          <td>GetEulerAngles, GetQuaternion, GetCalibrationStatus</td>
-          <td>Sensor-fused orientation</td>
-      </tr>
-      <tr>
-          <td><strong>GPS</strong></td>
-          <td>Position, Accuracy, Fix, GetSatellitesUsed</td>
-          <td>Outdoor navigation</td>
-      </tr>
-      <tr>
-          <td><strong>Encoder</strong></td>
-          <td>Position, GetVelocity, GetResolution</td>
-          <td>Motor feedback</td>
-      </tr>
-      <tr>
-          <td><strong>RangeSensor</strong></td>
-          <td>GetRange, GetMinRange, GetMaxRange</td>
-          <td>Obstacle detection</td>
-      </tr>
-      <tr>
-          <td><strong>LiDAR</strong></td>
-          <td>GetScan, GetPointCloud, GetProperties</td>
-          <td>Mapping, SLAM</td>
-      </tr>
-      <tr>
-          <td><strong>PresenceSensor</strong></td>
-          <td>IsPresenceDetected, GetMotionState</td>
-          <td>Human detection</td>
-      </tr>
-      <tr>
-          <td><strong>ThermalArray</strong></td>
-          <td>GetTemperatureGrid, GetMinMaxTemperature</td>
-          <td>Heat mapping</td>
-      </tr>
-      <tr>
-          <td><strong>ForceSensor</strong></td>
-          <td>GetForce, Tare</td>
-          <td>Force measurement</td>
-      </tr>
-      <tr>
-          <td><strong>Force6DOF</strong></td>
-          <td>GetWrench</td>
-          <td>6-axis force/torque</td>
-      </tr>
-      <tr>
-          <td><strong>CurrentSensor</strong></td>
-          <td>GetCurrent, GetVoltage, GetPower</td>
-          <td>Power monitoring</td>
-      </tr>
-      <tr>
-          <td><strong>ReflectanceSensor</strong></td>
-          <td>GetReflectances, GetLinePosition</td>
-          <td>Line following</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="actuators">Actuators<a class="anchor" href="#actuators">#</a></h2>
-<p>Actuators change the environment. They implement:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Actuator</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Resource</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">IsMoving</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Stop</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="motors">Motors<a class="anchor" href="#motors">#</a></h3>
-<p>Motors are the most common actuator type:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Motor</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Actuator</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetPower</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">power</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetVelocity</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">velocity</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GoTo</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">position</span><span class="p">,</span> <span class="nx">velocity</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetPosition</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Properties</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="nx">Properties</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="built-in-actuator-types">Built-in Actuator Types<a class="anchor" href="#built-in-actuator-types">#</a></h3>
-<table>
-  <thead>
-      <tr>
-          <th>Actuator</th>
-          <th>Key Methods</th>
-          <th>Use Case</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Motor</strong></td>
-          <td>SetPower, SetVelocity, GoTo, GoFor</td>
-          <td>Wheels, conveyors</td>
-      </tr>
-      <tr>
-          <td><strong>Servo</strong></td>
-          <td>SetAngle, SetSpeed, SetTorqueLimit</td>
-          <td>Pan/tilt, joints</td>
-      </tr>
-      <tr>
-          <td><strong>Stepper</strong></td>
-          <td>Step, SetMicrostepping, Home</td>
-          <td>3D printers, CNC</td>
-      </tr>
-      <tr>
-          <td><strong>Thruster</strong></td>
-          <td>SetThrust, GetRPM, GetTemperature</td>
-          <td>ROVs, drones</td>
-      </tr>
-      <tr>
-          <td><strong>Valve</strong></td>
-          <td>Open, Shut, SetPosition</td>
-          <td>Pneumatics, flow control</td>
-      </tr>
-      <tr>
-          <td><strong>Gripper</strong></td>
-          <td>Open, Close, Grab</td>
-          <td>Pick and place</td>
-      </tr>
-      <tr>
-          <td><strong>Base</strong></td>
-          <td>SetVelocity, MoveStraight, Spin</td>
-          <td>Mobile robots</td>
-      </tr>
-      <tr>
-          <td><strong>Arm</strong></td>
-          <td>MoveToPosition, JointPositions</td>
-          <td>Manipulation</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="servo-interface">Servo Interface<a class="anchor" href="#servo-interface">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Servo</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Actuator</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetAngle</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">degrees</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetAngle</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetSpeed</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">speed</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetTorqueLimit</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">limit</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetProperties</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="nx">Properties</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="stepper-interface">Stepper Interface<a class="anchor" href="#stepper-interface">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Stepper</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Actuator</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Step</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">steps</span> <span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetMicrostepping</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">divisor</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetCurrent</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">runMA</span><span class="p">,</span> <span class="nx">holdMA</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetPosition</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">int64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">ResetPosition</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Home</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">direction</span> <span class="kt">bool</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="thruster-interface">Thruster Interface<a class="anchor" href="#thruster-interface">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Thruster</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Actuator</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetThrust</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">thrust</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>  <span class="c1">// -1.0 to 1.0</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetRPM</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetTemperature</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetCurrent</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="valve-interface">Valve Interface<a class="anchor" href="#valve-interface">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Valve</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Actuator</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Open</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Shut</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span>  <span class="c1">// Named &#34;Shut&#34; to avoid conflict with Close()</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">SetPosition</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">position</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span>  <span class="c1">// 0.0-1.0</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetPosition</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">IsOpen</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">IsClosed</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="power-components">Power Components<a class="anchor" href="#power-components">#</a></h2>
-<p>Power components manage energy storage and distribution:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Power</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Resource</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetCapacity</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetLevel</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetVoltage</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetCurrent</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">IsCharging</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="space-components">Space Components<a class="anchor" href="#space-components">#</a></h2>
-<p>Space components represent <strong>virtual containers on the robot</strong>. A Space doesn&rsquo;t directly interface with hardware—it aggregates and coordinates other components that do.</p>
-<p>Use Spaces for:</p>
-<ul>
-<li>Storage areas with doors or hatches (cargo bay, sample drawer)</li>
-<li>Tanks with valves and level sensors (ballast tank, fuel tank)</li>
-<li>Compartments with environmental controls (battery bay, equipment compartment)</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Space</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Resource</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetVolume</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetBounds</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">geometry</span><span class="p">.</span><span class="nx">Box</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetContents</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">IsEmpty</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetComponents</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">([]</span><span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="space-example-ballast-tank">Space Example: Ballast Tank<a class="anchor" href="#space-example-ballast-tank">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">BallastTank</span> <span class="kd">struct</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">name</span>        <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">volume</span>      <span class="kt">float64</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">fillValve</span>   <span class="nx">actuator</span><span class="p">.</span><span class="nx">Valve</span>   <span class="c1">// Controls water intake</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">drainValve</span>  <span class="nx">actuator</span><span class="p">.</span><span class="nx">Valve</span>   <span class="c1">// Controls water release</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">levelSensor</span> <span class="nx">sensor</span><span class="p">.</span><span class="nx">Level</span>     <span class="c1">// Measures fill percentage</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">t</span> <span class="o">*</span><span class="nx">BallastTank</span><span class="p">)</span> <span class="nf">GetContents</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">level</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">t</span><span class="p">.</span><span class="nx">levelSensor</span><span class="p">.</span><span class="nf">Readings</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;water:%.1f%%&#34;</span><span class="p">,</span> <span class="nx">level</span><span class="p">[</span><span class="s">&#34;percent&#34;</span><span class="p">])},</span> <span class="kc">nil</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">t</span> <span class="o">*</span><span class="nx">BallastTank</span><span class="p">)</span> <span class="nf">GetComponents</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">([]</span><span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[]</span><span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">t</span><span class="p">.</span><span class="nx">fillValve</span><span class="p">.</span><span class="nf">Name</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">t</span><span class="p">.</span><span class="nx">drainValve</span><span class="p">.</span><span class="nf">Name</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">t</span><span class="p">.</span><span class="nx">levelSensor</span><span class="p">.</span><span class="nf">Name</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">    <span class="p">},</span> <span class="kc">nil</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="link-components">Link Components<a class="anchor" href="#link-components">#</a></h2>
-<p>Links provide <strong>additional communication channels beyond NATS</strong>. All components assume NATS connectivity—that&rsquo;s the baseline. Links exist for communication paths that NATS cannot reach:</p>
-<ul>
-<li><strong>Serial links</strong>: Bridge to TinyGo microcontrollers without IP capability</li>
-<li><strong>Radio links</strong>: Remote telemetry when out of WiFi range</li>
-<li><strong>CAN bus</strong>: Vehicle systems, industrial protocols</li>
-</ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Link</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Resource</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Type</span><span class="p">()</span> <span class="nx">LinkType</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Direction</span><span class="p">()</span> <span class="nx">LinkDirection</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">IsConnected</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">GetStats</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">LinkStats</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="link-example-serial-gateway">Link Example: Serial Gateway<a class="anchor" href="#link-example-serial-gateway">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">SerialLink</span> <span class="kd">struct</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">name</span>     <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">port</span>     <span class="kt">string</span>           <span class="c1">// e.g., &#34;/dev/ttyUSB0&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">baudRate</span> <span class="kt">int</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">conn</span>     <span class="nx">serial</span><span class="p">.</span><span class="nx">Port</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">nc</span>       <span class="o">*</span><span class="nx">nats</span><span class="p">.</span><span class="nx">Conn</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// Bridges NATS messages to/from a microcontroller</span>
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">l</span> <span class="o">*</span><span class="nx">SerialLink</span><span class="p">)</span> <span class="nf">Run</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// Forward NATS commands to MCU over serial</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">l</span><span class="p">.</span><span class="nx">nc</span><span class="p">.</span><span class="nf">Subscribe</span><span class="p">(</span><span class="s">&#34;gorai.robot.motor.command&#34;</span><span class="p">,</span> <span class="kd">func</span><span class="p">(</span><span class="nx">msg</span> <span class="o">*</span><span class="nx">nats</span><span class="p">.</span><span class="nx">Msg</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="nx">l</span><span class="p">.</span><span class="nx">conn</span><span class="p">.</span><span class="nf">Write</span><span class="p">(</span><span class="nf">encodeCommand</span><span class="p">(</span><span class="nx">msg</span><span class="p">.</span><span class="nx">Data</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="p">})</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// Publish MCU sensor data back to NATS</span>
-</span></span><span class="line"><span class="cl">    <span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="nx">data</span> <span class="o">:=</span> <span class="nx">l</span><span class="p">.</span><span class="nx">conn</span><span class="p">.</span><span class="nf">Read</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="nx">l</span><span class="p">.</span><span class="nx">nc</span><span class="p">.</span><span class="nf">Publish</span><span class="p">(</span><span class="s">&#34;gorai.robot.mcu.sensors&#34;</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}()</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="cameras">Cameras<a class="anchor" href="#cameras">#</a></h2>
-<p>Cameras capture visual data and are a special type that bridges sensors and vision:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Camera</span> <span class="kd">interface</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">Resource</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Image</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="nx">image</span><span class="p">.</span><span class="nx">Image</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Stream</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="kd">chan</span> <span class="nx">image</span><span class="p">.</span><span class="nx">Image</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nf">Properties</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="nx">Properties</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h3 id="camera-example">Camera Example<a class="anchor" href="#camera-example">#</a></h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">USBCamera</span><span class="p">)</span> <span class="nf">Image</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">(</span><span class="nx">image</span><span class="p">.</span><span class="nx">Image</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">frame</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">device</span><span class="p">.</span><span class="nf">Capture</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">frame</span><span class="p">,</span> <span class="kc">nil</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="concurrency-model">Concurrency Model<a class="anchor" href="#concurrency-model">#</a></h2>
-<p>Gorai uses a <strong>single-owner model</strong> for components:</p>
-<ul>
-<li>Each component instance is owned by exactly one goroutine</li>
-<li><strong>No mutex protection needed</strong> for component state</li>
-<li>Cross-goroutine coordination uses NATS messaging, not shared memory</li>
-</ul>
-<p>This follows Go&rsquo;s philosophy: &ldquo;Share memory by communicating, don&rsquo;t communicate by sharing memory.&rdquo;</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Single-owner component - no mutex needed</span>
-</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">FakeMotor</span> <span class="kd">struct</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">name</span>     <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">power</span>    <span class="kt">float64</span>    <span class="c1">// Only accessed by owner goroutine</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">moving</span>   <span class="kt">bool</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">position</span> <span class="kt">float64</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">FakeMotor</span><span class="p">)</span> <span class="nf">SetPower</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">power</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">power</span> <span class="p">=</span> <span class="nx">power</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">moving</span> <span class="p">=</span> <span class="nx">power</span> <span class="o">!=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kc">nil</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><h2 id="fake-implementations">Fake Implementations<a class="anchor" href="#fake-implementations">#</a></h2>
-<p>Every component should have a fake for testing:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">FakeMotor</span> <span class="kd">struct</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">name</span>     <span class="nx">resource</span><span class="p">.</span><span class="nx">Name</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">power</span>    <span class="kt">float64</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">moving</span>   <span class="kt">bool</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">position</span> <span class="kt">float64</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">FakeMotor</span><span class="p">)</span> <span class="nf">SetPower</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">power</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">power</span> <span class="p">=</span> <span class="nx">power</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">moving</span> <span class="p">=</span> <span class="nx">power</span> <span class="o">!=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kc">nil</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// Test helper - for use by test code (single goroutine)</span>
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">FakeMotor</span><span class="p">)</span> <span class="nf">GetPowerSet</span><span class="p">()</span> <span class="kt">float64</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">m</span><span class="p">.</span><span class="nx">power</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">FakeMotor</span><span class="p">)</span> <span class="nf">SetPosition</span><span class="p">(</span><span class="nx">pos</span> <span class="kt">float64</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">position</span> <span class="p">=</span> <span class="nx">pos</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><p>Fakes should:</p>
-<ul>
-<li>Implement the same interface as real components</li>
-<li>Provide test helper methods (setters/getters for inspection)</li>
-<li>Follow the single-owner model (no mutex)</li>
-<li>Support error injection for testing failure cases</li>
-</ul>
-<h2 id="next-steps">Next Steps<a class="anchor" href="#next-steps">#</a></h2>
-<ul>
-<li><a href="../services/">Working with Services</a></li>
-<li><a href="../nats/">NATS Messaging Guide</a></li>
-<li><a href="../testing/">Testing Guide</a></li>
-</ul>
-</article>
- 
-      
-
-      <footer class="book-footer">
-        
-  <div class="flex flex-wrap justify-between">
-
-<div>
-
-</div>
-
-<div>
-
-</div>
-
-</div>
-
-
-
-
-
-  
-  
-  
-  <div class="flex flex-wrap justify-between">
-    <span>
-    
-      <a href="/docs/guides/" class="flex align-center">
-        <img src="/icons/backward.svg" class="book-icon" alt="Backward" />
-        <span>Guides</span>
-      </a>
-    
-    </span>
-    <span>
-    
-      <a href="/docs/guides/services/" class="flex align-center">
-        <span>Working with Services</span>
-        <img src="/icons/forward.svg" class="book-icon" alt="Forward" />
-      </a>
-    
-    </span>
-  </div>
-  
-
-
- 
-        
-  
-  <div class="book-comments">
-
-</div>
-  
- 
-        
-        
-  
- 
-        
-  
-  
-    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
-  
-
-      </footer>
-
-      <label for="menu-control" class="hidden book-menu-overlay"></label>
-    </div>
-
-    
-  
-  <aside class="book-toc">
-    <div class="book-toc-content">
-      
-  
-<nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-resource-interface">The Resource Interface</a></li>
-    <li><a href="#component-categories">Component Categories</a></li>
-    <li><a href="#sensors">Sensors</a>
-      <ul>
-        <li><a href="#implementing-a-sensor">Implementing a Sensor</a></li>
-        <li><a href="#built-in-sensor-types">Built-in Sensor Types</a></li>
-      </ul>
-    </li>
-    <li><a href="#actuators">Actuators</a>
-      <ul>
-        <li><a href="#motors">Motors</a></li>
-        <li><a href="#built-in-actuator-types">Built-in Actuator Types</a></li>
-        <li><a href="#servo-interface">Servo Interface</a></li>
-        <li><a href="#stepper-interface">Stepper Interface</a></li>
-        <li><a href="#thruster-interface">Thruster Interface</a></li>
-        <li><a href="#valve-interface">Valve Interface</a></li>
-      </ul>
-    </li>
-    <li><a href="#power-components">Power Components</a></li>
-    <li><a href="#space-components">Space Components</a>
-      <ul>
-        <li><a href="#space-example-ballast-tank">Space Example: Ballast Tank</a></li>
-      </ul>
-    </li>
-    <li><a href="#link-components">Link Components</a>
-      <ul>
-        <li><a href="#link-example-serial-gateway">Link Example: Serial Gateway</a></li>
-      </ul>
-    </li>
-    <li><a href="#cameras">Cameras</a>
-      <ul>
-        <li><a href="#camera-example">Camera Example</a></li>
-      </ul>
-    </li>
-    <li><a href="#concurrency-model">Concurrency Model</a></li>
-    <li><a href="#fake-implementations">Fake Implementations</a></li>
-    <li><a href="#next-steps">Next Steps</a></li>
-  </ul>
-</nav>
-
-
-
-    </div>
-  </aside>
-  
- 
-  </main>
-
-  
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<!doctype html><html lang=en-us dir=ltr><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Build and use sensors, actuators, and other hardware abstractions"><meta name=theme-color media="(prefers-color-scheme: light)" content="#ffffff"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#343a40"><meta name=color-scheme content="light dark"><meta property="og:url" content="https://gorai.dev/docs/guides/components/"><meta property="og:site_name" content="Gorai"><meta property="og:title" content="Working with Components"><meta property="og:description" content="Build and use sensors, actuators, and other hardware abstractions"><meta property="og:locale" content="en_us"><meta property="og:type" content="article"><meta property="article:section" content="docs"><meta property="article:modified_time" content="2025-12-11T12:50:45+00:00"><meta itemprop=name content="Working with Components"><meta itemprop=description content="Build and use sensors, actuators, and other hardware abstractions"><meta itemprop=dateModified content="2025-12-11T12:50:45+00:00"><meta itemprop=wordCount content="1110"><title>Working with Components | Gorai</title><link rel=icon href=/favicon.png><link rel=manifest href=/manifest.json><link rel=canonical href=https://gorai.dev/docs/guides/components/><link rel=stylesheet href=/book.min.f21d99da4b268e0046277313e7867ebe88e94ce65694bfcd5aa2ea17738796cc.css integrity="sha256-8h2Z2ksmjgBGJ3MT54Z+vojpTOZWlL/NWqLqF3OHlsw=" crossorigin=anonymous><script defer src=/fuse.min.js></script><script defer src=/en.search.min.0f06f413f5b281094e2e4c238eb27b42e2cf19aed59f24d559481439b7e24ee6.js integrity="sha256-Dwb0E/WygQlOLkwjjrJ7QuLPGa7VnyTVWUgUObfiTuY=" crossorigin=anonymous></script></head><body dir=ltr class="book-kind-page book-type-docs"><input type=checkbox class="hidden toggle" id=menu-control>
+<input type=checkbox class="hidden toggle" id=toc-control><main class="container flex"><aside class=book-menu><div class=book-menu-content><nav><h2 class=book-brand><a class="flex align-center" href=/><img src=/images/gorai.png alt=Logo><span>Gorai</span></a></h2><div class="book-search hidden"><input id=book-search-input type=text placeholder=Search aria-label=Search maxlength=64 data-hotkeys=s/><div class="book-search-spinner hidden"></div><ul id=book-search-results></ul></div><script>document.querySelector(".book-search").classList.remove("hidden")</script><ul><li><a href=/docs/>Documentation</a></li></ul><ul><li><input type=checkbox id=section-36469f3374c404a36b0f14236834fb92 class=toggle>
+<label for=section-36469f3374c404a36b0f14236834fb92 class=flex><a href=/docs/getting-started/>Getting Started</a>
+<img src=/icons/chevron-right.svg class=book-icon alt=Expand></label><ul><li><a href=/docs/getting-started/installation/>Installation</a></li><li><a href=/docs/getting-started/quickstart/>Quick Start</a></li><li><a href=/docs/getting-started/concepts/>Core Concepts</a></li></ul></li><li><input type=checkbox id=section-3265ae23887026970d7709a2c9e9b6ad class=toggle checked>
+<label for=section-3265ae23887026970d7709a2c9e9b6ad class=flex><a href=/docs/guides/>Guides</a>
+<img src=/icons/chevron-right.svg class=book-icon alt=Expand></label><ul><li><a href=/docs/guides/components/ class=active>Working with Components</a></li><li><a href=/docs/guides/services/>Working with Services</a></li><li><a href=/docs/guides/nats/>NATS Messaging</a></li><li><a href=/docs/guides/configuration/>Configuration</a></li><li><a href=/docs/guides/testing/>Testing</a></li></ul></li><li><input type=checkbox id=section-8ac19553014f7854ef6d87d66f68500e class=toggle>
+<label for=section-8ac19553014f7854ef6d87d66f68500e class=flex><a href=/docs/reference/>Reference</a>
+<img src=/icons/chevron-right.svg class=book-icon alt=Expand></label><ul><li><a href=/docs/reference/cli/>CLI Reference</a></li></ul></li></ul><ul><li><a href=https://github.com/gorai/gorai target=_blank rel=noopener>GitHub</a></li></ul></nav><script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script></div></aside><div class=book-page><header class="book-header hidden"><div class="flex align-center justify-between"><label for=menu-control><img src=/icons/menu.svg class=book-icon alt=Menu></label><h3>Working with Components</h3><label for=toc-control><img src=/icons/toc.svg class=book-icon alt="Table of Contents"></label></div><aside class=hidden><nav id=TableOfContents><ul><li><a href=#the-resource-interface>The Resource Interface</a></li><li><a href=#component-categories>Component Categories</a></li><li><a href=#sensors>Sensors</a><ul><li><a href=#implementing-a-sensor>Implementing a Sensor</a></li><li><a href=#built-in-sensor-types>Built-in Sensor Types</a></li></ul></li><li><a href=#actuators>Actuators</a><ul><li><a href=#motors>Motors</a></li><li><a href=#built-in-actuator-types>Built-in Actuator Types</a></li><li><a href=#servo-interface>Servo Interface</a></li><li><a href=#stepper-interface>Stepper Interface</a></li><li><a href=#thruster-interface>Thruster Interface</a></li><li><a href=#valve-interface>Valve Interface</a></li></ul></li><li><a href=#power-components>Power Components</a></li><li><a href=#space-components>Space Components</a><ul><li><a href=#space-example-ballast-tank>Space Example: Ballast Tank</a></li></ul></li><li><a href=#link-components>Link Components</a><ul><li><a href=#link-example-serial-gateway>Link Example: Serial Gateway</a></li></ul></li><li><a href=#cameras>Cameras</a><ul><li><a href=#camera-example>Camera Example</a></li></ul></li><li><a href=#concurrency-model>Concurrency Model</a></li><li><a href=#fake-implementations>Fake Implementations</a></li><li><a href=#next-steps>Next Steps</a></li></ul></nav></aside></header><article class="markdown book-article"><h1 id=working-with-components>Working with Components<a class=anchor href=#working-with-components>#</a></h1><p>Components are Resources that interface with robot hardware. They abstract physical devices behind consistent interfaces, organized into five categories based on their relationship with the physical world.</p><h2 id=the-resource-interface>The Resource Interface<a class=anchor href=#the-resource-interface>#</a></h2><p>All components implement the base Resource interface:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Resource</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Name</span><span class=p>()</span><span class=w> </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Reconfigure</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>deps</span><span class=w> </span><span class=nx>Dependencies</span><span class=p>,</span><span class=w> </span><span class=nx>conf</span><span class=w> </span><span class=nx>Config</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>DoCommand</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>cmd</span><span class=w> </span><span class=kd>map</span><span class=p>[</span><span class=kt>string</span><span class=p>]</span><span class=kt>any</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kd>map</span><span class=p>[</span><span class=kt>string</span><span class=p>]</span><span class=kt>any</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Close</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=component-categories>Component Categories<a class=anchor href=#component-categories>#</a></h2><p>Components are organized by what they do:</p><table><thead><tr><th>Category</th><th>What It Does</th><th>Interface</th></tr></thead><tbody><tr><td><strong>Sensor</strong></td><td>Observes the world (read-only)</td><td><code>Readings()</code></td></tr><tr><td><strong>Actuator</strong></td><td>Changes the world</td><td><code>IsMoving()</code>, <code>Stop()</code></td></tr><tr><td><strong>Power</strong></td><td>Manages energy</td><td><code>GetCapacity()</code>, <code>GetLevel()</code></td></tr><tr><td><strong>Space</strong></td><td>Virtual container on robot</td><td><code>GetVolume()</code>, <code>GetComponents()</code></td></tr><tr><td><strong>Link</strong></td><td>Extra communication channel</td><td><code>IsConnected()</code>, <code>GetStats()</code></td></tr></tbody></table><p><strong>Note</strong>: All components assume NATS connectivity as baseline infrastructure. NATS is not a &ldquo;Link&rdquo;—Links exist for additional channels that NATS cannot reach (serial to MCUs, radio telemetry, etc.).</p><h2 id=sensors>Sensors<a class=anchor href=#sensors>#</a></h2><p>Sensors observe the environment without changing it. They implement:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Sensor</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Readings</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kd>map</span><span class=p>[</span><span class=kt>string</span><span class=p>]</span><span class=kt>any</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=implementing-a-sensor>Implementing a Sensor<a class=anchor href=#implementing-a-sensor>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>TemperatureSensor</span><span class=w> </span><span class=kd>struct</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>name</span><span class=w>   </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>config</span><span class=w> </span><span class=nx>Config</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>reader</span><span class=w> </span><span class=nx>reader</span><span class=p>.</span><span class=nx>Reader</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>nc</span><span class=w>     </span><span class=o>*</span><span class=nx>nats</span><span class=p>.</span><span class=nx>Conn</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>mu</span><span class=w>          </span><span class=nx>sync</span><span class=p>.</span><span class=nx>RWMutex</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>lastReading</span><span class=w> </span><span class=kt>float64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>s</span><span class=w> </span><span class=o>*</span><span class=nx>TemperatureSensor</span><span class=p>)</span><span class=w> </span><span class=nf>Name</span><span class=p>()</span><span class=w> </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=nx>s</span><span class=p>.</span><span class=nx>name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>s</span><span class=w> </span><span class=o>*</span><span class=nx>TemperatureSensor</span><span class=p>)</span><span class=w> </span><span class=nf>Readings</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kd>map</span><span class=p>[</span><span class=kt>string</span><span class=p>]</span><span class=kt>any</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>reading</span><span class=p>,</span><span class=w> </span><span class=nx>err</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>s</span><span class=p>.</span><span class=nx>reader</span><span class=p>.</span><span class=nf>Read</span><span class=p>(</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=nx>s</span><span class=p>.</span><span class=nx>config</span><span class=p>.</span><span class=nx>Zone</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=nx>err</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=kc>nil</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=kc>nil</span><span class=p>,</span><span class=w> </span><span class=nx>err</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=kd>map</span><span class=p>[</span><span class=kt>string</span><span class=p>]</span><span class=kt>any</span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=s>&#34;temperature_celsius&#34;</span><span class=p>:</span><span class=w>    </span><span class=nx>reading</span><span class=p>.</span><span class=nx>TemperatureC</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=s>&#34;temperature_fahrenheit&#34;</span><span class=p>:</span><span class=w> </span><span class=nf>celsiusToFahrenheit</span><span class=p>(</span><span class=nx>reading</span><span class=p>.</span><span class=nx>TemperatureC</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=s>&#34;zone&#34;</span><span class=p>:</span><span class=w>                   </span><span class=nx>reading</span><span class=p>.</span><span class=nx>Zone</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>},</span><span class=w> </span><span class=kc>nil</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=built-in-sensor-types>Built-in Sensor Types<a class=anchor href=#built-in-sensor-types>#</a></h3><table><thead><tr><th>Sensor</th><th>Key Methods</th><th>Use Case</th></tr></thead><tbody><tr><td><strong>IMU</strong></td><td>LinearAcceleration, AngularVelocity, Orientation, GetMagneticField</td><td>Motion sensing</td></tr><tr><td><strong>AHRS</strong></td><td>GetEulerAngles, GetQuaternion, GetCalibrationStatus</td><td>Sensor-fused orientation</td></tr><tr><td><strong>GPS</strong></td><td>Position, Accuracy, Fix, GetSatellitesUsed</td><td>Outdoor navigation</td></tr><tr><td><strong>Encoder</strong></td><td>Position, GetVelocity, GetResolution</td><td>Motor feedback</td></tr><tr><td><strong>RangeSensor</strong></td><td>GetRange, GetMinRange, GetMaxRange</td><td>Obstacle detection</td></tr><tr><td><strong>LiDAR</strong></td><td>GetScan, GetPointCloud, GetProperties</td><td>Mapping, SLAM</td></tr><tr><td><strong>PresenceSensor</strong></td><td>IsPresenceDetected, GetMotionState</td><td>Human detection</td></tr><tr><td><strong>ThermalArray</strong></td><td>GetTemperatureGrid, GetMinMaxTemperature</td><td>Heat mapping</td></tr><tr><td><strong>ForceSensor</strong></td><td>GetForce, Tare</td><td>Force measurement</td></tr><tr><td><strong>Force6DOF</strong></td><td>GetWrench</td><td>6-axis force/torque</td></tr><tr><td><strong>CurrentSensor</strong></td><td>GetCurrent, GetVoltage, GetPower</td><td>Power monitoring</td></tr><tr><td><strong>ReflectanceSensor</strong></td><td>GetReflectances, GetLinePosition</td><td>Line following</td></tr></tbody></table><h2 id=actuators>Actuators<a class=anchor href=#actuators>#</a></h2><p>Actuators change the environment. They implement:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Actuator</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>IsMoving</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Stop</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=motors>Motors<a class=anchor href=#motors>#</a></h3><p>Motors are the most common actuator type:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Motor</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Actuator</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetPower</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>power</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetVelocity</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>velocity</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GoTo</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>position</span><span class=p>,</span><span class=w> </span><span class=nx>velocity</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetPosition</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Properties</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=nx>Properties</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=built-in-actuator-types>Built-in Actuator Types<a class=anchor href=#built-in-actuator-types>#</a></h3><table><thead><tr><th>Actuator</th><th>Key Methods</th><th>Use Case</th></tr></thead><tbody><tr><td><strong>Motor</strong></td><td>SetPower, SetVelocity, GoTo, GoFor</td><td>Wheels, conveyors</td></tr><tr><td><strong>Servo</strong></td><td>SetAngle, SetSpeed, SetTorqueLimit</td><td>Pan/tilt, joints</td></tr><tr><td><strong>Stepper</strong></td><td>Step, SetMicrostepping, Home</td><td>3D printers, CNC</td></tr><tr><td><strong>Thruster</strong></td><td>SetThrust, GetRPM, GetTemperature</td><td>ROVs, drones</td></tr><tr><td><strong>Valve</strong></td><td>Open, Shut, SetPosition</td><td>Pneumatics, flow control</td></tr><tr><td><strong>Gripper</strong></td><td>Open, Close, Grab</td><td>Pick and place</td></tr><tr><td><strong>Base</strong></td><td>SetVelocity, MoveStraight, Spin</td><td>Mobile robots</td></tr><tr><td><strong>Arm</strong></td><td>MoveToPosition, JointPositions</td><td>Manipulation</td></tr></tbody></table><h3 id=servo-interface>Servo Interface<a class=anchor href=#servo-interface>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Servo</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Actuator</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetAngle</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>degrees</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetAngle</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetSpeed</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>speed</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetTorqueLimit</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>limit</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetProperties</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=nx>Properties</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=stepper-interface>Stepper Interface<a class=anchor href=#stepper-interface>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Stepper</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Actuator</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Step</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>steps</span><span class=w> </span><span class=kt>int64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetMicrostepping</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>divisor</span><span class=w> </span><span class=kt>int</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetCurrent</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>runMA</span><span class=p>,</span><span class=w> </span><span class=nx>holdMA</span><span class=w> </span><span class=kt>int</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetPosition</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>int64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>ResetPosition</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Home</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>direction</span><span class=w> </span><span class=kt>bool</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=thruster-interface>Thruster Interface<a class=anchor href=#thruster-interface>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Thruster</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Actuator</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetThrust</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>thrust</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>  </span><span class=c1>// -1.0 to 1.0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetRPM</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetTemperature</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetCurrent</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=valve-interface>Valve Interface<a class=anchor href=#valve-interface>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Valve</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Actuator</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Open</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Shut</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>  </span><span class=c1>// Named &#34;Shut&#34; to avoid conflict with Close()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>SetPosition</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>position</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w>  </span><span class=c1>// 0.0-1.0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetPosition</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>IsOpen</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>IsClosed</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=power-components>Power Components<a class=anchor href=#power-components>#</a></h2><p>Power components manage energy storage and distribution:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Power</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetCapacity</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetLevel</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetVoltage</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetCurrent</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>IsCharging</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=space-components>Space Components<a class=anchor href=#space-components>#</a></h2><p>Space components represent <strong>virtual containers on the robot</strong>. A Space doesn&rsquo;t directly interface with hardware—it aggregates and coordinates other components that do.</p><p>Use Spaces for:</p><ul><li>Storage areas with doors or hatches (cargo bay, sample drawer)</li><li>Tanks with valves and level sensors (ballast tank, fuel tank)</li><li>Compartments with environmental controls (battery bay, equipment compartment)</li></ul><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Space</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetVolume</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>float64</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetBounds</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=o>*</span><span class=nx>geometry</span><span class=p>.</span><span class=nx>Box</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetContents</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>([]</span><span class=kt>string</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>IsEmpty</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetComponents</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>([]</span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=space-example-ballast-tank>Space Example: Ballast Tank<a class=anchor href=#space-example-ballast-tank>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>BallastTank</span><span class=w> </span><span class=kd>struct</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>name</span><span class=w>        </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>volume</span><span class=w>      </span><span class=kt>float64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>fillValve</span><span class=w>   </span><span class=nx>actuator</span><span class=p>.</span><span class=nx>Valve</span><span class=w>   </span><span class=c1>// Controls water intake</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>drainValve</span><span class=w>  </span><span class=nx>actuator</span><span class=p>.</span><span class=nx>Valve</span><span class=w>   </span><span class=c1>// Controls water release</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>levelSensor</span><span class=w> </span><span class=nx>sensor</span><span class=p>.</span><span class=nx>Level</span><span class=w>     </span><span class=c1>// Measures fill percentage</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>t</span><span class=w> </span><span class=o>*</span><span class=nx>BallastTank</span><span class=p>)</span><span class=w> </span><span class=nf>GetContents</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>([]</span><span class=kt>string</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>level</span><span class=p>,</span><span class=w> </span><span class=nx>_</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>t</span><span class=p>.</span><span class=nx>levelSensor</span><span class=p>.</span><span class=nf>Readings</span><span class=p>(</span><span class=nx>ctx</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=p>[]</span><span class=kt>string</span><span class=p>{</span><span class=nx>fmt</span><span class=p>.</span><span class=nf>Sprintf</span><span class=p>(</span><span class=s>&#34;water:%.1f%%&#34;</span><span class=p>,</span><span class=w> </span><span class=nx>level</span><span class=p>[</span><span class=s>&#34;percent&#34;</span><span class=p>])},</span><span class=w> </span><span class=kc>nil</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>t</span><span class=w> </span><span class=o>*</span><span class=nx>BallastTank</span><span class=p>)</span><span class=w> </span><span class=nf>GetComponents</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>([]</span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=p>[]</span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nx>t</span><span class=p>.</span><span class=nx>fillValve</span><span class=p>.</span><span class=nf>Name</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nx>t</span><span class=p>.</span><span class=nx>drainValve</span><span class=p>.</span><span class=nf>Name</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nx>t</span><span class=p>.</span><span class=nx>levelSensor</span><span class=p>.</span><span class=nf>Name</span><span class=p>(),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>},</span><span class=w> </span><span class=kc>nil</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=link-components>Link Components<a class=anchor href=#link-components>#</a></h2><p>Links provide <strong>additional communication channels beyond NATS</strong>. All components assume NATS connectivity—that&rsquo;s the baseline. Links exist for communication paths that NATS cannot reach:</p><ul><li><strong>Serial links</strong>: Bridge to TinyGo microcontrollers without IP capability</li><li><strong>Radio links</strong>: Remote telemetry when out of WiFi range</li><li><strong>CAN bus</strong>: Vehicle systems, industrial protocols</li></ul><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Link</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Type</span><span class=p>()</span><span class=w> </span><span class=nx>LinkType</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Direction</span><span class=p>()</span><span class=w> </span><span class=nx>LinkDirection</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>IsConnected</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>GetStats</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=o>*</span><span class=nx>LinkStats</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=link-example-serial-gateway>Link Example: Serial Gateway<a class=anchor href=#link-example-serial-gateway>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>SerialLink</span><span class=w> </span><span class=kd>struct</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>name</span><span class=w>     </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>port</span><span class=w>     </span><span class=kt>string</span><span class=w>           </span><span class=c1>// e.g., &#34;/dev/ttyUSB0&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>baudRate</span><span class=w> </span><span class=kt>int</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>conn</span><span class=w>     </span><span class=nx>serial</span><span class=p>.</span><span class=nx>Port</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>nc</span><span class=w>       </span><span class=o>*</span><span class=nx>nats</span><span class=p>.</span><span class=nx>Conn</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>// Bridges NATS messages to/from a microcontroller</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>l</span><span class=w> </span><span class=o>*</span><span class=nx>SerialLink</span><span class=p>)</span><span class=w> </span><span class=nf>Run</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>// Forward NATS commands to MCU over serial</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>l</span><span class=p>.</span><span class=nx>nc</span><span class=p>.</span><span class=nf>Subscribe</span><span class=p>(</span><span class=s>&#34;gorai.robot.motor.command&#34;</span><span class=p>,</span><span class=w> </span><span class=kd>func</span><span class=p>(</span><span class=nx>msg</span><span class=w> </span><span class=o>*</span><span class=nx>nats</span><span class=p>.</span><span class=nx>Msg</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nx>l</span><span class=p>.</span><span class=nx>conn</span><span class=p>.</span><span class=nf>Write</span><span class=p>(</span><span class=nf>encodeCommand</span><span class=p>(</span><span class=nx>msg</span><span class=p>.</span><span class=nx>Data</span><span class=p>))</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>})</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=c1>// Publish MCU sensor data back to NATS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>go</span><span class=w> </span><span class=kd>func</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>for</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=nx>data</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>l</span><span class=p>.</span><span class=nx>conn</span><span class=p>.</span><span class=nf>Read</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=nx>l</span><span class=p>.</span><span class=nx>nc</span><span class=p>.</span><span class=nf>Publish</span><span class=p>(</span><span class=s>&#34;gorai.robot.mcu.sensors&#34;</span><span class=p>,</span><span class=w> </span><span class=nx>data</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=cameras>Cameras<a class=anchor href=#cameras>#</a></h2><p>Cameras capture visual data and are a special type that bridges sensors and vision:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Camera</span><span class=w> </span><span class=kd>interface</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>Resource</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Image</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=nx>image</span><span class=p>.</span><span class=nx>Image</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Stream</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=kd>chan</span><span class=w> </span><span class=nx>image</span><span class=p>.</span><span class=nx>Image</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nf>Properties</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=nx>Properties</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h3 id=camera-example>Camera Example<a class=anchor href=#camera-example>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>c</span><span class=w> </span><span class=o>*</span><span class=nx>USBCamera</span><span class=p>)</span><span class=w> </span><span class=nf>Image</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=nx>image</span><span class=p>.</span><span class=nx>Image</span><span class=p>,</span><span class=w> </span><span class=kt>error</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>frame</span><span class=p>,</span><span class=w> </span><span class=nx>err</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>c</span><span class=p>.</span><span class=nx>device</span><span class=p>.</span><span class=nf>Capture</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=nx>err</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=kc>nil</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>return</span><span class=w> </span><span class=kc>nil</span><span class=p>,</span><span class=w> </span><span class=nx>err</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=nx>frame</span><span class=p>,</span><span class=w> </span><span class=kc>nil</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=concurrency-model>Concurrency Model<a class=anchor href=#concurrency-model>#</a></h2><p>Gorai uses a <strong>single-owner model</strong> for components:</p><ul><li>Each component instance is owned by exactly one goroutine</li><li><strong>No mutex protection needed</strong> for component state</li><li>Cross-goroutine coordination uses NATS messaging, not shared memory</li></ul><p>This follows Go&rsquo;s philosophy: &ldquo;Share memory by communicating, don&rsquo;t communicate by sharing memory.&rdquo;</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// Single-owner component - no mutex needed</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>type</span><span class=w> </span><span class=nx>FakeMotor</span><span class=w> </span><span class=kd>struct</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>name</span><span class=w>     </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>power</span><span class=w>    </span><span class=kt>float64</span><span class=w>    </span><span class=c1>// Only accessed by owner goroutine</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>moving</span><span class=w>   </span><span class=kt>bool</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>position</span><span class=w> </span><span class=kt>float64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>m</span><span class=w> </span><span class=o>*</span><span class=nx>FakeMotor</span><span class=p>)</span><span class=w> </span><span class=nf>SetPower</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>power</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>m</span><span class=p>.</span><span class=nx>power</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>power</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>m</span><span class=p>.</span><span class=nx>moving</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>power</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=kc>nil</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><h2 id=fake-implementations>Fake Implementations<a class=anchor href=#fake-implementations>#</a></h2><p>Every component should have a fake for testing:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>FakeMotor</span><span class=w> </span><span class=kd>struct</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>name</span><span class=w>     </span><span class=nx>resource</span><span class=p>.</span><span class=nx>Name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>power</span><span class=w>    </span><span class=kt>float64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>moving</span><span class=w>   </span><span class=kt>bool</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>position</span><span class=w> </span><span class=kt>float64</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>m</span><span class=w> </span><span class=o>*</span><span class=nx>FakeMotor</span><span class=p>)</span><span class=w> </span><span class=nf>SetPower</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>power</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=kt>error</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>m</span><span class=p>.</span><span class=nx>power</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>power</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>m</span><span class=p>.</span><span class=nx>moving</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>power</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=kc>nil</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>// Test helper - for use by test code (single goroutine)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>m</span><span class=w> </span><span class=o>*</span><span class=nx>FakeMotor</span><span class=p>)</span><span class=w> </span><span class=nf>GetPowerSet</span><span class=p>()</span><span class=w> </span><span class=kt>float64</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=nx>m</span><span class=p>.</span><span class=nx>power</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>m</span><span class=w> </span><span class=o>*</span><span class=nx>FakeMotor</span><span class=p>)</span><span class=w> </span><span class=nf>SetPosition</span><span class=p>(</span><span class=nx>pos</span><span class=w> </span><span class=kt>float64</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nx>m</span><span class=p>.</span><span class=nx>position</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>pos</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span></span></span></code></pre></div><p>Fakes should:</p><ul><li>Implement the same interface as real components</li><li>Provide test helper methods (setters/getters for inspection)</li><li>Follow the single-owner model (no mutex)</li><li>Support error injection for testing failure cases</li></ul><h2 id=next-steps>Next Steps<a class=anchor href=#next-steps>#</a></h2><ul><li><a href=../services/>Working with Services</a></li><li><a href=../nats/>NATS Messaging Guide</a></li><li><a href=../testing/>Testing Guide</a></li></ul></article><footer class=book-footer><div class="flex flex-wrap justify-between"><div></div><div></div></div><div class="flex flex-wrap justify-between"><span><a href=/docs/guides/ class="flex align-center"><img src=/icons/backward.svg class=book-icon alt=Backward>
+<span>Guides</span>
+</a></span><span><a href=/docs/guides/services/ class="flex align-center"><span>Working with Services</span>
+<img src=/icons/forward.svg class=book-icon alt=Forward></a></span></div><div class=book-comments></div><script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script></footer><label for=menu-control class="hidden book-menu-overlay"></label></div><aside class=book-toc><div class=book-toc-content><nav id=TableOfContents><ul><li><a href=#the-resource-interface>The Resource Interface</a></li><li><a href=#component-categories>Component Categories</a></li><li><a href=#sensors>Sensors</a><ul><li><a href=#implementing-a-sensor>Implementing a Sensor</a></li><li><a href=#built-in-sensor-types>Built-in Sensor Types</a></li></ul></li><li><a href=#actuators>Actuators</a><ul><li><a href=#motors>Motors</a></li><li><a href=#built-in-actuator-types>Built-in Actuator Types</a></li><li><a href=#servo-interface>Servo Interface</a></li><li><a href=#stepper-interface>Stepper Interface</a></li><li><a href=#thruster-interface>Thruster Interface</a></li><li><a href=#valve-interface>Valve Interface</a></li></ul></li><li><a href=#power-components>Power Components</a></li><li><a href=#space-components>Space Components</a><ul><li><a href=#space-example-ballast-tank>Space Example: Ballast Tank</a></li></ul></li><li><a href=#link-components>Link Components</a><ul><li><a href=#link-example-serial-gateway>Link Example: Serial Gateway</a></li></ul></li><li><a href=#cameras>Cameras</a><ul><li><a href=#camera-example>Camera Example</a></li></ul></li><li><a href=#concurrency-model>Concurrency Model</a></li><li><a href=#fake-implementations>Fake Implementations</a></li><li><a href=#next-steps>Next Steps</a></li></ul></nav></div></aside></main></body></html>

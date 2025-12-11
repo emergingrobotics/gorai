@@ -405,6 +405,88 @@ hugo --gc
 
 ---
 
+## Dependencies for Publishing
+
+### Required Software
+
+| Dependency | Minimum Version | Purpose |
+|------------|-----------------|---------|
+| **Hugo Extended** | v0.146.0+ | Static site generator (extended version required for SCSS) |
+| **Git** | 2.x | Submodule support for theme management |
+
+**No npm, Node.js, PostCSS, or other JavaScript tooling required.**
+
+### Installing Hugo Extended
+
+#### Linux (Debian/Ubuntu)
+
+```bash
+# Download the .deb package (check https://github.com/gohugoio/hugo/releases for latest)
+wget https://github.com/gohugoio/hugo/releases/download/v0.152.2/hugo_extended_0.152.2_linux-amd64.deb
+
+# Install
+sudo dpkg -i hugo_extended_0.152.2_linux-amd64.deb
+
+# Verify (must show "extended")
+hugo version
+```
+
+#### Linux (Snap - easiest)
+
+```bash
+sudo snap install hugo
+hugo version
+```
+
+#### macOS
+
+```bash
+brew install hugo
+hugo version
+```
+
+#### Windows
+
+```bash
+choco install hugo-extended
+# Or: scoop install hugo-extended
+```
+
+### Initializing Git Submodules
+
+After cloning the repository, initialize the theme submodule:
+
+```bash
+# If cloning fresh
+git clone --recurse-submodules https://github.com/gorai/gorai.git
+
+# If already cloned
+git submodule update --init --recursive
+
+# If submodule has issues, try
+git submodule sync
+git submodule update --init --recursive --force
+```
+
+### Verifying Your Setup
+
+```bash
+# Check Hugo version (must be 0.146.0+ extended)
+hugo version
+
+# Check submodule is populated
+ls publish/website/themes/hugo-book/
+
+# Test build
+cd publish/website
+hugo
+
+# Test local server
+hugo server
+```
+
+---
+
 ## Migration
 
 See [MIGRATION.md](MIGRATION.md) for detailed instructions on migrating from the previous no-theme setup to Hugo Book.
