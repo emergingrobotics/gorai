@@ -1,7 +1,8 @@
 ---
 title: "Getting Started"
 description: "Get up and running with Gorai"
-weight: 10
+weight: 1
+bookCollapseSection: true
 ---
 
 # Getting Started

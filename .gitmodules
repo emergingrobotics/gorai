@@ -1,0 +1,3 @@
+[submodule "publish/newsite/themes/hugo-book"]
+	path = publish/newsite/themes/hugo-book
+	url = https://github.com/alex-shpak/hugo-book.git

@@ -1,4 +1,5 @@
 {{- $id := .Get "id" | default (printf "mermaid-%d" .Ordinal) -}}
-<div class="mermaid" id="{{ $id }}">
+{{/* Hugo Book supports mermaid via fenced code blocks, but this shortcode provides backward compatibility */}}
+<pre class="mermaid" id="{{ $id }}">
 {{ .Inner | safeHTML }}
-</div>
+</pre>

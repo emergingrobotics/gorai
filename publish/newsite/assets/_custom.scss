@@ -1,0 +1,24 @@
+// Gorai custom styles
+// This file is automatically included by Hugo Book
+
+// Custom primary color (Gorai purple)
+:root {
+  --color-link: #663399;
+  --color-link-visited: #553388;
+}
+
+// Dark mode adjustments
+[data-theme="dark"] {
+  --color-link: #9966cc;
+  --color-link-visited: #8855bb;
+}
+
+// Optional: Custom brand styling
+.book-brand {
+  font-weight: bold;
+}
+
+// Optional: Improve code block styling
+.highlight pre {
+  border-radius: 4px;
+}

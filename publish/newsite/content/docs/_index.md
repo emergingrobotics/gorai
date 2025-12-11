@@ -1,7 +1,8 @@
 ---
 title: "Documentation"
 description: "Learn how to use Gorai for robotics development"
-weight: 10
+weight: 1
+bookFlatSection: true
 ---
 
 # Documentation

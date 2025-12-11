@@ -1,8 +1,14 @@
 {{- $type := .Get "type" | default "info" -}}
 {{- $title := .Get "title" | default "" -}}
-<div class="callout callout-{{ $type }}">
-  {{- if $title }}
-  <div class="callout-title">{{ $title }}</div>
-  {{- end }}
-  <div class="callout-content">{{ .Inner | markdownify }}</div>
-</div>
+{{/*
+  Map our callout types to Hugo Book hint types:
+  - info -> info
+  - warning -> warning
+  - danger -> danger
+  - note -> info
+  - tip -> tip (Book specific)
+*/}}
+<blockquote class="book-hint {{ $type }}">
+  {{- if $title }}<strong>{{ $title }}</strong><br>{{ end -}}
+  {{ .Inner | markdownify }}
+</blockquote>

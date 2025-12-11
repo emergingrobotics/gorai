@@ -5,15 +5,15 @@ title = "Gorai"
 languageCode = "en-us"
 defaultContentLanguage = "en"
 
-# Theme - using built-in styling for now, can add theme later
-# theme = "doks"
+# Theme
+theme = "hugo-book"
 
 # Build settings
 enableRobotsTXT = true
 enableGitInfo = true
 enableEmoji = true
 
-# Disable kinds we don't need
+# Disable unused taxonomies
 disableKinds = ["taxonomy", "term"]
 
 # Markup configuration
@@ -23,61 +23,62 @@ disableKinds = ["taxonomy", "term"]
       unsafe = true  # Allow raw HTML in markdown
   [markup.highlight]
     style = "dracula"
-    lineNos = true
-    lineNumbersInTable = true
-    guessSyntax = true
+    lineNos = false
+    noClasses = false
   [markup.tableOfContents]
     startLevel = 2
     endLevel = 4
-
-# Main menu
-[menu]
-  [[menu.main]]
-    identifier = "docs"
-    name = "Docs"
-    url = "/docs/"
-    weight = 10
-  [[menu.main]]
-    identifier = "examples"
-    name = "Examples"
-    url = "/examples/"
-    weight = 20
-  [[menu.main]]
-    identifier = "community"
-    name = "Community"
-    url = "/community/"
-    weight = 30
-  [[menu.main]]
-    identifier = "book"
-    name = "Book"
-    url = "/book/"
-    weight = 40
-  [[menu.main]]
-    identifier = "github"
-    name = "GitHub"
-    url = "https://github.com/gorai/gorai"
-    weight = 50
-
-# Site parameters
-[params]
-  description = "A lightweight, Go-based robotics framework built on NATS.io"
-  author = "Greg Herlein & Luca Herlein"
-  github = "https://github.com/gorai/gorai"
-
-  # Features
-  darkMode = true
-  search = true
-
-  # Social
-  [params.social]
-    github = "gorai/gorai"
 
 # Output formats
 [outputs]
   home = ["HTML", "RSS"]
   section = ["HTML", "RSS"]
 
-# Permalink structure
-[permalinks]
-  docs = "/docs/:slug/"
-  examples = "/examples/:slug/"
+# Menu configuration
+[menu]
+  [[menu.before]]
+    identifier = "docs"
+    name = "Documentation"
+    url = "/docs/"
+    weight = 10
+
+  [[menu.after]]
+    identifier = "github"
+    name = "GitHub"
+    url = "https://github.com/gorai/gorai"
+    weight = 100
+
+# Hugo Book theme parameters
+[params]
+  # Site description
+  description = "A lightweight, Go-based robotics framework built on NATS.io"
+
+  # (Optional) Set the path to a logo for the book
+  # BookLogo = "/images/logo.png"
+
+  # Set source repository location
+  BookRepo = "https://github.com/gorai/gorai"
+
+  # Enable "Edit this page" links
+  BookEditPath = "edit/main/publish/newsite/content"
+
+  # (Optional) Specify section for docs (defaults to "docs")
+  # BookSection = "docs"
+
+  # Table of Contents settings
+  BookToC = true
+
+  # Enable search
+  BookSearch = true
+
+  # Theme color: auto, light, dark
+  BookTheme = "auto"
+
+  # (Optional) Configure how dates are displayed
+  # BookDateFormat = "January 2, 2006"
+
+  # Comments integration (optional)
+  # BookComments = false
+
+  # Service Worker for offline support (experimental)
+  # BookServiceWorker = false
