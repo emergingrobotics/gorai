@@ -45,7 +45,7 @@ disableKinds = ["taxonomy", "term"]
   [[menu.after]]
     identifier = "github"
     name = "GitHub"
-    url = "https://github.com/gorai/gorai"
+    url = "https://github.com/emergingrobotics/gorai"
     weight = 100
 
 # Hugo Book theme parameters
@@ -57,7 +57,7 @@ disableKinds = ["taxonomy", "term"]
   BookLogo = "/images/gorai.png"
 
   # Set source repository location
-  BookRepo = "https://github.com/gorai/gorai"
+  BookRepo = "https://github.com/emergingrobotics/gorai"
 
   # Enable "Edit this page" links
   BookEditPath = "edit/main/publish/website/content"
