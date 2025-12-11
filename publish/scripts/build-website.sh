@@ -1,6 +1,8 @@
 #!/bin/bash
-# Build the MkDocs website (lean-forward experience)
-# Produces interactive, searchable documentation site
+# Build the Hugo website
+#
+# NOTE: This script is for LOCAL builds outside the container.
+# For container-based builds, use: make website (from publish/ directory)
 
 set -e
 
@@ -10,7 +12,7 @@ WEBSITE_DIR="$PUBLISH_DIR/website"
 DIST_DIR="$PUBLISH_DIR/dist/website"
 
 echo "=========================================="
-echo "Building Gorai Website (MkDocs)"
+echo "Building Gorai Website (Hugo)"
 echo "=========================================="
 echo ""
 
@@ -39,36 +41,48 @@ done
 if [ "$CLEAN" = true ]; then
     echo "Cleaning previous build..."
     rm -rf "$DIST_DIR"
+    rm -rf "$WEBSITE_DIR/public"
+    rm -rf "$WEBSITE_DIR/resources/_gen"
 fi
 
-# Setup symlinks first
-echo "Setting up symlinks..."
-"$SCRIPT_DIR/setup-website-links.sh"
-echo ""
-
-# Check for mkdocs
-if ! command -v mkdocs &> /dev/null; then
-    echo "ERROR: mkdocs is not installed"
+# Check for hugo
+if ! command -v hugo &> /dev/null; then
+    echo "ERROR: hugo is not installed"
     echo ""
-    echo "Install mkdocs-material with:"
+    echo "Install Hugo Extended:"
     echo ""
-    echo "  pip install mkdocs-material"
+    echo "  # Option 1: Download from GitHub releases"
+    echo "  # https://github.com/gohugoio/hugo/releases"
     echo ""
-    echo "  # Or with pipx (isolated install):"
-    echo "  pipx install mkdocs-material"
+    echo "  # Option 2: Using snap"
+    echo "  sudo snap install hugo"
+    echo ""
+    echo "Or use the container-based build:"
+    echo "  cd $PUBLISH_DIR && make website"
     echo ""
     exit 1
 fi
 
 # Build the website
-echo "Building website..."
 cd "$WEBSITE_DIR"
+
+# Initialize/update Hugo modules if go.mod exists
+if [ -f "go.mod" ]; then
+    echo "Updating Hugo modules..."
+    hugo mod get -u 2>/dev/null || true
+fi
 
 if [ "$SERVE" = true ]; then
     echo "Starting development server..."
-    mkdocs serve --dev-addr 0.0.0.0:8001
+    hugo server \
+        --bind 0.0.0.0 \
+        --port 1313 \
+        --buildDrafts \
+        --buildFuture \
+        --disableFastRender
 else
-    mkdocs build --site-dir "$DIST_DIR"
+    echo "Building website..."
+    hugo --minify --destination "$DIST_DIR"
 
     echo ""
     echo "=========================================="
@@ -81,7 +95,7 @@ else
     ls -la "$DIST_DIR" 2>/dev/null | head -20 || echo "  (build directory not found)"
     echo ""
     echo "To view locally:"
-    echo "  cd $DIST_DIR && python3 -m http.server 8001"
+    echo "  cd $DIST_DIR && python3 -m http.server 1313"
     echo ""
     echo "Or use: $0 --serve"
 fi

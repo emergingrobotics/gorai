@@ -1,23 +1,36 @@
 #!/bin/bash
 # Setup symbolic links from website/docs/book to content/
-# This allows MkDocs to consume book content from the canonical location
+#
+# NOTE: This script is DEPRECATED. The current publishing system uses
+# Hugo directly without needing symlinks from a separate content directory.
+# This script is kept for backward compatibility but now exits gracefully.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PUBLISH_DIR="$(dirname "$SCRIPT_DIR")"
-DOCS_DIR="$PUBLISH_DIR/website/docs"
 CONTENT="$PUBLISH_DIR/content"
 
+# Check if using the new structure (Hugo website with content in place)
+if [ -d "$PUBLISH_DIR/website/content" ]; then
+    echo "Using new website structure (website/content/) - no symlinks needed."
+    exit 0
+fi
+
+# Legacy behavior for old content/ structure
 echo "Setting up website symbolic links..."
 echo "  Content: $CONTENT"
-echo "  Docs: $DOCS_DIR"
 
-# Verify content directory exists
 if [ ! -d "$CONTENT" ]; then
-    echo "ERROR: Content directory not found: $CONTENT"
-    exit 1
+    echo "NOTE: Content directory not found at $CONTENT"
+    echo "This is expected with the new website structure."
+    echo "Website content is now directly in publish/website/content/"
+    exit 0
 fi
+
+# Legacy symlink setup (kept for reference but should not be reached)
+DOCS_DIR="$PUBLISH_DIR/website/docs"
+echo "  Docs: $DOCS_DIR"
 
 # Create book directory in docs if it doesn't exist
 BOOK_DOCS="$DOCS_DIR/book"
@@ -28,7 +41,6 @@ find "$BOOK_DOCS" -type l -delete 2>/dev/null || true
 
 # Link book index
 if [ -f "$CONTENT/introduction.md" ]; then
-    # We'll create a custom index.md for the website book section
     echo "  Note: Book index.md will be created separately"
 fi
 
@@ -48,14 +60,11 @@ if [ -d "$CONTENT/appendices" ]; then
     echo "  Linked: book/appendices/"
 fi
 
-# Link reference directory (also used outside book)
+# Link reference directory
 if [ -d "$CONTENT/reference" ]; then
-    # Link to both locations - book/reference and docs/reference
     ln -sf "../../../content/reference" "$BOOK_DOCS/reference"
     echo "  Linked: book/reference/"
 
-    # Also link individual reference files to top-level reference
-    # (for backward compatibility with existing nav)
     mkdir -p "$DOCS_DIR/reference"
     for reffile in "$CONTENT/reference"/*.md; do
         if [ -f "$reffile" ]; then
@@ -69,25 +78,9 @@ fi
 
 # Link examples directory
 if [ -d "$CONTENT/examples" ]; then
-    # Link individual example directories to website examples
     mkdir -p "$DOCS_DIR/examples"
-
-    # First, clean up any existing symlinks in website/docs/examples
     find "$DOCS_DIR/examples" -maxdepth 1 -type l -delete 2>/dev/null || true
 
-    # Also clean up any recursive symlinks that may have been created in content/examples
-    for dir in "$CONTENT/examples"/*/; do
-        if [ -d "$dir" ]; then
-            dirname=$(basename "$dir")
-            # Remove symlink if it has same name as parent (recursive symlink)
-            if [ -L "$dir$dirname" ]; then
-                echo "  Removing recursive symlink: $dir$dirname"
-                rm -f "$dir$dirname"
-            fi
-        fi
-    done
-
-    # Now create fresh symlinks - only for real directories
     for entry in "$CONTENT/examples"/*; do
         if [ -d "$entry" ] && [ ! -L "$entry" ]; then
             dirname=$(basename "$entry")
@@ -99,12 +92,3 @@ fi
 
 echo ""
 echo "Website symbolic links created successfully!"
-echo ""
-echo "Book structure:"
-ls -la "$BOOK_DOCS/"
-echo ""
-echo "Reference structure:"
-ls -la "$DOCS_DIR/reference/" 2>/dev/null || echo "  (no reference links)"
-echo ""
-echo "Examples structure:"
-ls -la "$DOCS_DIR/examples/" 2>/dev/null || echo "  (no examples links)"

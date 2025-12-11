@@ -1,23 +1,36 @@
 #!/bin/bash
 # Setup symbolic links from book/src to content/
-# This allows mdBook to consume content from the canonical location
+#
+# NOTE: This script is DEPRECATED. The current publishing system uses
+# Pandoc directly on book/chapters/ without needing symlinks.
+# This script is kept for backward compatibility but now exits gracefully.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PUBLISH_DIR="$(dirname "$SCRIPT_DIR")"
-BOOK_SRC="$PUBLISH_DIR/book/src"
 CONTENT="$PUBLISH_DIR/content"
 
+# Check if using the new structure (chapters directly in book/)
+if [ -d "$PUBLISH_DIR/book/chapters" ]; then
+    echo "Using new book structure (book/chapters/) - no symlinks needed."
+    exit 0
+fi
+
+# Legacy behavior for old content/ structure
 echo "Setting up book symbolic links..."
 echo "  Content: $CONTENT"
-echo "  Book src: $BOOK_SRC"
 
-# Verify content directory exists
 if [ ! -d "$CONTENT" ]; then
-    echo "ERROR: Content directory not found: $CONTENT"
-    exit 1
+    echo "NOTE: Content directory not found at $CONTENT"
+    echo "This is expected with the new book structure."
+    echo "Book chapters are now directly in publish/book/chapters/"
+    exit 0
 fi
+
+# Legacy symlink setup (kept for reference but should not be reached)
+BOOK_SRC="$PUBLISH_DIR/book/src"
+echo "  Book src: $BOOK_SRC"
 
 # Clear existing symlinks (but preserve README.md and SUMMARY.md)
 find "$BOOK_SRC" -type l -delete 2>/dev/null || true
@@ -58,6 +71,3 @@ fi
 
 echo ""
 echo "Book symbolic links created successfully!"
-echo ""
-echo "Book structure:"
-ls -la "$BOOK_SRC/"

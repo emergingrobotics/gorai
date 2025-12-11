@@ -22,7 +22,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # TeX Live for PDF generation (minimal set for pandoc)
     texlive-xetex \
     texlive-fonts-recommended \
-    texlive-fonts-extra \
     texlive-latex-extra \
     texlive-plain-generic \
     lmodern \

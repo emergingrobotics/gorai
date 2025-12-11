@@ -1,6 +1,11 @@
 #!/bin/bash
-# Build the mdBook (lean-back experience)
-# Produces HTML, PDF-ready, and optionally ePub output
+# Build the Gorai book using Pandoc
+#
+# NOTE: This script is for LOCAL builds outside the container.
+# For container-based builds, use: make book (from publish/ directory)
+#
+# The current build system uses Pandoc to generate PDF and ePub from
+# markdown chapters in book/chapters/
 
 set -e
 
@@ -10,13 +15,14 @@ BOOK_DIR="$PUBLISH_DIR/book"
 DIST_DIR="$PUBLISH_DIR/dist/book"
 
 echo "=========================================="
-echo "Building Gorai Book (mdBook)"
+echo "Building Gorai Book (Pandoc)"
 echo "=========================================="
 echo ""
 
 # Parse arguments
 CLEAN=false
 SERVE=false
+FORMAT="all"  # pdf, epub, html, or all
 while [[ $# -gt 0 ]]; do
     case $1 in
         --clean)
@@ -27,9 +33,21 @@ while [[ $# -gt 0 ]]; do
             SERVE=true
             shift
             ;;
+        --pdf)
+            FORMAT="pdf"
+            shift
+            ;;
+        --epub)
+            FORMAT="epub"
+            shift
+            ;;
+        --html)
+            FORMAT="html"
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--clean] [--serve]"
+            echo "Usage: $0 [--clean] [--serve] [--pdf|--epub|--html]"
             exit 1
             ;;
     esac
@@ -41,63 +59,106 @@ if [ "$CLEAN" = true ]; then
     rm -rf "$DIST_DIR"
 fi
 
-# Setup symlinks first
-echo "Setting up symlinks..."
-"$SCRIPT_DIR/setup-book-links.sh"
+# Check for pandoc
+if ! command -v pandoc &> /dev/null; then
+    echo "ERROR: pandoc is not installed"
+    echo ""
+    echo "Install pandoc:"
+    echo "  sudo apt install pandoc"
+    echo ""
+    echo "Or use the container-based build:"
+    echo "  cd $PUBLISH_DIR && make book"
+    echo ""
+    exit 1
+fi
+
+# Collect chapters
+cd "$BOOK_DIR"
+CHAPTERS=$(find chapters -name '*.md' | sort)
+
+if [ -z "$CHAPTERS" ]; then
+    echo "ERROR: No chapters found in $BOOK_DIR/chapters/"
+    exit 1
+fi
+
+mkdir -p "$DIST_DIR"
+
+echo "Found chapters:"
+echo "$CHAPTERS" | while read -r ch; do echo "  $ch"; done
 echo ""
 
-# Check for mdbook
-if ! command -v mdbook &> /dev/null; then
-    echo "ERROR: mdbook is not installed"
-    echo ""
-    echo "Install mdbook using one of these methods:"
-    echo ""
-    echo "  # Option 1: Pre-built binary (fastest):"
-    echo "  mkdir -p ~/.cargo/bin"
-    echo "  curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/.cargo/bin"
-    echo "  export PATH=\"\$HOME/.cargo/bin:\$PATH\""
-    echo ""
-    echo "  # Option 2: Using cargo (requires Rust):"
-    echo "  cargo install mdbook"
-    echo ""
-    echo "  # Option 3: Using snap:"
-    echo "  sudo snap install mdbook"
-    echo ""
-    exit 1
-fi
+# Build functions
+build_pdf() {
+    echo "Building PDF..."
+    if ! command -v xelatex &> /dev/null; then
+        echo "WARNING: xelatex not found, skipping PDF"
+        echo "Install with: sudo apt install texlive-xetex"
+        return 1
+    fi
+    pandoc \
+        --metadata-file=metadata.yaml \
+        --template=templates/pdf-template.tex \
+        --pdf-engine=xelatex \
+        --resource-path=.:images:../images:../images/logos \
+        --toc \
+        --number-sections \
+        --highlight-style=tango \
+        --top-level-division=chapter \
+        -o "$DIST_DIR/gorai-book.pdf" \
+        $CHAPTERS
+    echo "  Created: $DIST_DIR/gorai-book.pdf"
+}
 
-# Check for mdbook-mermaid
-if ! command -v mdbook-mermaid &> /dev/null; then
-    echo "ERROR: mdbook-mermaid is not installed"
-    echo ""
-    echo "Install mdbook-mermaid for diagram support:"
-    echo ""
-    echo "  cargo install mdbook-mermaid"
-    echo ""
-    exit 1
-fi
+build_epub() {
+    echo "Building ePub..."
+    pandoc \
+        --metadata-file=metadata.yaml \
+        --css=templates/epub.css \
+        --toc \
+        --number-sections \
+        --top-level-division=chapter \
+        -o "$DIST_DIR/gorai-book.epub" \
+        $CHAPTERS
+    echo "  Created: $DIST_DIR/gorai-book.epub"
+}
 
-# Check for mdbook-toc
-if ! command -v mdbook-toc &> /dev/null; then
-    echo "ERROR: mdbook-toc is not installed"
-    echo ""
-    echo "Install mdbook-toc for table of contents support:"
-    echo ""
-    echo "  cargo install mdbook-toc"
-    echo ""
-    exit 1
-fi
+build_html() {
+    echo "Building HTML preview..."
+    pandoc \
+        --metadata-file=metadata.yaml \
+        --css=templates/html.css \
+        --standalone \
+        --toc \
+        --number-sections \
+        --top-level-division=chapter \
+        -o "$DIST_DIR/gorai-book.html" \
+        $CHAPTERS
+    echo "  Created: $DIST_DIR/gorai-book.html"
+}
 
-# Build the book
-echo "Building book..."
-cd "$BOOK_DIR"
+# Build requested format(s)
+case "$FORMAT" in
+    pdf)
+        build_pdf
+        ;;
+    epub)
+        build_epub
+        ;;
+    html)
+        build_html
+        ;;
+    all)
+        build_pdf || true
+        build_epub
+        ;;
+esac
 
 if [ "$SERVE" = true ]; then
-    echo "Starting development server..."
-    mdbook serve --open
+    echo ""
+    echo "Starting preview server on http://localhost:8000"
+    cd "$DIST_DIR"
+    python3 -m http.server 8000
 else
-    mdbook build
-
     echo ""
     echo "=========================================="
     echo "Book build complete!"
@@ -106,10 +167,8 @@ else
     echo "Output: $DIST_DIR"
     echo ""
     echo "Files:"
-    ls -la "$DIST_DIR" 2>/dev/null || echo "  (build directory not found)"
+    ls -la "$DIST_DIR" 2>/dev/null || echo "  (no files)"
     echo ""
-    echo "To view locally:"
-    echo "  cd $DIST_DIR && python3 -m http.server 8000"
-    echo ""
-    echo "Or use: $0 --serve"
+    echo "To preview:"
+    echo "  $0 --serve"
 fi
