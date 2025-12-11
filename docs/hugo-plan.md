@@ -4,7 +4,7 @@
 
 ### Current Setup
 
-The Gorai website at `publish/newsite/` uses **Hugo without a theme** — it has a custom, minimal layout built from scratch with inline CSS.
+The Gorai website at `publish/website/` uses **Hugo without a theme** — it has a custom, minimal layout built from scratch with inline CSS.
 
 **Configuration (`hugo.toml`):**
 ```toml
@@ -241,7 +241,7 @@ If Docsy feels too heavyweight or the team prefers:
 
 2. **Initialize Theme as Hugo Module**
    ```bash
-   cd publish/newsite
+   cd publish/website
    hugo mod init github.com/gorai/gorai-website
    ```
 

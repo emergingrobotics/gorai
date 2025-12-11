@@ -20,8 +20,8 @@ make clean 2>/dev/null || true
 echo "Removing additional caches..."
 
 # Hugo caches
-rm -rf newsite/.hugo_build.lock 2>/dev/null || true
-rm -rf newsite/resources/_gen 2>/dev/null || true
+rm -rf website/.hugo_build.lock 2>/dev/null || true
+rm -rf website/resources/_gen 2>/dev/null || true
 
 # Any temp files
 find . -name "*.aux" -delete 2>/dev/null || true

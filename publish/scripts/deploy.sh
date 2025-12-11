@@ -30,19 +30,19 @@ make website-with-book
 
 echo ""
 echo "=== Build Summary ==="
-if [ -f "newbook/dist/gorai-book.pdf" ]; then
-    PDF_SIZE=$(du -h newbook/dist/gorai-book.pdf | cut -f1)
-    echo "PDF:     newbook/dist/gorai-book.pdf ($PDF_SIZE)"
+if [ -f "book/dist/gorai-book.pdf" ]; then
+    PDF_SIZE=$(du -h book/dist/gorai-book.pdf | cut -f1)
+    echo "PDF:     book/dist/gorai-book.pdf ($PDF_SIZE)"
 fi
 
-if [ -f "newbook/dist/gorai-book.epub" ]; then
-    EPUB_SIZE=$(du -h newbook/dist/gorai-book.epub | cut -f1)
-    echo "ePub:    newbook/dist/gorai-book.epub ($EPUB_SIZE)"
+if [ -f "book/dist/gorai-book.epub" ]; then
+    EPUB_SIZE=$(du -h book/dist/gorai-book.epub | cut -f1)
+    echo "ePub:    book/dist/gorai-book.epub ($EPUB_SIZE)"
 fi
 
-if [ -d "newsite/public" ]; then
-    PAGES=$(find newsite/public -name "*.html" | wc -l)
-    echo "Website: newsite/public/ ($PAGES HTML pages)"
+if [ -d "website/public" ]; then
+    PAGES=$(find website/public -name "*.html" | wc -l)
+    echo "Website: website/public/ ($PAGES HTML pages)"
 fi
 
 echo ""

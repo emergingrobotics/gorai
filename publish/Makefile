@@ -25,43 +25,43 @@ help:
 
 # Book targets
 book:
-	$(MAKE) -C newbook all
+	$(MAKE) -C book all
 
 book-pdf:
-	$(MAKE) -C newbook pdf
+	$(MAKE) -C book pdf
 
 book-epub:
-	$(MAKE) -C newbook epub
+	$(MAKE) -C book epub
 
 serve-book:
-	$(MAKE) -C newbook html
+	$(MAKE) -C book html
 	@echo "Starting preview server at http://localhost:8000"
-	python3 -m http.server 8000 --directory newbook/dist
+	python3 -m http.server 8000 --directory book/dist
 
 # Website targets
 website:
-	$(MAKE) -C newsite build
+	$(MAKE) -C website build
 
 serve-website:
-	$(MAKE) -C newsite serve
+	$(MAKE) -C website serve
 
 # Build website with book downloads
 website-with-book: book
-	$(MAKE) -C newsite downloads
-	$(MAKE) -C newsite build
+	$(MAKE) -C website downloads
+	$(MAKE) -C website build
 
 # Clean all
 clean:
-	$(MAKE) -C newbook clean
-	$(MAKE) -C newsite clean
+	$(MAKE) -C book clean
+	$(MAKE) -C website clean
 	@echo "All build artifacts cleaned"
 
 # Validate content structure
 validate:
 	@echo "Validating content structure..."
-	@test -f newbook/metadata.yaml || (echo "ERROR: newbook/metadata.yaml missing" && exit 1)
-	@test -d newbook/chapters || (echo "ERROR: newbook/chapters missing" && exit 1)
-	@test -f newsite/hugo.toml || (echo "ERROR: newsite/hugo.toml missing" && exit 1)
-	@test -d newsite/content || (echo "ERROR: newsite/content missing" && exit 1)
+	@test -f book/metadata.yaml || (echo "ERROR: book/metadata.yaml missing" && exit 1)
+	@test -d book/chapters || (echo "ERROR: book/chapters missing" && exit 1)
+	@test -f website/hugo.toml || (echo "ERROR: website/hugo.toml missing" && exit 1)
+	@test -d website/content || (echo "ERROR: website/content missing" && exit 1)
 	@test -d images || (echo "ERROR: images directory missing" && exit 1)
 	@echo "Validation passed!"

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Understand Gorai&#39;s architecture and design">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://gorai.dev/docs/getting-started/concepts/">
+  <meta property="og:site_name" content="Gorai">
+  <meta property="og:title" content="Core Concepts">
+  <meta property="og:description" content="Understand Gorai&#39;s architecture and design">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="docs">
+
+
+  <meta itemprop="name" content="Core Concepts">
+  <meta itemprop="description" content="Understand Gorai&#39;s architecture and design">
+  <meta itemprop="wordCount" content="565">
+
+<title>Core Concepts | Gorai</title>
+<link rel="icon" href="/favicon.png" >
+<link rel="manifest" href="/manifest.json">
+<link rel="canonical" href="https://gorai.dev/docs/getting-started/concepts/">
+<link rel="stylesheet" href="/book.min.f21d99da4b268e0046277313e7867ebe88e94ce65694bfcd5aa2ea17738796cc.css" integrity="sha256-8h2Z2ksmjgBGJ3MT54Z&#43;vojpTOZWlL/NWqLqF3OHlsw=" crossorigin="anonymous">
+
+
+  <script defer src="/fuse.min.js"></script>
+  <script defer src="/en.search.min.e261d98f1e2080b37f4b6302df8c6bcaf990dba6c79e079edae13bcc3a1b5197.js" integrity="sha256-4mHZjx4ggLN/S2MC34xryvmQ26bHngee2uE7zDobUZc=" crossorigin="anonymous"></script>
+
+
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-docs">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><span>Gorai</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+<ul><li><a href="/docs/">Documentation</a></li></ul>
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-400d69a699366cb0649f753c045195ad" class="toggle" checked />
+    <label for="section-400d69a699366cb0649f753c045195ad" class="flex">
+      <a href="/docs/getting-started/" class="">
+        Getting Started</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/installation/" class="">
+      Installation</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/quickstart/" class="">
+      Quick Start</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/concepts/" class="active">
+      Core Concepts</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-427fceb1088260b05915c13eb9a205f9" class="toggle"  />
+    <label for="section-427fceb1088260b05915c13eb9a205f9" class="flex">
+      <a href="/docs/guides/" class="">
+        Guides</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/components/" class="">
+      Working with Components</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/services/" class="">
+      Working with Services</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/nats/" class="">
+      NATS Messaging</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/configuration/" class="">
+      Configuration</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/testing/" class="">
+      Testing</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e0e300610bc7f463db35528946c8046c" class="toggle"  />
+    <label for="section-e0e300610bc7f463db35528946c8046c" class="flex">
+      <a href="/docs/reference/" class="">
+        Reference</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/reference/cli/" class="">
+      CLI Reference</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+<ul><li><a href="https://github.com/gorai/gorai" target="_blank" rel="noopener">GitHub</a></li></ul>
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Core Concepts</h3>
+
+  <label for="toc-control">
+    
+    <img src="/icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-object-model---explained-simply">The Object Model - Explained Simply</a>
+      <ul>
+        <li><a href="#the-resource-the-universal-building-block">The Resource: The Universal Building Block</a></li>
+      </ul>
+    </li>
+    <li><a href="#components-the-physical-stuff">Components: The Physical Stuff</a></li>
+    <li><a href="#services-the-brain-power">Services: The Brain Power</a></li>
+    <li><a href="#how-they-talk-to-each-other">How They Talk to Each Other</a></li>
+    <li><a href="#the-interface-philosophy">The Interface Philosophy</a></li>
+    <li><a href="#why-this-design">Why This Design?</a></li>
+    <li><a href="#a-concrete-example">A Concrete Example</a></li>
+    <li><a href="#nws-and-nwc">NWS and NWC</a></li>
+    <li><a href="#next-steps">Next Steps</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="core-concepts">Core Concepts<a class="anchor" href="#core-concepts">#</a></h1>
+<p>This page introduces the key concepts you&rsquo;ll use throughout Gorai development.</p>
+<h2 id="the-object-model---explained-simply">The Object Model - Explained Simply<a class="anchor" href="#the-object-model---explained-simply">#</a></h2>
+<p>Think of Gorai like building with LEGO blocks for robots. Every single piece in the system—whether it&rsquo;s a camera, a motor, an AI vision system, or a communication channel—is built from the same fundamental building block called a <strong>Resource</strong>.</p>
+<h3 id="the-resource-the-universal-building-block">The Resource: The Universal Building Block<a class="anchor" href="#the-resource-the-universal-building-block">#</a></h3>
+<pre tabindex="0"><code>                    Resource (the base block)
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+   Component          Service          Module
+   (hardware)       (software)       (plugins)</code></pre><p>Every Resource has four basic abilities:</p>
+<ol>
+<li><strong>Name</strong> - A unique ID like <code>gorai:component:camera/front_camera</code></li>
+<li><strong>Reconfigure</strong> - Can update settings without restarting</li>
+<li><strong>DoCommand</strong> - Can receive arbitrary commands</li>
+<li><strong>Close</strong> - Knows how to shut itself down cleanly</li>
+</ol>
+<h2 id="components-the-physical-stuff">Components: The Physical Stuff<a class="anchor" href="#components-the-physical-stuff">#</a></h2>
+<p>Components represent <strong>hardware</strong> (or virtual aggregations of hardware). They&rsquo;re organized into 5 categories:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Category</th>
+          <th>What It Does</th>
+          <th>Examples</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Sensor</strong></td>
+          <td>Observes the world (read-only)</td>
+          <td>Camera, GPS, temperature sensor</td>
+      </tr>
+      <tr>
+          <td><strong>Actuator</strong></td>
+          <td>Changes the world (does stuff)</td>
+          <td>Motor, robotic arm, gripper</td>
+      </tr>
+      <tr>
+          <td><strong>Power</strong></td>
+          <td>Manages energy</td>
+          <td>Battery, power supply</td>
+      </tr>
+      <tr>
+          <td><strong>Space</strong></td>
+          <td>Virtual container on robot</td>
+          <td>Ballast tank, cargo bay with door</td>
+      </tr>
+      <tr>
+          <td><strong>Link</strong></td>
+          <td>Extra communication channel</td>
+          <td>Serial to MCU, radio telemetry</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Note</strong>: All components assume NATS connectivity as baseline—NATS is the assumed infrastructure, not a &ldquo;Link.&rdquo; A Space is a virtual abstraction that coordinates other components (e.g., a ballast tank has valves and level sensors). A Link provides communication to devices that can&rsquo;t connect to NATS directly (microcontrollers, radio links).</p>
+<h2 id="services-the-brain-power">Services: The Brain Power<a class="anchor" href="#services-the-brain-power">#</a></h2>
+<p>Services are <strong>software</strong> that processes data or makes decisions:</p>
+<ul>
+<li><strong>Vision</strong> - Understands what cameras see</li>
+<li><strong>SLAM</strong> - Builds maps and knows where the robot is</li>
+<li><strong>Navigation</strong> - Plans paths from A to B</li>
+<li><strong>Behavior</strong> - AI-powered decision making</li>
+</ul>
+<h2 id="how-they-talk-to-each-other">How They Talk to Each Other<a class="anchor" href="#how-they-talk-to-each-other">#</a></h2>
+<p>Everything communicates via <strong>NATS</strong> (a messaging system). Messages follow a naming pattern:</p>
+<pre tabindex="0"><code>gorai.{robot}.{node}.{topic}
+
+Example: gorai.sentinel.camera_front.data.compressed
+         │      │        │            │
+         │      │        │            └─ the actual topic
+         │      │        └─ which component
+         │      └─ which robot
+         └─ framework prefix</code></pre><h2 id="the-interface-philosophy">The Interface Philosophy<a class="anchor" href="#the-interface-philosophy">#</a></h2>
+<p>The design uses <strong>interfaces</strong> (contracts that define what something can do):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// If something is a Sensor, it MUST be able to give Readings</span>
+</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Sensor</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">Readings</span><span class="p">()</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// If something is an Actuator, it MUST be able to Stop and tell you if it&#39;s Moving</span>
+</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Actuator</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">IsMoving</span><span class="p">()</span> <span class="kt">bool</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">Stop</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div><p>This means you can write code that works with &ldquo;any sensor&rdquo; or &ldquo;any actuator&rdquo; without caring about the specific hardware.</p>
+<h2 id="why-this-design">Why This Design?<a class="anchor" href="#why-this-design">#</a></h2>
+<ol>
+<li><strong>Uniform treatment</strong> - Everything is a Resource, so management code works on everything</li>
+<li><strong>Hot reconfiguration</strong> - Change settings without rebooting the robot</li>
+<li><strong>Discoverable</strong> - Find components by type (<code>GetByType(&quot;motor&quot;)</code>)</li>
+<li><strong>Extensible</strong> - Add new components by implementing the interface</li>
+</ol>
+<h2 id="a-concrete-example">A Concrete Example<a class="anchor" href="#a-concrete-example">#</a></h2>
+<p>Imagine a robot with a camera and wheels:</p>
+<pre tabindex="0"><code>Camera (Sensor)
+  └─ publishes images to: gorai.mybot.camera.data
+
+Vision Service (Service)
+  └─ subscribes to camera images
+  └─ publishes detections to: gorai.mybot.vision.detections
+
+Motor Left (Actuator)
+  └─ subscribes to: gorai.mybot.drive.command
+  └─ publishes state to: gorai.mybot.motor_left.state</code></pre><p>All three are Resources, so they all can be reconfigured, queried, and managed the same way—but each implements different interfaces based on what it actually does.</p>
+<h2 id="nws-and-nwc">NWS and NWC<a class="anchor" href="#nws-and-nwc">#</a></h2>
+<p>Gorai nodes come in two types:</p>
+<ul>
+<li><strong>NWS (Network Wrapper Server)</strong> - Exposes local resources over NATS for remote access</li>
+<li><strong>NWC (Network Wrapper Client)</strong> - Creates local proxies that forward calls to remote resources</li>
+</ul>
+<p>This enables <strong>network transparency</strong>: you can use resources the same way whether they&rsquo;re local or running on another machine.</p>
+<h2 id="next-steps">Next Steps<a class="anchor" href="#next-steps">#</a></h2>
+<ul>
+<li><a href="/docs/guides/components/">Working with Components</a></li>
+<li><a href="/docs/guides/nats/">NATS Messaging Guide</a></li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+
+
+
+
+  
+  
+  
+  <div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="/docs/getting-started/quickstart/" class="flex align-center">
+        <img src="/icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Quick Start</span>
+      </a>
+    
+    </span>
+    <span>
+    
+      <a href="/docs/guides/" class="flex align-center">
+        <span>Guides</span>
+        <img src="/icons/forward.svg" class="book-icon" alt="Forward" />
+      </a>
+    
+    </span>
+  </div>
+  
+
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+        
+        
+  
+ 
+        
+  
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-object-model---explained-simply">The Object Model - Explained Simply</a>
+      <ul>
+        <li><a href="#the-resource-the-universal-building-block">The Resource: The Universal Building Block</a></li>
+      </ul>
+    </li>
+    <li><a href="#components-the-physical-stuff">Components: The Physical Stuff</a></li>
+    <li><a href="#services-the-brain-power">Services: The Brain Power</a></li>
+    <li><a href="#how-they-talk-to-each-other">How They Talk to Each Other</a></li>
+    <li><a href="#the-interface-philosophy">The Interface Philosophy</a></li>
+    <li><a href="#why-this-design">Why This Design?</a></li>
+    <li><a href="#a-concrete-example">A Concrete Example</a></li>
+    <li><a href="#nws-and-nwc">NWS and NWC</a></li>
+    <li><a href="#next-steps">Next Steps</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,84 @@
+# Gorai Website Configuration
+
+baseURL = "https://gorai.dev/"
+title = "Gorai"
+languageCode = "en-us"
+defaultContentLanguage = "en"
+
+# Theme
+theme = "hugo-book"
+
+# Build settings
+enableRobotsTXT = true
+enableGitInfo = true
+enableEmoji = true
+
+# Disable unused taxonomies
+disableKinds = ["taxonomy", "term"]
+
+# Markup configuration
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true  # Allow raw HTML in markdown
+  [markup.highlight]
+    style = "dracula"
+    lineNos = false
+    noClasses = false
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 4
+
+# Output formats
+[outputs]
+  home = ["HTML", "RSS"]
+  section = ["HTML", "RSS"]
+
+# Menu configuration
+[menu]
+  [[menu.before]]
+    identifier = "docs"
+    name = "Documentation"
+    url = "/docs/"
+    weight = 10
+
+  [[menu.after]]
+    identifier = "github"
+    name = "GitHub"
+    url = "https://github.com/gorai/gorai"
+    weight = 100
+
+# Hugo Book theme parameters
+[params]
+  # Site description
+  description = "A lightweight, Go-based robotics framework built on NATS.io"
+
+  # (Optional) Set the path to a logo for the book
+  # BookLogo = "/images/logo.png"
+
+  # Set source repository location
+  BookRepo = "https://github.com/gorai/gorai"
+
+  # Enable "Edit this page" links
+  BookEditPath = "edit/main/publish/website/content"
+
+  # (Optional) Specify section for docs (defaults to "docs")
+  # BookSection = "docs"
+
+  # Table of Contents settings
+  BookToC = true
+
+  # Enable search
+  BookSearch = true
+
+  # Theme color: auto, light, dark
+  BookTheme = "auto"
+
+  # (Optional) Configure how dates are displayed
+  # BookDateFormat = "January 2, 2006"
+
+  # Comments integration (optional)
+  # BookComments = false
+
+  # Service Worker for offline support (experimental)
+  # BookServiceWorker = false

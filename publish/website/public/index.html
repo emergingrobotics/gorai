@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+<head>
+	<meta name="generator" content="Hugo 0.146.0">
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A lightweight, Go-based robotics framework built on NATS.io">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://gorai.dev/">
+  <meta property="og:site_name" content="Gorai">
+  <meta property="og:title" content="Gorai">
+  <meta property="og:description" content="A lightweight, Go-based robotics framework built on NATS.io">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="website">
+
+
+  <meta itemprop="name" content="Gorai">
+  <meta itemprop="description" content="A lightweight, Go-based robotics framework built on NATS.io">
+  <meta itemprop="wordCount" content="151">
+
+<title>Gorai | Gorai</title>
+<link rel="icon" href="/favicon.png" >
+<link rel="manifest" href="/manifest.json">
+<link rel="canonical" href="https://gorai.dev/">
+<link rel="stylesheet" href="/book.min.f21d99da4b268e0046277313e7867ebe88e94ce65694bfcd5aa2ea17738796cc.css" integrity="sha256-8h2Z2ksmjgBGJ3MT54Z&#43;vojpTOZWlL/NWqLqF3OHlsw=" crossorigin="anonymous">
+
+
+  <script defer src="/fuse.min.js"></script>
+  <script defer src="/en.search.min.e261d98f1e2080b37f4b6302df8c6bcaf990dba6c79e079edae13bcc3a1b5197.js" integrity="sha256-4mHZjx4ggLN/S2MC34xryvmQ26bHngee2uE7zDobUZc=" crossorigin="anonymous"></script>
+
+
+<link rel="alternate" type="application/rss+xml" href="https://gorai.dev/index.xml" title="Gorai" />
+
+  
+</head>
+<body dir="ltr" class="book-kind-home book-type-page">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><span>Gorai</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+<ul><li><a href="/docs/">Documentation</a></li></ul>
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-400d69a699366cb0649f753c045195ad" class="toggle"  />
+    <label for="section-400d69a699366cb0649f753c045195ad" class="flex">
+      <a href="/docs/getting-started/" class="">
+        Getting Started</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/installation/" class="">
+      Installation</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/quickstart/" class="">
+      Quick Start</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/concepts/" class="">
+      Core Concepts</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-427fceb1088260b05915c13eb9a205f9" class="toggle"  />
+    <label for="section-427fceb1088260b05915c13eb9a205f9" class="flex">
+      <a href="/docs/guides/" class="">
+        Guides</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/components/" class="">
+      Working with Components</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/services/" class="">
+      Working with Services</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/nats/" class="">
+      NATS Messaging</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/configuration/" class="">
+      Configuration</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/testing/" class="">
+      Testing</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e0e300610bc7f463db35528946c8046c" class="toggle"  />
+    <label for="section-e0e300610bc7f463db35528946c8046c" class="flex">
+      <a href="/docs/reference/" class="">
+        Reference</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/reference/cli/" class="">
+      CLI Reference</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+<ul><li><a href="https://github.com/gorai/gorai" target="_blank" rel="noopener">GitHub</a></li></ul>
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Gorai</h3>
+
+  <label for="toc-control">
+    
+    <img src="/icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-is-gorai">What is Gorai?</a></li>
+    <li><a href="#quick-start">Quick Start</a></li>
+    <li><a href="#why-gorai">Why Gorai?</a></li>
+    <li><a href="#get-started">Get Started</a></li>
+    <li><a href="#resources">Resources</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="gorai">Gorai<a class="anchor" href="#gorai">#</a></h1>
+<p><strong>A lightweight, Go-based robotics framework built on NATS.io</strong></p>
+<p><em>Pronounced &ldquo;go-ray&rdquo; (like &ldquo;sting-ray&rdquo;)</em></p>
+<hr>
+<h2 id="what-is-gorai">What is Gorai?<a class="anchor" href="#what-is-gorai">#</a></h2>
+<p>Gorai is a modern robotics framework that provides:</p>
+<ul>
+<li><strong>NATS-based messaging</strong> for pub/sub, request/reply, and persistence</li>
+<li><strong>Go-native design</strong> with single-binary deployment</li>
+<li><strong>Component architecture</strong> for sensors, actuators, and services</li>
+<li><strong>First-class AI/ML support</strong> with hardware acceleration</li>
+<li><strong>TinyGo compatibility</strong> for microcontrollers</li>
+</ul>
+<h2 id="quick-start">Quick Start<a class="anchor" href="#quick-start">#</a></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Install Gorai CLI</span>
+</span></span><span class="line"><span class="cl">go install github.com/gorai/gorai/cmd/gorai@latest
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a new project</span>
+</span></span><span class="line"><span class="cl">gorai init my-robot
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Run the example</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> my-robot <span class="o">&amp;&amp;</span> go run .</span></span></code></pre></div><h2 id="why-gorai">Why Gorai?<a class="anchor" href="#why-gorai">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>Aspect</th>
+          <th>Gorai</th>
+          <th>ROS 2</th>
+          <th>Viam</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Language</strong></td>
+          <td>Go + TinyGo</td>
+          <td>C++/Python</td>
+          <td>Go</td>
+      </tr>
+      <tr>
+          <td><strong>Middleware</strong></td>
+          <td>NATS</td>
+          <td>DDS</td>
+          <td>gRPC</td>
+      </tr>
+      <tr>
+          <td><strong>Deployment</strong></td>
+          <td>Single binary</td>
+          <td>Complex</td>
+          <td>Cloud-dependent</td>
+      </tr>
+      <tr>
+          <td><strong>Learning curve</strong></td>
+          <td>Low</td>
+          <td>High</td>
+          <td>Medium</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="get-started">Get Started<a class="anchor" href="#get-started">#</a></h2>
+<ul>
+<li><strong><a href="/docs/getting-started/installation/">Installation</a></strong> — Set up your development environment</li>
+<li><strong><a href="/docs/getting-started/quickstart/">Quick Start</a></strong> — Build your first component</li>
+<li><strong><a href="/docs/getting-started/concepts/">Core Concepts</a></strong> — Understand the architecture</li>
+</ul>
+<h2 id="resources">Resources<a class="anchor" href="#resources">#</a></h2>
+<ul>
+<li><strong><a href="/docs/">Documentation</a></strong> — Guides and reference</li>
+<li><strong><a href="/examples/">Examples</a></strong> — Working code samples</li>
+<li><strong><a href="/book/">The Book</a></strong> — Comprehensive tutorial (PDF/ePub)</li>
+<li><strong><a href="https://github.com/gorai/gorai">GitHub</a></strong> — Source code and issues</li>
+</ul>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+
+
+
+
+  
+  
+  
+
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+        
+        
+  
+ 
+        
+  
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-is-gorai">What is Gorai?</a></li>
+    <li><a href="#quick-start">Quick Start</a></li>
+    <li><a href="#why-gorai">Why Gorai?</a></li>
+    <li><a href="#get-started">Get Started</a></li>
+    <li><a href="#resources">Resources</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

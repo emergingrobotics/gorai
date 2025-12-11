@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+<head>
+  <!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Command-line interface documentation">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="https://gorai.dev/docs/reference/cli/">
+  <meta property="og:site_name" content="Gorai">
+  <meta property="og:title" content="CLI Reference">
+  <meta property="og:description" content="Command-line interface documentation">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="docs">
+
+
+  <meta itemprop="name" content="CLI Reference">
+  <meta itemprop="description" content="Command-line interface documentation">
+  <meta itemprop="wordCount" content="64">
+
+<title>CLI Reference | Gorai</title>
+<link rel="icon" href="/favicon.png" >
+<link rel="manifest" href="/manifest.json">
+<link rel="canonical" href="https://gorai.dev/docs/reference/cli/">
+<link rel="stylesheet" href="/book.min.f21d99da4b268e0046277313e7867ebe88e94ce65694bfcd5aa2ea17738796cc.css" integrity="sha256-8h2Z2ksmjgBGJ3MT54Z&#43;vojpTOZWlL/NWqLqF3OHlsw=" crossorigin="anonymous">
+
+
+  <script defer src="/fuse.min.js"></script>
+  <script defer src="/en.search.min.e261d98f1e2080b37f4b6302df8c6bcaf990dba6c79e079edae13bcc3a1b5197.js" integrity="sha256-4mHZjx4ggLN/S2MC34xryvmQ26bHngee2uE7zDobUZc=" crossorigin="anonymous"></script>
+
+
+
+  
+</head>
+<body dir="ltr" class="book-kind-page book-type-docs">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    
+<aside class="book-menu">
+  <div class="book-menu-content">
+    
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><span>Gorai</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input id="book-search-input" type="text" 
+    placeholder="Search"
+    aria-label="Search"
+    maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+<ul><li><a href="/docs/">Documentation</a></li></ul>
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-400d69a699366cb0649f753c045195ad" class="toggle"  />
+    <label for="section-400d69a699366cb0649f753c045195ad" class="flex">
+      <a href="/docs/getting-started/" class="">
+        Getting Started</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/installation/" class="">
+      Installation</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/quickstart/" class="">
+      Quick Start</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/getting-started/concepts/" class="">
+      Core Concepts</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-427fceb1088260b05915c13eb9a205f9" class="toggle"  />
+    <label for="section-427fceb1088260b05915c13eb9a205f9" class="flex">
+      <a href="/docs/guides/" class="">
+        Guides</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/components/" class="">
+      Working with Components</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/services/" class="">
+      Working with Services</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/nats/" class="">
+      NATS Messaging</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/configuration/" class="">
+      Configuration</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/guides/testing/" class="">
+      Testing</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <input type="checkbox" id="section-e0e300610bc7f463db35528946c8046c" class="toggle" checked />
+    <label for="section-e0e300610bc7f463db35528946c8046c" class="flex">
+      <a href="/docs/reference/" class="">
+        Reference</a>
+      <img src="/icons/chevron-right.svg" class="book-icon" alt="Expand" />
+    </label>
+  
+
+          
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/reference/cli/" class="active">
+      CLI Reference</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+<ul><li><a href="https://github.com/gorai/gorai" target="_blank" rel="noopener">GitHub</a></li></ul>
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+
+  </div>
+</aside>
+ 
+
+    <div class="book-page">
+      <header class="book-header hidden">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/icons/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>CLI Reference</h3>
+
+  <label for="toc-control">
+    
+    <img src="/icons/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#commands">Commands</a>
+      <ul>
+        <li><a href="#gorai-init">gorai init</a></li>
+        <li><a href="#gorai-run">gorai run</a></li>
+        <li><a href="#gorai-build">gorai build</a></li>
+        <li><a href="#gorai-version">gorai version</a></li>
+      </ul>
+    </li>
+    <li><a href="#global-flags">Global Flags</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h1 id="cli-reference">CLI Reference<a class="anchor" href="#cli-reference">#</a></h1>
+<p>The <code>gorai</code> command-line tool provides utilities for development and deployment.</p>
+<h2 id="commands">Commands<a class="anchor" href="#commands">#</a></h2>
+<h3 id="gorai-init">gorai init<a class="anchor" href="#gorai-init">#</a></h3>
+<p>Create a new Gorai project:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">gorai init &lt;project-name&gt;</span></span></code></pre></div><h3 id="gorai-run">gorai run<a class="anchor" href="#gorai-run">#</a></h3>
+<p>Run a Gorai application:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">gorai run <span class="o">[</span>--config config.yaml<span class="o">]</span></span></span></code></pre></div><h3 id="gorai-build">gorai build<a class="anchor" href="#gorai-build">#</a></h3>
+<p>Build for deployment:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">gorai build <span class="o">[</span>--target linux/arm64<span class="o">]</span></span></span></code></pre></div><h3 id="gorai-version">gorai version<a class="anchor" href="#gorai-version">#</a></h3>
+<p>Show version information:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">gorai version</span></span></code></pre></div><h2 id="global-flags">Global Flags<a class="anchor" href="#global-flags">#</a></h2>
+<table>
+  <thead>
+      <tr>
+          <th>Flag</th>
+          <th>Description</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>--config</code></td>
+          <td>Configuration file path</td>
+      </tr>
+      <tr>
+          <td><code>--log-level</code></td>
+          <td>Log level (debug, info, warn, error)</td>
+      </tr>
+      <tr>
+          <td><code>--nats-url</code></td>
+          <td>NATS server URL</td>
+      </tr>
+  </tbody>
+</table>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+<div>
+
+</div>
+
+<div>
+
+</div>
+
+</div>
+
+
+
+
+
+  
+  
+  
+  <div class="flex flex-wrap justify-between">
+    <span>
+    
+      <a href="/docs/reference/" class="flex align-center">
+        <img src="/icons/backward.svg" class="book-icon" alt="Backward" />
+        <span>Reference</span>
+      </a>
+    
+    </span>
+    <span>
+    
+    </span>
+  </div>
+  
+
+
+ 
+        
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+        
+        
+  
+ 
+        
+  
+  
+    <script>(function(){document.querySelectorAll("pre:has(code)").forEach(e=>{e.addEventListener("click",e.focus),e.addEventListener("copy",function(t){if(t.preventDefault(),navigator.clipboard){const t=window.getSelection().toString()||e.textContent;navigator.clipboard.writeText(t)}})})})()</script>
+  
+
+      </footer>
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+  
+  <aside class="book-toc">
+    <div class="book-toc-content">
+      
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#commands">Commands</a>
+      <ul>
+        <li><a href="#gorai-init">gorai init</a></li>
+        <li><a href="#gorai-run">gorai run</a></li>
+        <li><a href="#gorai-build">gorai build</a></li>
+        <li><a href="#gorai-version">gorai version</a></li>
+      </ul>
+    </li>
+    <li><a href="#global-flags">Global Flags</a></li>
+  </ul>
+</nav>
+
+
+
+    </div>
+  </aside>
+  
+ 
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
