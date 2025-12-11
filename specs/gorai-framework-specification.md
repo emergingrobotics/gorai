@@ -168,6 +168,71 @@ flowchart TB
     nats --> Logging
 ```
 
+### Concurrency Model
+
+Gorai uses a **single-owner model** for components, following Go's philosophy of "share memory by communicating, don't communicate by sharing memory."
+
+#### Principles
+
+1. **Single Goroutine Ownership**: Each component instance is owned and accessed by a single goroutine. This eliminates the need for mutex protection on component state.
+
+2. **No Internal Locking Required**: Component implementations should not use `sync.Mutex` or `sync.RWMutex` for protecting their internal state. The owner goroutine is responsible for all direct access.
+
+3. **NATS for Coordination**: When multiple goroutines or nodes need to coordinate around a component:
+   - Publish state changes to NATS topics
+   - Use NATS request/reply for cross-goroutine queries
+   - Leverage JetStream for state persistence and replay
+
+4. **Message Passing Over Shared State**: Inter-component communication happens through NATS messaging, not shared memory. This naturally extends to distributed systems where components may run on different machines.
+
+#### Example Patterns
+
+**Single-owner access (preferred):**
+```go
+// Component owned by one goroutine - no locking needed
+type myMotor struct {
+    power    float64
+    velocity float64
+}
+
+func (m *myMotor) SetPower(ctx context.Context, power float64) error {
+    m.power = power  // Safe: single owner
+    return nil
+}
+```
+
+**Cross-goroutine coordination via NATS:**
+```go
+// When another goroutine needs motor state, request via NATS
+reply, err := nc.Request("motor.left_wheel.state", nil, time.Second)
+```
+
+**Publishing state changes:**
+```go
+// Owner publishes state changes for observers
+func (m *myMotor) SetPower(ctx context.Context, power float64) error {
+    m.power = power
+    m.nc.Publish("motor.left_wheel.power", []byte(fmt.Sprintf("%f", power)))
+    return nil
+}
+```
+
+#### Benefits
+
+- **Simplicity**: No complex locking logic or deadlock risks
+- **Performance**: No lock contention overhead
+- **Scalability**: Same pattern works locally and across network
+- **Debuggability**: Clear ownership makes reasoning about state easier
+- **Go-idiomatic**: Aligns with Go's concurrency best practices
+
+#### When to Use NATS Coordination
+
+Use NATS messaging instead of direct access when:
+- A monitoring/logging goroutine needs to observe component state
+- A supervisor needs to query multiple components
+- Components need to react to each other's state changes
+- The system spans multiple processes or machines
+
 ---
 
 ## Resource Model
@@ -314,10 +379,16 @@ Components are Resources that abstract hardware. They are organized into five fu
 
 | Subtype | Description | Examples |
 |---------|-------------|----------|
-| `camera` | Visual sensors | RGB, depth, stereo, thermal |
-| `movement_sensor` | Motion/orientation | IMU, GPS, encoders |
-| `range_sensor` | Distance measurement | LiDAR, ultrasonic, infrared |
-| `environmental` | Environmental conditions | Temperature, humidity, pressure |
+| `camera` | Visual sensors | RGB webcam, stereo (ZED, RealSense), depth (OAK-D), thermal (MLX90640) |
+| `lidar` | Laser scanning | 2D (RPLIDAR A1/A3/C1), 3D (Livox, Velodyne) |
+| `imu` | Inertial measurement | 6-DOF (MPU6050), 9-DOF AHRS (BNO055), ICM-20948 |
+| `gps` | Global positioning | GNSS modules (NEO-6M, NEO-M9N), RTK receivers |
+| `encoder` | Position/velocity | Optical incremental, magnetic absolute (AS5600) |
+| `range_sensor` | Distance measurement | Ultrasonic (HC-SR04), ToF (VL53L0X, VL53L1X) |
+| `presence_sensor` | Presence/motion detection | PIR (HC-SR501), mmWave radar (24GHz/60GHz) |
+| `force_sensor` | Force/torque measurement | FSR, load cells (HX711), 6-axis F/T |
+| `current_sensor` | Electrical current | Hall effect (ACS712), INA219 |
+| `environmental` | Environmental conditions | Temperature, humidity, pressure, illuminance |
 
 ```go
 // Sensor can only read from the environment
@@ -333,11 +404,15 @@ type Sensor interface {
 
 | Subtype | Description | Examples |
 |---------|-------------|----------|
-| `motor` | Rotary motion | DC, servo, stepper, BLDC |
-| `base` | Mobile platform | Differential drive, holonomic |
-| `arm` | Articulated manipulator | 6-DOF arm, SCARA |
-| `gripper` | End effector | Parallel jaw, vacuum, soft |
-| `linear` | Linear motion | Linear actuator, lead screw |
+| `motor` | Rotary motion (generic) | DC brushed, BLDC with FOC (ODrive, VESC) |
+| `servo` | Position-controlled motor | RC PWM servos, smart servos (Dynamixel, LX-16A) |
+| `stepper` | Discrete-step motor | NEMA 17/23/34 with drivers (A4988, TMC2209) |
+| `thruster` | Underwater propulsion | BlueRobotics T100/T200, marine ESCs |
+| `base` | Mobile platform | Differential drive, holonomic, tracked |
+| `arm` | Articulated manipulator | 6-DOF arm, SCARA, delta |
+| `gripper` | End effector | Parallel jaw, vacuum, soft gripper |
+| `linear` | Linear motion | Lead screw, ball screw, belt drive actuators |
+| `valve` | Fluid control | Solenoid, servo valve, ball valve |
 
 ```go
 // Actuator can change the environment and optionally sense it
@@ -1172,6 +1247,63 @@ message Illuminance {
     double illuminance = 2;           // Lux
     double variance = 3;
 }
+
+// ThermalImage represents thermal array data (AMG8833, MLX90640).
+message ThermalImage {
+    gorai.std.Header header = 1;
+    uint32 height = 2;                // Pixels (e.g., 8, 32)
+    uint32 width = 3;                 // Pixels (e.g., 8, 24)
+    repeated float temperatures = 4;  // Row-major, Celsius
+    float ambient_temperature = 5;    // Sensor ambient temp
+    float min_temperature = 6;        // Minimum in frame
+    float max_temperature = 7;        // Maximum in frame
+}
+
+// Presence represents presence/motion detection (PIR, mmWave).
+message Presence {
+    gorai.std.Header header = 1;
+    bool detected = 2;                // Presence detected
+    enum MotionState {
+        MOTION_UNKNOWN = 0;
+        MOTION_STATIC = 1;
+        MOTION_MOVING = 2;
+    }
+    MotionState motion_state = 3;     // For mmWave radar
+    float distance = 4;               // Meters (if available)
+    float speed = 5;                  // m/s (if available)
+}
+
+// Force represents force sensor reading.
+message Force {
+    gorai.std.Header header = 1;
+    double force = 2;                 // Newtons
+    double variance = 3;
+}
+
+// Current represents electrical current measurement.
+message Current {
+    gorai.std.Header header = 1;
+    double current = 2;               // Amps
+    double voltage = 3;               // Volts (if available)
+    double power = 4;                 // Watts (if available)
+}
+
+// Reflectance represents line following sensor data.
+message Reflectance {
+    gorai.std.Header header = 1;
+    repeated float values = 2;        // 0.0-1.0 per channel
+    float line_position = 3;          // Weighted average position
+    uint32 channel_count = 4;         // Number of channels
+}
+
+// EncoderState represents encoder position and velocity.
+message EncoderState {
+    gorai.std.Header header = 1;
+    int64 position = 2;               // Counts
+    double velocity = 3;              // Counts/sec
+    int32 resolution = 4;             // PPR or bits
+    bool is_absolute = 5;             // Absolute vs incremental
+}
 ```
 
 ### control.proto - Control Messages
@@ -1267,6 +1399,82 @@ message GripperState {
     double effort = 3;
     bool stalled = 4;
     bool reached_goal = 5;
+}
+
+// ServoCommand commands a servo motor.
+message ServoCommand {
+    gorai.std.Header header = 1;
+    double angle = 2;                 // Target angle (degrees)
+    double speed = 3;                 // Movement speed (degrees/sec or 0-1)
+    double torque_limit = 4;          // Torque limit (0-1, optional)
+}
+
+// ServoState reports servo status.
+message ServoState {
+    gorai.std.Header header = 1;
+    double angle = 2;                 // Current angle (degrees)
+    double velocity = 3;              // Current velocity
+    double load = 4;                  // Current load/torque (0-1)
+    double temperature = 5;           // Temperature (Celsius)
+    double voltage = 6;               // Supply voltage
+    bool is_moving = 7;
+}
+
+// StepperCommand commands a stepper motor.
+message StepperCommand {
+    gorai.std.Header header = 1;
+    enum Mode {
+        MODE_STEP = 0;                // Step count mode
+        MODE_POSITION = 1;            // Absolute position mode
+        MODE_VELOCITY = 2;            // Velocity mode
+    }
+    Mode mode = 2;
+    int64 steps = 3;                  // For MODE_STEP
+    int64 position = 4;               // For MODE_POSITION
+    double velocity = 5;              // Steps/sec or for MODE_VELOCITY
+    double acceleration = 6;          // Steps/sec²
+    bool direction = 7;               // For MODE_STEP
+}
+
+// StepperState reports stepper status.
+message StepperState {
+    gorai.std.Header header = 1;
+    int64 position = 2;               // Current position (steps)
+    double velocity = 3;              // Current velocity (steps/sec)
+    bool is_moving = 4;
+    bool stall_detected = 5;          // For TMC drivers
+    int32 microstepping = 6;          // Current microstepping divisor
+}
+
+// ThrusterCommand commands an underwater thruster.
+message ThrusterCommand {
+    gorai.std.Header header = 1;
+    double thrust = 2;                // -1.0 to 1.0
+}
+
+// ThrusterState reports thruster status.
+message ThrusterState {
+    gorai.std.Header header = 1;
+    double thrust = 2;                // Current thrust setting
+    int32 rpm = 3;                    // Current RPM (if telemetry available)
+    double current = 4;               // Motor current (amps)
+    double temperature = 5;           // Motor temperature (Celsius)
+    bool is_running = 6;
+}
+
+// ValveCommand commands a valve actuator.
+message ValveCommand {
+    gorai.std.Header header = 1;
+    double position = 2;              // 0.0 = closed, 1.0 = open
+}
+
+// ValveState reports valve status.
+message ValveState {
+    gorai.std.Header header = 1;
+    double position = 2;              // Current position (0-1)
+    bool is_open = 3;                 // Fully open
+    bool is_closed = 4;               // Fully closed
+    bool is_moving = 5;
 }
 ```
 
@@ -1989,6 +2197,141 @@ type Properties struct {
     VelocityReporting bool
     SupportsGoTo      bool
 }
+
+// Specialized motor interfaces
+
+// Servo for position-controlled motors (RC servos, Dynamixel, etc.)
+type Servo interface {
+    resource.Resource
+
+    // SetAngle sets target angle in degrees.
+    SetAngle(ctx context.Context, degrees float64) error
+
+    // GetAngle returns current angle in degrees.
+    GetAngle(ctx context.Context) (float64, error)
+
+    // SetSpeed sets movement speed (degrees/sec for smart servos, or 0.0-1.0 for RC).
+    SetSpeed(ctx context.Context, speed float64) error
+
+    // SetTorqueLimit sets torque limit (0.0 to 1.0, smart servos only).
+    SetTorqueLimit(ctx context.Context, limit float64) error
+
+    // Stop stops movement.
+    Stop(ctx context.Context) error
+
+    // IsMoving returns true if servo is moving.
+    IsMoving(ctx context.Context) (bool, error)
+
+    // GetProperties returns servo capabilities.
+    GetProperties(ctx context.Context) (ServoProperties, error)
+}
+
+type ServoProperties struct {
+    MinAngle      float64 // degrees
+    MaxAngle      float64 // degrees
+    IsContinuous  bool    // Continuous rotation mode
+    HasFeedback   bool    // Position feedback available
+    Protocol      string  // "pwm", "dynamixel", "lx16a", "feetech"
+}
+
+// Stepper for discrete-step motors (NEMA 17, etc.)
+type Stepper interface {
+    resource.Resource
+
+    // Step moves a number of steps in a direction.
+    Step(ctx context.Context, steps int64, direction bool) error
+
+    // SetMicrostepping sets microstepping divisor (1, 2, 4, 8, 16, 32, 256).
+    SetMicrostepping(ctx context.Context, divisor int) error
+
+    // SetCurrent sets run and hold current in milliamps.
+    SetCurrent(ctx context.Context, runMA, holdMA int) error
+
+    // GetPosition returns current position in steps.
+    GetPosition(ctx context.Context) (int64, error)
+
+    // ResetPosition sets current position as zero.
+    ResetPosition(ctx context.Context) error
+
+    // Home moves to home position using limit switch or stall detection.
+    Home(ctx context.Context, direction bool) error
+
+    // Stop stops movement.
+    Stop(ctx context.Context) error
+
+    // IsMoving returns true if stepper is moving.
+    IsMoving(ctx context.Context) (bool, error)
+
+    // GetProperties returns stepper capabilities.
+    GetProperties(ctx context.Context) (StepperProperties, error)
+}
+
+type StepperProperties struct {
+    StepsPerRevolution int     // Native steps (typically 200)
+    MaxMicrostepping   int     // Maximum microstepping divisor
+    MaxCurrent         int     // Maximum current in mA
+    HasStallDetection  bool    // Sensorless homing available (TMC)
+    Driver             string  // "a4988", "drv8825", "tmc2209", "tmc5160"
+}
+
+// Thruster for underwater propulsion (BlueRobotics, etc.)
+type Thruster interface {
+    resource.Resource
+
+    // SetThrust sets thrust level (-1.0 to 1.0).
+    // Negative = reverse, positive = forward.
+    SetThrust(ctx context.Context, thrust float64) error
+
+    // Stop stops the thruster.
+    Stop(ctx context.Context) error
+
+    // IsRunning returns true if thruster is spinning.
+    IsRunning(ctx context.Context) (bool, error)
+
+    // GetRPM returns current RPM (if telemetry available).
+    GetRPM(ctx context.Context) (int, error)
+
+    // GetTemperature returns motor temperature (if available).
+    GetTemperature(ctx context.Context) (float64, error)
+
+    // GetCurrent returns motor current draw (if available).
+    GetCurrent(ctx context.Context) (float64, error)
+
+    // GetProperties returns thruster capabilities.
+    GetProperties(ctx context.Context) (ThrusterProperties, error)
+}
+
+type ThrusterProperties struct {
+    MaxThrustForward  float64 // kgf
+    MaxThrustReverse  float64 // kgf
+    DeadbandWidth     float64 // PWM deadband in microseconds
+    IsBidirectional   bool
+    HasTelemetry      bool    // RPM/temp/current feedback
+    Protocol          string  // "pwm", "i2c", "can"
+}
+
+// Valve for fluid control actuators
+type Valve interface {
+    resource.Resource
+
+    // Open opens the valve fully.
+    Open(ctx context.Context) error
+
+    // Close closes the valve fully.
+    Close(ctx context.Context) error
+
+    // SetPosition sets valve position (0.0 = closed, 1.0 = open).
+    SetPosition(ctx context.Context, position float64) error
+
+    // GetPosition returns current valve position.
+    GetPosition(ctx context.Context) (float64, error)
+
+    // IsOpen returns true if valve is fully open.
+    IsOpen(ctx context.Context) (bool, error)
+
+    // IsClosed returns true if valve is fully closed.
+    IsClosed(ctx context.Context) (bool, error)
+}
 ```
 
 ### Camera Interface
@@ -2048,6 +2391,16 @@ type IMU interface {
     GetOrientation(ctx context.Context) (*geometry.Quaternion, error)
 }
 
+// AHRS extends IMU with onboard sensor fusion (e.g., BNO055)
+type AHRS interface {
+    IMU
+    GetEulerAngles(ctx context.Context) (roll, pitch, yaw float64, err error)
+    GetQuaternion(ctx context.Context) (*geometry.Quaternion, error)
+    GetLinearAccelerationWithoutGravity(ctx context.Context) (*geometry.Vector3, error)
+    GetGravityVector(ctx context.Context) (*geometry.Vector3, error)
+    GetCalibrationStatus(ctx context.Context) (sys, gyro, accel, mag uint8, err error)
+}
+
 type GPS interface {
     Sensor
     GetPosition(ctx context.Context) (*GeoPoint, error)
@@ -2055,19 +2408,103 @@ type GPS interface {
     GetLinearVelocity(ctx context.Context) (*geometry.Vector3, error)
     GetHeading(ctx context.Context) (float64, error)
     GetAccuracy(ctx context.Context) (float64, float64, error) // horizontal, vertical
+    GetFixQuality(ctx context.Context) (FixQuality, error)
+    GetSatellitesUsed(ctx context.Context) (int, error)
 }
+
+type FixQuality int
+const (
+    FixNone FixQuality = iota
+    FixGPS
+    FixDGPS
+    FixRTK
+)
 
 type Encoder interface {
     Sensor
-    GetPosition(ctx context.Context) (float64, error)
-    GetVelocity(ctx context.Context) (float64, error)
+    GetPosition(ctx context.Context) (float64, error)  // counts or radians
+    GetVelocity(ctx context.Context) (float64, error)  // counts/sec or rad/s
     ResetPosition(ctx context.Context) error
+    GetResolution(ctx context.Context) (int, error)    // PPR or bits
 }
 
 type RangeSensor interface {
     Sensor
-    GetRange(ctx context.Context) (float64, error)
-    GetRanges(ctx context.Context) ([]float64, error) // For array sensors
+    GetRange(ctx context.Context) (float64, error)     // meters
+    GetRanges(ctx context.Context) ([]float64, error)  // For array sensors
+    GetMinRange(ctx context.Context) (float64, error)
+    GetMaxRange(ctx context.Context) (float64, error)
+}
+
+// LiDAR for 2D/3D laser scanning (RPLIDAR, etc.)
+type LiDAR interface {
+    Sensor
+    GetScan(ctx context.Context) (*LaserScan, error)
+    GetPointCloud(ctx context.Context) (*PointCloud2, error) // For 3D LiDAR
+    GetScanRate(ctx context.Context) (float64, error)        // Hz
+    SetScanMode(ctx context.Context, mode string) error      // "standard", "boost", etc.
+    GetProperties(ctx context.Context) (LiDARProperties, error)
+}
+
+type LiDARProperties struct {
+    MinRange        float64   // meters
+    MaxRange        float64   // meters
+    AngularResolution float64 // degrees
+    SampleRate      int       // points/second
+    Is3D            bool
+}
+
+// PresenceSensor for PIR and mmWave presence detection
+type PresenceSensor interface {
+    Sensor
+    IsPresenceDetected(ctx context.Context) (bool, error)
+    GetDistance(ctx context.Context) (float64, error)        // meters, if supported
+    GetMotionState(ctx context.Context) (MotionState, error) // static/moving
+}
+
+type MotionState int
+const (
+    MotionUnknown MotionState = iota
+    MotionStatic
+    MotionMoving
+)
+
+// ThermalArray for thermal imaging (AMG8833, MLX90640)
+type ThermalArray interface {
+    Sensor
+    GetTemperatureGrid(ctx context.Context) ([][]float64, error)  // °C
+    GetAmbientTemperature(ctx context.Context) (float64, error)
+    GetMinMaxTemperature(ctx context.Context) (min, max float64, err error)
+    GetResolution(ctx context.Context) (width, height int, err error)
+}
+
+// ForceSensor for force/torque measurement
+type ForceSensor interface {
+    Sensor
+    GetForce(ctx context.Context) (float64, error)  // Newtons
+    Tare(ctx context.Context) error                 // Zero the sensor
+}
+
+// Force6DOF for 6-axis force/torque sensors
+type Force6DOF interface {
+    ForceSensor
+    GetWrench(ctx context.Context) (*geometry.Wrench, error)  // Fx,Fy,Fz,Tx,Ty,Tz
+}
+
+// CurrentSensor for electrical current monitoring
+type CurrentSensor interface {
+    Sensor
+    GetCurrent(ctx context.Context) (float64, error)   // Amps
+    GetVoltage(ctx context.Context) (float64, error)   // Volts, if supported
+    GetPower(ctx context.Context) (float64, error)     // Watts, if supported
+}
+
+// ReflectanceSensor for line following (QTR-8RC, etc.)
+type ReflectanceSensor interface {
+    Sensor
+    GetReflectances(ctx context.Context) ([]float64, error)  // 0.0-1.0 per channel
+    GetLinePosition(ctx context.Context) (float64, error)    // Weighted average
+    Calibrate(ctx context.Context) error
 }
 ```
 
