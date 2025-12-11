@@ -2,7 +2,7 @@
 title: "Reference"
 description: "Technical reference documentation"
 weight: 3
-bookCollapseSection: true
+bookFlatSection: true
 ---
 
 # Reference

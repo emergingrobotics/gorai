@@ -2,7 +2,7 @@
 title: "Guides"
 description: "How-to guides for common Gorai tasks"
 weight: 2
-bookCollapseSection: true
+bookFlatSection: true
 ---
 
 # Guides
