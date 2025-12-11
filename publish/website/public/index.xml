@@ -279,7 +279,108 @@
 &lt;li&gt;&lt;code&gt;&amp;gt;&lt;/code&gt; — Match multiple tokens: &lt;code&gt;sensors.&amp;gt;&lt;/code&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id="requestreply"&gt;Request/Reply&lt;a class="anchor" href="#requestreply"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;p&gt;For commands that need acknowledgment.&lt;/p&gt;</description></item><item><title>Configuration</title><link>https://gorai.dev/docs/guides/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/guides/configuration/</guid><description>&lt;h1 id="configuration-guide"&gt;Configuration Guide&lt;a class="anchor" href="#configuration-guide"&gt;#&lt;/a&gt;&lt;/h1&gt;
+&lt;p&gt;For commands that need acknowledgment.&lt;/p&gt;</description></item><item><title>Prometheus Metrics</title><link>https://gorai.dev/docs/guides/prometheus/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/guides/prometheus/</guid><description>&lt;h1 id="prometheus-metrics-guide"&gt;Prometheus Metrics Guide&lt;a class="anchor" href="#prometheus-metrics-guide"&gt;#&lt;/a&gt;&lt;/h1&gt;
+&lt;p&gt;Gorai uses &lt;a href="https://prometheus.io/"&gt;Prometheus&lt;/a&gt; as a mandatory dependency for metrics collection, time-series storage, and alerting. Prometheus runs locally on the robot alongside NATS and the Gorai binary.&lt;/p&gt;
+&lt;h2 id="overview"&gt;Overview&lt;a class="anchor" href="#overview"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Robot Architecture
+┌─────────────────────────────────────────────────────────────┐
+│ │
+│ ┌─────────────────┐ ┌─────────────────┐ │
+│ │ Gorai Binary │ │ NATS Server │ │
+│ │ │ │ (:4222) │ │
+│ │ :8080 dashboard│ └─────────────────┘ │
+│ │ :9091 /metrics │ │
+│ └────────┬────────┘ │
+│ │ scrape every 5s │
+│ ▼ │
+│ ┌─────────────────┐ ┌─────────────────┐ │
+│ │ Prometheus │───▶│ Alert Manager │ │
+│ │ (:9090) │ │ (:9093) │ │
+│ │ │ │ (optional) │ │
+│ └─────────────────┘ └─────────────────┘ │
+│ │
+└─────────────────────────────────────────────────────────────┘&lt;/code&gt;&lt;/pre&gt;&lt;h2 id="why-prometheus"&gt;Why Prometheus?&lt;a class="anchor" href="#why-prometheus"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;table&gt;
+ &lt;thead&gt;
+ &lt;tr&gt;
+ &lt;th&gt;Benefit&lt;/th&gt;
+ &lt;th&gt;Description&lt;/th&gt;
+ &lt;/tr&gt;
+ &lt;/thead&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;Battle-tested&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;Industry standard used by Kubernetes, GitLab, countless production systems&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;Local-first&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;Runs entirely on-robot with no cloud dependency&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;Efficient storage&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;Custom TSDB optimized for time-series data&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;Powerful queries&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;PromQL enables complex analysis&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;Alerting built-in&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;Alert Manager handles notifications&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;Ecosystem&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;Grafana dashboards, exporters, recording rules&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id="installation"&gt;Installation&lt;a class="anchor" href="#installation"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;h3 id="debianubuntu"&gt;Debian/Ubuntu&lt;a class="anchor" href="#debianubuntu"&gt;#&lt;/a&gt;&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo apt install prometheus prometheus-alertmanager
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;prometheus --version&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="fedorarhel"&gt;Fedora/RHEL&lt;a class="anchor" href="#fedorarhel"&gt;#&lt;/a&gt;&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo dnf install prometheus prometheus-alertmanager&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="from-binary"&gt;From Binary&lt;a class="anchor" href="#from-binary"&gt;#&lt;/a&gt;&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Prometheus&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;wget https://github.com/prometheus/prometheus/releases/download/v2.48.0/prometheus-2.48.0.linux-amd64.tar.gz
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tar xvfz prometheus-*.tar.gz
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo mv prometheus-*/prometheus /usr/local/bin/
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo mv prometheus-*/promtool /usr/local/bin/
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Alert Manager (optional)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;wget https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tar xvfz alertmanager-*.tar.gz
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo mv alertmanager-*/alertmanager /usr/local/bin/&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="configuration"&gt;Configuration&lt;a class="anchor" href="#configuration"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;h3 id="robot-configuration-rdl"&gt;Robot Configuration (RDL)&lt;a class="anchor" href="#robot-configuration-rdl"&gt;#&lt;/a&gt;&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-json" data-lang="json"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;prometheus&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;url&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;http://localhost:9090&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;metrics_port&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;9091&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;metrics_path&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;/metrics&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;scrape_interval&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;5s&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;retention&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;15d&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;labels&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;environment&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;production&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nt"&gt;&amp;#34;location&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;warehouse-a&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="prometheus-configuration"&gt;Prometheus Configuration&lt;a class="anchor" href="#prometheus-configuration"&gt;#&lt;/a&gt;&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# /etc/prometheus/prometheus.yml&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;&lt;/span&gt;&lt;span class="nt"&gt;global&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;scrape_interval&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;5s&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;evaluation_interval&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;15s&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;&lt;/span&gt;&lt;span class="nt"&gt;scrape_configs&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;- &lt;span class="nt"&gt;job_name&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;gorai&amp;#39;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;static_configs&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;- &lt;span class="nt"&gt;targets&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;localhost:9091&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;&lt;/span&gt;&lt;span class="nt"&gt;rule_files&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;- &lt;span class="s1"&gt;&amp;#39;/etc/gorai/alerts.yml&amp;#39;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;&lt;/span&gt;&lt;span class="nt"&gt;alerting&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;alertmanagers&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;- &lt;span class="nt"&gt;static_configs&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;- &lt;span class="nt"&gt;targets&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;localhost:9093&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="metrics"&gt;Metrics&lt;a class="anchor" href="#metrics"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;p&gt;Gorai exposes metrics at &lt;code&gt;:9091/metrics&lt;/code&gt; in Prometheus format.&lt;/p&gt;</description></item><item><title>Configuration</title><link>https://gorai.dev/docs/guides/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/guides/configuration/</guid><description>&lt;h1 id="configuration-guide"&gt;Configuration Guide&lt;a class="anchor" href="#configuration-guide"&gt;#&lt;/a&gt;&lt;/h1&gt;
 &lt;p&gt;Gorai supports configuration through YAML files and environment variables.&lt;/p&gt;
 &lt;h2 id="yaml-configuration"&gt;YAML Configuration&lt;a class="anchor" href="#yaml-configuration"&gt;#&lt;/a&gt;&lt;/h2&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# config.yaml&lt;/span&gt;&lt;span class="w"&gt;
@@ -311,7 +412,43 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;a href="../testing/"&gt;Testing Guide&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href="https://gorai.dev/docs/reference/configuration/"&gt;Reference: Configuration&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</description></item><item><title>Testing</title><link>https://gorai.dev/docs/guides/testing/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/guides/testing/</guid><description>&lt;h1 id="testing-guide"&gt;Testing Guide&lt;a class="anchor" href="#testing-guide"&gt;#&lt;/a&gt;&lt;/h1&gt;
+&lt;/ul&gt;</description></item><item><title>Web Dashboard</title><link>https://gorai.dev/docs/guides/dashboard/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/guides/dashboard/</guid><description>&lt;h1 id="web-dashboard-guide"&gt;Web Dashboard Guide&lt;a class="anchor" href="#web-dashboard-guide"&gt;#&lt;/a&gt;&lt;/h1&gt;
+&lt;p&gt;Gorai includes a built-in web dashboard for real-time monitoring. The dashboard is compiled into the Gorai binary using Go&amp;rsquo;s &lt;code&gt;embed.FS&lt;/code&gt; — no external files or dependencies required.&lt;/p&gt;
+&lt;h2 id="overview"&gt;Overview&lt;a class="anchor" href="#overview"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;p&gt;The dashboard provides:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Gauges&lt;/strong&gt; — Real-time current values for all sensors&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;History&lt;/strong&gt; — Time-series graphs with configurable retention&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Alerts&lt;/strong&gt; — Active alerts from Prometheus Alert Manager&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Cameras&lt;/strong&gt; — Live video streaming (MJPEG/WebRTC)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Topology&lt;/strong&gt; — Node and component visualization&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="architecture"&gt;Architecture&lt;a class="anchor" href="#architecture"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;┌─────────────────────────────────────────────────────────┐
+│ Gorai Binary │
+│ ┌──────────────────────────────────────────────────┐ │
+│ │ Dashboard Server (:8080) │ │
+│ │ │ │
+│ │ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │ │
+│ │ │ Templ │ │ HTMX │ │ uPlot │ │ │
+│ │ │Templates│ │ Updates │ │ Charts │ │ │
+│ │ └────┬────┘ └────┬────┘ └────────┬────────┘ │ │
+│ │ │ │ │ │ │
+│ │ └────────────┴────────────────┘ │ │
+│ │ │ │ │
+│ │ ┌─────┴─────┐ │ │
+│ │ │Prometheus │ │ │
+│ │ │ Client │ │ │
+│ │ └───────────┘ │ │
+│ └──────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+ │
+ ▼ PromQL queries
+ ┌───────────────────────┐
+ │ Prometheus (:9090) │
+ └───────────────────────┘&lt;/code&gt;&lt;/pre&gt;&lt;h2 id="configuration"&gt;Configuration&lt;a class="anchor" href="#configuration"&gt;#&lt;/a&gt;&lt;/h2&gt;
+&lt;h3 id="enabledisable"&gt;Enable/Disable&lt;a class="anchor" href="#enabledisable"&gt;#&lt;/a&gt;&lt;/h3&gt;
+&lt;p&gt;The dashboard is enabled by default. To disable:&lt;/p&gt;</description></item><item><title>Testing</title><link>https://gorai.dev/docs/guides/testing/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/guides/testing/</guid><description>&lt;h1 id="testing-guide"&gt;Testing Guide&lt;a class="anchor" href="#testing-guide"&gt;#&lt;/a&gt;&lt;/h1&gt;
 &lt;p&gt;Robots are safety-critical systems. Testing is not optional—it&amp;rsquo;s essential. Gorai provides patterns and tools for comprehensive testing.&lt;/p&gt;
 &lt;h2 id="the-testing-pyramid"&gt;The Testing Pyramid&lt;a class="anchor" href="#the-testing-pyramid"&gt;#&lt;/a&gt;&lt;/h2&gt;
 &lt;pre tabindex="0"&gt;&lt;code&gt; /\

@@ -55,10 +55,13 @@ RDL files use the `.json` extension. By convention, the main robot configuration
   "version": "1",
   "robot": { },
   "nats": { },
+  "prometheus": { },
   "components": [ ],
   "services": [ ],
   "remotes": [ ],
-  "log": { }
+  "log": { },
+  "dashboard": { },
+  "alerting": { }
 }
 ```
 
@@ -68,10 +71,13 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 | `version` | string | Yes | RDL version ("1") |
 | `robot` | object | Yes | Robot identity |
 | `nats` | object | No | NATS connection config |
+| `prometheus` | object | No | Prometheus time-series database config (required dependency) |
 | `components` | array | No | Component definitions |
 | `services` | array | No | Service definitions |
 | `remotes` | array | No | Remote robot connections |
 | `log` | object | No | Logging configuration |
+| `dashboard` | object | No | Web dashboard configuration (enabled by default) |
+| `alerting` | object | No | Alert Manager configuration |
 
 ---
 
@@ -451,16 +457,381 @@ Configures logging behavior.
 
 ---
 
-## 9. Validation Rules
+## 9. Prometheus Object
 
-### 9.1 Structural Validation
+Prometheus is a **required dependency** for Gorai, running locally on the robot alongside NATS. It provides time-series storage, powerful queries via PromQL, and integrates with Alert Manager for alerting.
+
+```json
+{
+  "prometheus": {
+    "url": "http://localhost:9090",
+    "metrics_port": 9091,
+    "metrics_path": "/metrics",
+    "scrape_interval": "5s",
+    "retention": "15d",
+    "labels": {
+      "environment": "production"
+    }
+  }
+}
+```
+
+### 9.1 Prometheus Fields
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `url` | string | No | "http://localhost:9090" | Prometheus server URL |
+| `metrics_port` | int | No | 9091 | Port for Gorai's /metrics endpoint |
+| `metrics_path` | string | No | "/metrics" | Path for metrics endpoint |
+| `scrape_interval` | duration | No | "5s" | How often Prometheus scrapes metrics |
+| `retention` | duration | No | "15d" | How long Prometheus retains data |
+| `labels` | object | No | {} | Additional labels added to all metrics |
+
+### 9.2 Why Prometheus is Required
+
+Prometheus runs locally on the robot as a peer dependency alongside NATS:
+
+| Dependency | Purpose | Runs On |
+|------------|---------|---------|
+| **NATS** | Real-time messaging, pub/sub | Robot (localhost:4222) |
+| **Prometheus** | Time-series storage, queries, alerting | Robot (localhost:9090) |
+| **Alert Manager** | Alert routing and notifications | Robot (localhost:9093, optional) |
+
+### 9.3 Resource Requirements
+
+| Component | RAM | CPU | Disk |
+|-----------|-----|-----|------|
+| Gorai | 50-200 MB | Variable | Minimal |
+| NATS | 10-50 MB | Low | Minimal |
+| Prometheus | 200-500 MB | Low | ~2 GB/month |
+| Alert Manager | 50 MB | Minimal | Minimal |
+| **Total** | **~500 MB** | Low | ~2 GB/month |
+
+Compatible with: Raspberry Pi 4 (4GB), Jetson Nano, Rock 5B, any x86 system.
+
+### 9.4 Metrics Exported by Gorai
+
+Gorai automatically exports metrics in Prometheus format:
+
+```prometheus
+# Sensor readings
+gorai_sensor_value{robot="sentinel", sensor="imu", field="accel_x"} 0.02
+gorai_sensor_value{robot="sentinel", sensor="battery", field="level"} 0.73
+
+# Component state (1=running, 0=stopped, -1=error)
+gorai_component_state{robot="sentinel", component="motor_left"} 1
+
+# Inference metrics
+gorai_inference_duration_seconds{robot="sentinel", model="yolox", quantile="0.99"} 0.067
+gorai_detections_total{robot="sentinel", model="yolox", class="person"} 892
+
+# System metrics
+gorai_messages_total{robot="sentinel", direction="published"} 1234567
+gorai_errors_total{robot="sentinel", component="camera_front"} 3
+```
+
+### 9.5 PromQL Query Examples
+
+The dashboard and external tools can query Prometheus using PromQL:
+
+```promql
+# Current battery level
+gorai_sensor_value{sensor="battery", field="level"}
+
+# Average inference latency over 5 minutes
+avg_over_time(gorai_inference_duration_seconds[5m])
+
+# Detection rate (per second)
+rate(gorai_detections_total[1m])
+
+# Components in error state
+gorai_component_state == -1
+
+# Battery drain rate (% per hour)
+deriv(gorai_sensor_value{sensor="battery", field="level"}[1h]) * 3600
+```
+
+### 9.6 Prometheus Configuration File
+
+Gorai expects Prometheus to be configured to scrape its metrics endpoint:
+
+**/etc/prometheus/prometheus.yml**:
+```yaml
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - /etc/gorai/alerts.yml
+
+scrape_configs:
+  - job_name: 'gorai'
+    static_configs:
+      - targets: ['localhost:9091']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: robot
+        replacement: 'sentinel'
+```
+
+---
+
+## 10. Alerting Object
+
+The `alerting` object configures integration with Prometheus Alert Manager for robot alerts.
+
+```json
+{
+  "alerting": {
+    "enabled": true,
+    "alertmanager_url": "http://localhost:9093",
+    "rules_file": "/etc/gorai/alerts.yml",
+    "evaluation_interval": "15s"
+  }
+}
+```
+
+### 10.1 Alerting Fields
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `enabled` | bool | No | false | Enable Alert Manager integration |
+| `alertmanager_url` | string | No | "http://localhost:9093" | Alert Manager URL |
+| `rules_file` | string | No | "/etc/gorai/alerts.yml" | Path to alert rules file |
+| `evaluation_interval` | duration | No | "15s" | How often to evaluate alert rules |
+
+### 10.2 Alert Rules Example
+
+**/etc/gorai/alerts.yml**:
+```yaml
+groups:
+  - name: robot_alerts
+    rules:
+      - alert: BatteryLow
+        expr: gorai_sensor_value{sensor="battery", field="level"} < 0.2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Battery below 20%"
+
+      - alert: BatteryCritical
+        expr: gorai_sensor_value{sensor="battery", field="level"} < 0.1
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Battery below 10% - return to base"
+
+      - alert: MotorOverheat
+        expr: gorai_sensor_value{sensor=~"motor.*", field="temperature"} > 80
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Motor {{ $labels.sensor }} overheating"
+
+      - alert: InferenceSlow
+        expr: histogram_quantile(0.99, rate(gorai_inference_duration_seconds_bucket[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Inference latency > 200ms"
+
+      - alert: ComponentError
+        expr: gorai_component_state == -1
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Component {{ $labels.component }} in error state"
+```
+
+### 10.3 Alert Manager Configuration
+
+**/etc/alertmanager/alertmanager.yml**:
+```yaml
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'local'
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical'
+    - match:
+        severity: warning
+      receiver: 'warning'
+
+receivers:
+  - name: 'local'
+    webhook_configs:
+      - url: 'http://localhost:8080/api/alerts'
+        send_resolved: true
+
+  - name: 'critical'
+    webhook_configs:
+      - url: 'http://localhost:8080/api/alerts'
+        send_resolved: true
+
+  - name: 'warning'
+    webhook_configs:
+      - url: 'http://localhost:8080/api/alerts'
+        send_resolved: true
+```
+
+---
+
+## 11. Dashboard Object
+
+The `dashboard` object configures the embedded web dashboard. The dashboard queries **local Prometheus** for both real-time gauges and historical data, providing a unified monitoring interface.
+
+```json
+{
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080",
+    "video": {
+      "enabled": true,
+      "format": "mjpeg",
+      "max_fps": 15,
+      "quality": 80
+    }
+  }
+}
+```
+
+### 11.1 Dashboard Fields
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `enabled` | bool | No | true | Enable/disable dashboard |
+| `listen` | string | No | ":8080" | HTTP listen address |
+| `video` | object | No | - | Video streaming configuration |
+
+Note: Data retention is now configured via `prometheus.retention`, not in the dashboard.
+
+### 11.2 Video Configuration
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `enabled` | bool | No | true | Enable video streaming |
+| `format` | string | No | "mjpeg" | Stream format: "mjpeg", "webrtc", "hls" |
+| `max_fps` | int | No | 15 | Maximum frame rate |
+| `quality` | int | No | 80 | JPEG quality (1-100) |
+
+### 11.3 Dashboard Sections
+
+The dashboard provides two viewing modes, both powered by Prometheus queries:
+
+| Section | Description | Prometheus Query Type |
+|---------|-------------|----------------------|
+| **Gauges** | Real-time current values — latest sensor reading, component state, inference result | Instant query |
+| **History** | Time-series data — graphs, trends, historical playback | Range query |
+
+**Gauges** show current state:
+- Current sensor values with units
+- Component state indicators (running, stopped, error)
+- Latest inference results
+- Queries Prometheus instant API (~5ms latency)
+
+**History** shows trends over time:
+- Time-series graphs powered by uPlot
+- Configurable time windows (5m, 1h, 24h, etc.)
+- Scroll back through data up to Prometheus retention (default 15 days)
+- Queries Prometheus range API (~10-50ms latency)
+
+### 11.4 Dashboard Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Browser                                                          │
+│                                                                  │
+│  Dashboard UI (HTMX + uPlot)                                    │
+│   ├─ Gauges: polls /api/gauges every 5s                        │
+│   ├─ History: polls /api/history on load + refresh             │
+│   └─ Cameras: streams from /api/cameras/{name}/stream          │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTP :8080
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Gorai Dashboard Server                                           │
+│                                                                  │
+│  /api/gauges   → Prometheus instant query                       │
+│  /api/history  → Prometheus range query                         │
+│  /api/topology → Component/service registry                     │
+│  /api/alerts   → Receives webhooks from Alert Manager           │
+│  /api/cameras  → MJPEG streams from camera components           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ PromQL queries
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Local Prometheus (localhost:9090)                                │
+│                                                                  │
+│  Time-series storage, 15-day retention                          │
+│  Scrapes Gorai /metrics endpoint every 5s                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 11.5 Disabling the Dashboard
+
+To disable the dashboard completely:
+
+```json
+{
+  "dashboard": {
+    "enabled": false
+  }
+}
+```
+
+When disabled:
+- No HTTP server starts on :8080
+- Zero CPU/memory overhead
+- Prometheus continues to collect metrics (can still use Grafana, etc.)
+
+### 11.6 Dashboard Features
+
+When enabled, the dashboard provides:
+
+| View | URL | Description |
+|------|-----|-------------|
+| Home | `/` | System status, uptime, connection info, active alerts |
+| Topology | `/topology` | Tree view of all components and services |
+| Sensors | `/sensors` | Gauges and History for sensor data |
+| Cameras | `/cameras` | Live camera feeds with inference overlays |
+| Inference | `/inference` | ML model outputs and performance metrics |
+| Alerts | `/alerts` | Active and resolved alerts from Alert Manager |
+
+### 11.7 Security Considerations
+
+The dashboard is designed for **trusted networks** (local development, robot-internal access). For production deployments exposed to untrusted networks:
+
+1. Bind to localhost only: `"listen": "127.0.0.1:8080"`
+2. Use a reverse proxy with authentication
+3. Or disable the dashboard: `"enabled": false`
+
+Future versions may add optional authentication.
+
+---
+
+## 12. Validation Rules
+
+### 12.1 Structural Validation
 
 1. JSON must be syntactically valid
 2. Required fields must be present
 3. Field types must match schema
 4. Unknown fields are warnings (not errors)
 
-### 9.2 Semantic Validation
+### 12.2 Semantic Validation
 
 1. `robot.name` must be valid identifier
 2. Component/service names must be unique
@@ -469,7 +840,7 @@ Configures logging behavior.
 5. Dependencies must reference existing components/services
 6. No circular dependencies
 
-### 9.3 Error Messages
+### 12.3 Error Messages
 
 Validation errors should include:
 - File path and line number (if possible)
@@ -486,7 +857,7 @@ robot.json:15: components[0].type: unknown component type "imu2"
 
 ---
 
-## 10. Complete Example
+## 13. Complete Example
 
 ```json
 {
@@ -502,6 +873,13 @@ robot.json:15: components[0].type: unknown component type "imu2"
   "nats": {
     "url": "${NATS_URL:-nats://localhost:4222}",
     "jetstream": true
+  },
+
+  "prometheus": {
+    "url": "http://localhost:9090",
+    "metrics_port": 9091,
+    "scrape_interval": "5s",
+    "retention": "15d"
   },
 
   "components": [
@@ -619,21 +997,38 @@ robot.json:15: components[0].type: unknown component type "imu2"
     "level": "info",
     "format": "json",
     "output": "stdout"
+  },
+
+  "alerting": {
+    "enabled": true,
+    "alertmanager_url": "http://localhost:9093",
+    "rules_file": "/etc/gorai/alerts.yml"
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080",
+    "video": {
+      "enabled": true,
+      "format": "mjpeg",
+      "max_fps": 15,
+      "quality": 80
+    }
   }
 }
 ```
 
 ---
 
-## 11. Schema Evolution
+## 14. Schema Evolution
 
-### 11.1 Versioning
+### 14.1 Versioning
 
 - The `version` field indicates schema version
 - Major version changes may break compatibility
 - Minor changes are backward compatible
 
-### 11.2 Future Extensions
+### 14.2 Future Extensions
 
 Reserved for future versions:
 - `modules` - Plugin/module loading

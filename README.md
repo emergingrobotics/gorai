@@ -297,6 +297,142 @@ type Motor interface {
 }
 ```
 
+## Prometheus: Metrics & Monitoring
+
+Gorai uses [Prometheus](https://prometheus.io/) as a mandatory dependency for metrics collection, time-series storage, and alerting. Prometheus runs locally on the robot alongside NATS and the Gorai binary.
+
+### Why Prometheus?
+
+| Benefit | Description |
+|---------|-------------|
+| **Battle-tested** | Industry standard used by Kubernetes, GitLab, countless production systems |
+| **Local-first** | Runs entirely on-robot with no cloud dependency |
+| **Efficient storage** | Custom TSDB optimized for time-series data |
+| **Powerful queries** | PromQL enables complex analysis (rates, aggregations, predictions) |
+| **Alerting built-in** | Alert Manager handles notifications, routing, silencing |
+| **Ecosystem** | Grafana dashboards, exporters, recording rules |
+
+### Architecture
+
+```
+Robot (Single Machine)
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │  Gorai Binary   │    │   NATS Server   │                │
+│  │                 │    │    (:4222)      │                │
+│  │  :8080 dashboard│    └─────────────────┘                │
+│  │  :9091 /metrics │                                       │
+│  └────────┬────────┘                                       │
+│           │ scrape every 5s                                │
+│           ▼                                                │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │   Prometheus    │───▶│  Alert Manager  │                │
+│  │    (:9090)      │    │    (:9093)      │                │
+│  │                 │    │   (optional)    │                │
+│  └─────────────────┘    └─────────────────┘                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Resource Requirements
+
+Prometheus is lightweight enough for embedded systems:
+
+| Component | RAM | Disk | Notes |
+|-----------|-----|------|-------|
+| Prometheus | 200-400MB | ~1GB/day | Depends on metric count |
+| Alert Manager | 30-50MB | Minimal | Optional |
+| Gorai | ~50MB | Minimal | Varies with modules |
+
+**Total**: ~300-500MB RAM — compatible with Raspberry Pi 4, Jetson Nano, and similar platforms.
+
+### Installation
+
+#### Debian/Ubuntu
+
+```bash
+# Install Prometheus
+sudo apt install prometheus prometheus-alertmanager
+
+# Verify installation
+prometheus --version
+```
+
+#### Fedora/RHEL
+
+```bash
+sudo dnf install prometheus prometheus-alertmanager
+```
+
+#### From Binary (any Linux)
+
+```bash
+# Download latest release
+wget https://github.com/prometheus/prometheus/releases/download/v2.48.0/prometheus-2.48.0.linux-amd64.tar.gz
+tar xvfz prometheus-*.tar.gz
+sudo mv prometheus-*/prometheus /usr/local/bin/
+sudo mv prometheus-*/promtool /usr/local/bin/
+
+# Download Alert Manager (optional)
+wget https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz
+tar xvfz alertmanager-*.tar.gz
+sudo mv alertmanager-*/alertmanager /usr/local/bin/
+```
+
+### Configuration
+
+Gorai automatically configures Prometheus to scrape its metrics endpoint. Default configuration:
+
+```yaml
+# /etc/prometheus/prometheus.yml
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'gorai'
+    static_configs:
+      - targets: ['localhost:9091']
+
+rule_files:
+  - '/etc/gorai/alerts.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+```
+
+### Example Metrics
+
+Gorai exposes metrics in Prometheus format:
+
+```
+# Sensor values
+gorai_sensor_value{robot="sentinel",sensor="temperature",unit="celsius"} 42.5
+gorai_sensor_value{robot="sentinel",sensor="battery",unit="percent"} 87.3
+
+# Component state
+gorai_component_state{robot="sentinel",component="motor_left",state="running"} 1
+gorai_component_state{robot="sentinel",component="camera_front",state="streaming"} 1
+
+# System metrics
+gorai_messages_total{robot="sentinel",direction="sent"} 15420
+gorai_messages_total{robot="sentinel",direction="received"} 12891
+gorai_inference_duration_seconds{robot="sentinel",model="yolox"} 0.045
+```
+
+### Dashboard Integration
+
+The built-in web dashboard queries Prometheus for both real-time gauges and historical data:
+
+- **Gauges**: Instant queries showing current sensor values
+- **History**: Range queries with configurable time windows (default 5 minutes)
+- **Alerts**: Active alerts from Alert Manager
+
+See the [Framework Specification](specs/gorai-framework-specification.md) for complete details.
+
 ## AI/ML Integration
 
 Gorai provides first-class support for edge AI with a focus on hardware acceleration and the Go ecosystem. See the [Go AI Ecosystem Reference](docs/go-ai-material.md) for a comprehensive overview.

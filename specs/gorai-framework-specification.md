@@ -36,9 +36,10 @@ A lightweight, Go-based robotics framework built on NATS.io with first-class AI/
      - [AI-Powered Coordinators](#ai-powered-coordinators)
 10. [Acceleration Layer](#acceleration-layer)
 11. [Configuration System](#configuration-system)
-12. [Network Transparency](#network-transparency)
-13. [CLI Tool](#cli-tool)
-14. [Directory Structure](#directory-structure)
+12. [Web Dashboard](#web-dashboard)
+13. [Network Transparency](#network-transparency)
+14. [CLI Tool](#cli-tool)
+15. [Directory Structure](#directory-structure)
 
 ---
 
@@ -3760,6 +3761,22 @@ type ConvertOptions struct {
     }
   ],
 
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080",
+    "retention": "5m",
+    "websocket": {
+      "buffer_size": 100,
+      "sensor_downsample_hz": 10
+    },
+    "video": {
+      "enabled": true,
+      "format": "mjpeg",
+      "max_fps": 15,
+      "quality": 80
+    }
+  },
+
   "params": {
     "camera_front": {
       "exposure": "auto",
@@ -3800,6 +3817,403 @@ type ChangeSet struct {
 
 func (m *Manager) ComputeChanges(old, new *Config) ChangeSet
 ```
+
+---
+
+## Prometheus Integration
+
+Prometheus is a **required dependency** for Gorai, running locally on the robot alongside NATS. It provides time-series storage, powerful queries via PromQL, and integrates with Alert Manager for alerting.
+
+### Dependencies Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Robot (Single Machine)                                                    │
+│                                                                           │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐    │
+│  │ Gorai Binary    │     │ NATS Server     │     │ Prometheus      │    │
+│  │                 │     │ (nats-server)   │     │ (prometheus)    │    │
+│  │ Components:     │     │                 │     │                 │    │
+│  │  - Sensors      │────▶│ Message Bus     │     │ Time-Series DB  │    │
+│  │  - Actuators    │     │ Real-time       │     │ Scrapes /metrics│    │
+│  │  - Services     │     │ Pub/Sub         │     │                 │    │
+│  │                 │     │                 │     │ Retention:      │    │
+│  │ Dashboard:      │     └─────────────────┘     │ 15d default     │    │
+│  │  - HTTP :8080   │                             │                 │    │
+│  │                 │◀────────────────────────────│ PromQL queries  │    │
+│  │ Metrics:        │                             │                 │    │
+│  │  - /metrics     │────────────────────────────▶│ Scrape :9091    │    │
+│  │    :9091        │                             │                 │    │
+│  └─────────────────┘                             └────────┬────────┘    │
+│                                                           │             │
+│  ┌────────────────────────────────────────────────────────▼──────────┐ │
+│  │ Alert Manager (optional)                                           │ │
+│  │  - Evaluate alert rules                                           │ │
+│  │  - Local notifications (webhook to Gorai)                         │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Resource Requirements
+
+| Component | RAM | CPU | Disk |
+|-----------|-----|-----|------|
+| Gorai | 50-200 MB | Variable | Minimal |
+| NATS | 10-50 MB | Low | Minimal |
+| Prometheus | 200-500 MB | Low | ~2 GB/month |
+| Alert Manager | 50 MB | Minimal | Minimal |
+| **Total** | **~500 MB** | Low | ~2 GB/month |
+
+Compatible with: Raspberry Pi 4 (4GB), Jetson Nano, Rock 5B, any x86 system.
+
+### Prometheus Configuration
+
+```json
+{
+  "prometheus": {
+    "url": "http://localhost:9090",
+    "metrics_port": 9091,
+    "scrape_interval": "5s",
+    "retention": "15d"
+  }
+}
+```
+
+### Metrics Exported by Gorai
+
+```prometheus
+# Sensor readings
+gorai_sensor_value{robot="sentinel", sensor="imu", field="accel_x"} 0.02
+gorai_sensor_value{robot="sentinel", sensor="battery", field="level"} 0.73
+
+# Component state (1=running, 0=stopped, -1=error)
+gorai_component_state{robot="sentinel", component="motor_left"} 1
+
+# Inference metrics
+gorai_inference_duration_seconds{robot="sentinel", model="yolox"} 0.045
+gorai_detections_total{robot="sentinel", model="yolox", class="person"} 892
+
+# System metrics
+gorai_messages_total{robot="sentinel", direction="published"} 1234567
+```
+
+### Alert Manager Integration
+
+```json
+{
+  "alerting": {
+    "enabled": true,
+    "alertmanager_url": "http://localhost:9093",
+    "rules_file": "/etc/gorai/alerts.yml"
+  }
+}
+```
+
+Example alert rules:
+```yaml
+groups:
+  - name: robot_alerts
+    rules:
+      - alert: BatteryLow
+        expr: gorai_sensor_value{sensor="battery", field="level"} < 0.2
+        for: 1m
+        labels:
+          severity: warning
+
+      - alert: ComponentError
+        expr: gorai_component_state == -1
+        for: 10s
+        labels:
+          severity: critical
+```
+
+---
+
+## Web Dashboard
+
+The dashboard queries **local Prometheus** for both real-time gauges and historical data. It provides a unified monitoring interface with minimal JavaScript footprint.
+
+### Overview
+
+| Section | Description | Prometheus Query |
+|---------|-------------|------------------|
+| **Gauges** | Real-time current values | Instant query (~5ms) |
+| **History** | Time-series graphs | Range query (~10-50ms) |
+
+| View | Description |
+|------|-------------|
+| **Home** | System status, uptime, active alerts |
+| **Topology** | Tree view of all components and services |
+| **Sensors** | Gauges + History for sensor data |
+| **Cameras** | Live camera feeds with inference overlays |
+| **Inference** | ML model outputs and performance |
+| **Alerts** | Active and resolved alerts |
+
+### Technology Stack
+
+| Component | Library | Size | Purpose |
+|-----------|---------|------|---------|
+| Routing | Chi | - | HTTP router (Go) |
+| Templates | Templ | - | Type-safe HTML generation (Go) |
+| Assets | embed.FS | - | Compiled into binary (Go) |
+| Prometheus Client | prometheus/client_golang | - | Query local Prometheus |
+| Interactivity | HTMX | 14KB | Server-driven UI updates |
+| Charts | uPlot | 50KB | High-performance time-series |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Browser                                                          │
+│                                                                  │
+│  Dashboard UI (HTMX + uPlot)                                    │
+│   ├─ Gauges: polls /api/gauges every 5s                        │
+│   ├─ History: polls /api/history on load + refresh             │
+│   └─ Cameras: streams from /api/cameras/{name}/stream          │
+└────────────────────────────────────────────────────────────────┘
+                              │ HTTP :8080
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Gorai Dashboard Server                                           │
+│                                                                  │
+│  /api/gauges   → Prometheus instant query                       │
+│  /api/history  → Prometheus range query                         │
+│  /api/topology → Component/service registry                     │
+│  /api/alerts   → Active alerts from Alert Manager               │
+│  /api/cameras  → MJPEG streams from camera components           │
+└─────────────────────────────────────────────────────────────────┘
+                              │ PromQL queries
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Local Prometheus (localhost:9090)                                │
+│                                                                  │
+│  Time-series storage, 15-day retention                          │
+│  Scrapes Gorai /metrics endpoint every 5s                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration
+
+```json
+{
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080",
+    "video": {
+      "enabled": true,
+      "format": "mjpeg",
+      "max_fps": 15,
+      "quality": 80
+    }
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | bool | true | Enable/disable dashboard |
+| `listen` | string | ":8080" | HTTP listen address |
+| `video.enabled` | bool | true | Enable camera streaming |
+| `video.format` | string | "mjpeg" | Stream format: mjpeg, webrtc, hls |
+| `video.max_fps` | int | 15 | Maximum video frame rate |
+| `video.quality` | int | 80 | JPEG quality (1-100) |
+
+Note: Data retention is configured via `prometheus.retention`, not in the dashboard.
+
+### Disabling the Dashboard
+
+```json
+{
+  "dashboard": {
+    "enabled": false
+  }
+}
+```
+
+When disabled:
+- No HTTP server starts on :8080
+- Prometheus continues to collect metrics
+- Can still use Grafana or other tools to visualize
+
+### Implementation
+
+```go
+package dashboard
+
+import (
+    "context"
+    "embed"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "time"
+
+    "github.com/go-chi/chi/v5"
+    "github.com/prometheus/client_golang/api"
+    promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+)
+
+//go:embed static/* templates/*
+var assets embed.FS
+
+// Config for the dashboard service.
+type Config struct {
+    Enabled bool   `json:"enabled"`
+    Listen  string `json:"listen"`
+    Video   struct {
+        Enabled bool   `json:"enabled"`
+        Format  string `json:"format"`
+        MaxFPS  int    `json:"max_fps"`
+        Quality int    `json:"quality"`
+    } `json:"video"`
+}
+
+// Server is the dashboard HTTP server.
+type Server struct {
+    config     Config
+    promURL    string
+    promClient promv1.API
+    router     *chi.Mux
+}
+
+// New creates a new dashboard server.
+func New(config Config, prometheusURL string) (*Server, error) {
+    if !config.Enabled {
+        return nil, nil
+    }
+
+    // Connect to local Prometheus
+    client, err := api.NewClient(api.Config{
+        Address: prometheusURL,
+    })
+    if err != nil {
+        return nil, fmt.Errorf("connecting to prometheus: %w", err)
+    }
+
+    s := &Server{
+        config:     config,
+        promURL:    prometheusURL,
+        promClient: promv1.NewAPI(client),
+        router:     chi.NewRouter(),
+    }
+
+    s.setupRoutes()
+    return s, nil
+}
+
+func (s *Server) setupRoutes() {
+    // Static assets
+    s.router.Handle("/static/*", http.FileServer(http.FS(assets)))
+
+    // HTML views
+    s.router.Get("/", s.handleHome)
+    s.router.Get("/topology", s.handleTopology)
+    s.router.Get("/sensors", s.handleSensors)
+    s.router.Get("/cameras", s.handleCameras)
+    s.router.Get("/inference", s.handleInference)
+    s.router.Get("/alerts", s.handleAlerts)
+
+    // API endpoints that query Prometheus
+    s.router.Get("/api/gauges", s.handleGauges)
+    s.router.Get("/api/history", s.handleHistory)
+    s.router.Get("/api/alerts", s.handleAlertsAPI)
+
+    // Camera streaming
+    s.router.Get("/api/cameras/{name}/stream", s.handleCameraStream)
+}
+
+// handleGauges returns current values for all sensors (Prometheus instant query)
+func (s *Server) handleGauges(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+
+    result, _, err := s.promClient.Query(ctx, `gorai_sensor_value`, time.Now())
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(result)
+}
+
+// handleHistory returns time-series data (Prometheus range query)
+func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+    sensor := r.URL.Query().Get("sensor")
+    rangeStr := r.URL.Query().Get("range")
+
+    duration, _ := time.ParseDuration(rangeStr)
+    if duration == 0 {
+        duration = 5 * time.Minute
+    }
+
+    query := fmt.Sprintf(`gorai_sensor_value{sensor="%s"}`, sensor)
+    result, _, err := s.promClient.QueryRange(ctx, query, promv1.Range{
+        Start: time.Now().Add(-duration),
+        End:   time.Now(),
+        Step:  time.Second,
+    })
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(result)
+}
+
+// Start begins serving the dashboard.
+func (s *Server) Start(ctx context.Context) error {
+    return http.ListenAndServe(s.config.Listen, s.router)
+}
+```
+
+### REST API Endpoints
+
+The dashboard exposes REST endpoints that query Prometheus:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/gauges` | GET | Current sensor values (instant query) |
+| `/api/history?sensor=X&range=5m` | GET | Time-series data (range query) |
+| `/api/alerts` | GET | Active alerts from Alert Manager |
+| `/api/cameras/{name}/stream` | GET | MJPEG video stream |
+
+### HTMX Integration
+
+Views use HTMX for dynamic updates without JavaScript:
+
+```html
+<!-- Auto-refresh gauges every 2 seconds -->
+<div hx-get="/api/gauges" hx-trigger="every 2s" hx-swap="innerHTML">
+    Loading...
+</div>
+
+<!-- History chart updated every 5 seconds -->
+<div hx-get="/partials/history?sensor=temperature" hx-trigger="every 5s">
+    <!-- Chart rendered server-side -->
+</div>
+```
+
+### Video Streaming
+
+The dashboard supports camera streaming via MJPEG (default) with optional WebRTC for lower latency:
+
+| Format | Latency | Browser Support | Notes |
+|--------|---------|-----------------|-------|
+| MJPEG | 1-2s | All browsers | Simple, universal |
+| WebRTC | <0.5s | Modern browsers | Requires go2rtc or Pion |
+| HLS | 5-10s | All browsers | Adaptive bitrate |
+
+### Security
+
+The dashboard is designed for **trusted networks**. For production:
+
+1. Bind to localhost: `"listen": "127.0.0.1:8080"`
+2. Use SSH tunneling for remote access
+3. Or disable completely: `"enabled": false`
+
+Future versions may add optional token authentication.
 
 ---
 

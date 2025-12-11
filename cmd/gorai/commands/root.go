@@ -6,6 +6,13 @@ import (
 	"os"
 )
 
+// Version information (set by ldflags at build time)
+var (
+	Version = "0.1.0"
+	Commit  = "unknown"
+	Date    = "unknown"
+)
+
 // Execute runs the CLI.
 func Execute() error {
 	if len(os.Args) < 2 {
@@ -13,6 +20,19 @@ func Execute() error {
 	}
 
 	switch os.Args[1] {
+	// Project commands
+	case "init":
+		return cmdInit()
+	case "generate":
+		return cmdGenerate()
+	case "validate":
+		return cmdValidate()
+	case "add":
+		return cmdAdd()
+	case "list":
+		return cmdList()
+
+	// Runtime commands
 	case "version":
 		return cmdVersion()
 	case "run":
@@ -21,32 +41,67 @@ func Execute() error {
 		return cmdTopic()
 	case "service":
 		return cmdService()
+
+	// Help
 	case "help", "-h", "--help":
 		return printUsage()
 	default:
-		return fmt.Errorf("unknown command: %s", os.Args[1])
+		return fmt.Errorf("unknown command: %s\n\nRun 'gorai help' for usage.", os.Args[1])
 	}
 }
 
 func printUsage() error {
-	fmt.Println(`gorai - Gorai Robotics Framework CLI
+	fmt.Printf(`gorai - Gorai Robotics Framework CLI (v%s)
 
 Usage:
-  gorai <command> [arguments]
+  gorai <command> <robot-name> [flags]
 
-Commands:
-  version     Print version information
-  run         Run a robot from configuration
-  topic       Topic operations (list, echo, pub)
-  service     Service operations (list, call)
-  help        Print this help message
+All commands accept a robot name and read/write <robot-name>.json.
+Set GORAI_ROBOT_NAME environment variable to avoid typing the name.
 
-Use "gorai <command> -h" for more information about a command.`)
+Project Commands:
+  init <name>       Initialize project from <name>.json (must exist)
+  generate <name>   Generate code from <name>.json
+  validate <name>   Validate <name>.json configuration
+  add               Add custom components or services
+  list              List available component and service types
+
+Runtime Commands:
+  run               Run a robot from configuration
+  topic             Topic operations (list, echo, pub)
+  service           Service operations (list, call)
+
+Other Commands:
+  version           Print version information
+  help              Print this help message
+
+Use "gorai <command> -h" for more information about a command.
+
+Examples:
+  # Create my-robot.json first, then:
+  gorai init my-robot              Initialize project from my-robot.json
+  gorai generate my-robot          Generate code from my-robot.json
+  gorai validate my-robot          Validate my-robot.json
+
+  # Or set environment variable to save typing:
+  export GORAI_ROBOT_NAME=my-robot
+  gorai init
+  gorai generate
+  gorai validate
+
+  gorai add component my_sensor    Add a custom component
+  gorai list components            List available component types
+
+Documentation:
+  https://gorai.dev/docs
+`, Version)
 	return nil
 }
 
 func cmdVersion() error {
-	fmt.Println("gorai version 0.1.0")
+	fmt.Printf("gorai version %s\n", Version)
+	fmt.Printf("  commit: %s\n", Commit)
+	fmt.Printf("  built:  %s\n", Date)
 	return nil
 }
 

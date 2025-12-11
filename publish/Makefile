@@ -1,4 +1,21 @@
-.PHONY: all book website clean serve-book serve-website help book-pdf book-epub website-with-book validate publish
+.PHONY: all book book-pdf book-epub website clean help container \
+        serve-book serve-website serve-api publish versions shell
+
+# Container settings
+CONTAINER_IMAGE := gorai-publish
+CONTAINER_RUNTIME := $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
+WORKSPACE := $(shell cd .. && pwd)
+
+# SELinux label for volume mounts (use :Z for podman on SELinux systems)
+# Check if runtime contains 'podman' anywhere in the path
+ifneq (,$(findstring podman,$(CONTAINER_RUNTIME)))
+    VOLUME_OPTS := :Z
+else
+    VOLUME_OPTS :=
+endif
+
+# Container run command
+RUN := $(CONTAINER_RUNTIME) run --rm -v $(WORKSPACE):/workspace$(VOLUME_OPTS)
 
 # Default target
 all: book website
@@ -7,56 +24,90 @@ all: book website
 help:
 	@echo "Gorai Publishing Build System"
 	@echo ""
-	@echo "Targets:"
-	@echo "  all              - Build book and website (default)"
-	@echo "  book             - Build PDF and ePub"
-	@echo "  book-pdf         - Build PDF only"
-	@echo "  book-epub        - Build ePub only"
-	@echo "  website          - Build Hugo website"
-	@echo "  website-with-book - Build website and copy book downloads"
-	@echo "  serve-book       - Preview book as HTML"
-	@echo "  serve-website    - Start Hugo dev server"
-	@echo "  validate         - Validate content structure"
-	@echo "  publish          - Build and deploy to remote host"
-	@echo "                     Usage: make publish DEST=host:path"
-	@echo "  clean            - Remove all build artifacts"
+	@echo "All builds run inside a container - no local tool installation required."
 	@echo ""
-	@echo "Requirements:"
-	@echo "  Book:    pandoc, texlive-xetex"
-	@echo "  Website: hugo"
+	@echo "Setup:"
+	@echo "  container        Build the publishing container image"
+	@echo ""
+	@echo "Book Targets:"
+	@echo "  book             Build PDF and ePub"
+	@echo "  book-pdf         Build PDF only"
+	@echo "  book-epub        Build ePub only"
+	@echo "  serve-book       Preview book as HTML (port 8000)"
+	@echo ""
+	@echo "Website Targets:"
+	@echo "  website          Build Hugo website"
+	@echo "  serve-website    Start Hugo dev server (port 1313)"
+	@echo ""
+	@echo "Combined Targets:"
+	@echo "  all              Build book and website (default)"
+	@echo "  website-with-book Build book, copy downloads, build website"
+	@echo ""
+	@echo "API Documentation:"
+	@echo "  serve-api        Start pkgsite server (port 6060)"
+	@echo ""
+	@echo "Deployment:"
+	@echo "  publish          Build and deploy to remote host"
+	@echo "                   Usage: make publish DEST=host:path"
+	@echo ""
+	@echo "Utility:"
+	@echo "  versions         Show tool versions in container"
+	@echo "  shell            Start interactive shell in container"
+	@echo "  clean            Remove all build artifacts"
+	@echo ""
+	@echo "Container runtime: $(CONTAINER_RUNTIME)"
+	@echo "Workspace: $(WORKSPACE)"
+
+# Build container image
+container:
+	@echo "Building container image..."
+	$(CONTAINER_RUNTIME) build -t $(CONTAINER_IMAGE) container/
+
+# Check container exists (works with both podman and docker)
+check-container:
+	@$(CONTAINER_RUNTIME) image inspect $(CONTAINER_IMAGE) >/dev/null 2>&1 || \
+		(echo "Container image '$(CONTAINER_IMAGE)' not found. Run 'make container' first." && exit 1)
 
 # Book targets
-book:
-	$(MAKE) -C book all
+book: check-container
+	$(RUN) $(CONTAINER_IMAGE) book
 
-book-pdf:
-	$(MAKE) -C book pdf
+book-pdf: check-container
+	$(RUN) $(CONTAINER_IMAGE) book-pdf
 
-book-epub:
-	$(MAKE) -C book epub
+book-epub: check-container
+	$(RUN) $(CONTAINER_IMAGE) book-epub
 
-serve-book:
-	$(MAKE) -C book html
-	@echo "Starting preview server at http://localhost:8000"
-	python3 -m http.server 8000 --directory book/dist
+serve-book: check-container
+	$(RUN) -it -p 8000:8000 $(CONTAINER_IMAGE) serve-book
 
 # Website targets
-website:
-	$(MAKE) -C website build
+website: check-container
+	$(RUN) $(CONTAINER_IMAGE) website
 
-serve-website:
-	$(MAKE) -C website serve
+serve-website: check-container
+	$(RUN) -it -p 1313:1313 $(CONTAINER_IMAGE) serve-website
 
-# Build website with book downloads
-website-with-book: book
-	$(MAKE) -C website downloads
-	$(MAKE) -C website build
+# Combined targets
+website-with-book: check-container
+	$(RUN) $(CONTAINER_IMAGE) website-with-book
+
+# API documentation
+serve-api: check-container
+	$(RUN) -it -p 6060:6060 $(CONTAINER_IMAGE) serve-api
 
 # Clean all
-clean:
-	$(MAKE) -C book clean
-	$(MAKE) -C website clean
+clean: check-container
+	$(RUN) $(CONTAINER_IMAGE) clean
 	@echo "All build artifacts cleaned"
+
+# Show versions
+versions: check-container
+	$(RUN) $(CONTAINER_IMAGE) versions
+
+# Interactive shell
+shell: check-container
+	$(RUN) -it $(CONTAINER_IMAGE) shell
 
 # Publish website to remote host
 # Usage: make publish DEST=user@host:/path/to/webroot
@@ -65,15 +116,9 @@ ifndef DEST
 	$(error DEST is required. Usage: make publish DEST=host:path)
 endif
 	@echo "Publishing website to $(DEST)..."
-	scp -r website/public/* $(DEST)
+	scp -r dist/website/* $(DEST)
 	@echo "Published successfully to $(DEST)"
 
 # Validate content structure
-validate:
-	@echo "Validating content structure..."
-	@test -f book/metadata.yaml || (echo "ERROR: book/metadata.yaml missing" && exit 1)
-	@test -d book/chapters || (echo "ERROR: book/chapters missing" && exit 1)
-	@test -f website/hugo.toml || (echo "ERROR: website/hugo.toml missing" && exit 1)
-	@test -d website/content || (echo "ERROR: website/content missing" && exit 1)
-	@test -d images || (echo "ERROR: images directory missing" && exit 1)
-	@echo "Validation passed!"
+validate: check-container
+	$(RUN) $(CONTAINER_IMAGE) validate

@@ -1,5 +1,13 @@
 .PHONY: all pdf epub html clean help
 
+# This Makefile is for standalone use outside the container.
+# For container-based builds, use: make -C .. book
+#
+# Requirements:
+#   - pandoc
+#   - texlive-xetex
+#   - texlive-fonts-recommended
+
 # Collect all chapter files in order
 FRONTMATTER := $(wildcard chapters/00-frontmatter.md)
 CHAPTERS := $(sort $(wildcard chapters/[0-1][0-9]-*.md))
@@ -12,6 +20,8 @@ all: pdf epub
 # Help
 help:
 	@echo "Gorai Book Build System (Pandoc)"
+	@echo ""
+	@echo "NOTE: For container-based builds, use: make -C .. book"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all      - Build PDF and ePub (default)"
@@ -35,8 +45,7 @@ dist/gorai-book.pdf: $(ALL_CHAPTERS) metadata.yaml templates/pdf-template.tex
 		--metadata-file=metadata.yaml \
 		--template=templates/pdf-template.tex \
 		--pdf-engine=xelatex \
-		--pdf-engine-opt=-output-directory=dist \
-		--resource-path=.:images:../images/logos \
+		--resource-path=.:images:../images:../images/logos \
 		--toc \
 		--number-sections \
 		--highlight-style=tango \
