@@ -3,10 +3,10 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>http://localhost:1313/docs/</loc>
-    <lastmod>2025-12-11T12:50:45+00:00</lastmod>
+    <lastmod>2025-12-12T07:05:04-06:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/docs/getting-started/</loc>
-    <lastmod>2025-12-11T08:23:18-06:00</lastmod>
+    <lastmod>2025-12-12T07:05:04-06:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/docs/guides/</loc>
     <lastmod>2025-12-11T10:58:32-06:00</lastmod>
@@ -42,7 +42,7 @@
     <lastmod>2025-12-11T12:50:45+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/docs/getting-started/concepts/</loc>
-    <lastmod>2025-12-11T12:50:45+00:00</lastmod>
+    <lastmod>2025-12-12T07:05:04-06:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/docs/guides/nats/</loc>
     <lastmod>2025-12-11T12:50:45+00:00</lastmod>
@@ -54,7 +54,7 @@
     <lastmod>2025-12-11T12:50:45+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/book/</loc>
-    <lastmod>2025-12-11T12:50:45+00:00</lastmod>
+    <lastmod>2025-12-12T07:05:04-06:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/docs/guides/dashboard/</loc>
     <lastmod>2025-12-11T10:58:32-06:00</lastmod>

@@ -1,5 +1,5 @@
-.PHONY: all book book-pdf book-epub website clean help container \
-        serve-book serve-website serve-api publish versions shell
+.PHONY: book book-pdf book-epub website clean help container \
+        serve-book serve serve-api publish versions shell all
 
 # Container settings
 CONTAINER_IMAGE := gorai-publish
@@ -17,8 +17,8 @@ endif
 # Container run command
 RUN := $(CONTAINER_RUNTIME) run --rm -v $(WORKSPACE):/workspace$(VOLUME_OPTS)
 
-# Default target
-all: book website
+# Default target - show help
+.DEFAULT_GOAL := help
 
 # Help
 help:
@@ -37,11 +37,10 @@ help:
 	@echo ""
 	@echo "Website Targets:"
 	@echo "  website          Build Hugo website"
-	@echo "  serve-website    Start Hugo dev server (port 1313)"
+	@echo "  serve            Start Hugo dev server (port 1313)"
 	@echo ""
 	@echo "Combined Targets:"
-	@echo "  all              Build book and website (default)"
-	@echo "  website-with-book Build book, copy downloads, build website"
+	@echo "  all              Build book, copy downloads, build website"
 	@echo ""
 	@echo "API Documentation:"
 	@echo "  serve-api        Start pkgsite server (port 6060)"
@@ -57,6 +56,10 @@ help:
 	@echo ""
 	@echo "Container runtime: $(CONTAINER_RUNTIME)"
 	@echo "Workspace: $(WORKSPACE)"
+
+# Build all (book, copy downloads, website)
+all: check-container
+	$(RUN) $(CONTAINER_IMAGE) website-with-book
 
 # Build container image
 container:
@@ -85,12 +88,9 @@ serve-book: check-container
 website: check-container
 	$(RUN) $(CONTAINER_IMAGE) website
 
-serve-website: check-container
+serve: check-container
 	$(RUN) -it -p 1313:1313 $(CONTAINER_IMAGE) serve-website
 
-# Combined targets
-website-with-book: check-container
-	$(RUN) $(CONTAINER_IMAGE) website-with-book
 
 # API documentation
 serve-api: check-container

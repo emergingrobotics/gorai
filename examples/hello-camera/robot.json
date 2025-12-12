@@ -1,0 +1,42 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v1.json",
+  "version": "1",
+
+  "robot": {
+    "name": "hello-camera",
+    "namespace": "hello-camera",
+    "description": "A minimal robot with just a single camera"
+  },
+
+  "nats": {
+    "url": "nats://localhost:4222",
+    "jetstream": true
+  },
+
+  "components": [
+    {
+      "name": "main_camera",
+      "type": "camera",
+      "model": "v4l2",
+      "attributes": {
+        "device": "/dev/video0",
+        "width": 640,
+        "height": 480,
+        "frame_rate": 30
+      }
+    }
+  ],
+
+  "services": [],
+
+  "log": {
+    "level": "info",
+    "format": "json",
+    "output": "stdout"
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080"
+  }
+}
