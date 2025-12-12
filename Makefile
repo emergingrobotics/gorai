@@ -18,6 +18,9 @@ help:
 	@echo ""
 	@echo "Usage: make <target>"
 	@echo ""
+	@echo "Installation:"
+	@echo "  install           Install binaries to /usr/local/bin (requires sudo)"
+	@echo ""
 	@echo "Testing:"
 	@echo "  test              Run unit tests (fast, default)"
 	@echo "  test-quick        Run unit + component tests"
@@ -227,6 +230,19 @@ build-all-platforms: $(BIN_DIR)
 
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
+
+# ============================================================================
+# Installation
+# ============================================================================
+
+INSTALL_DIR := /usr/local/bin
+
+.PHONY: install
+install: build
+	@echo "==> Installing binaries to $(INSTALL_DIR)..."
+	@echo "    (requires sudo)"
+	install -m 755 $(BIN_DIR)/gorai $(INSTALL_DIR)/gorai
+	@echo "==> Installed: $(INSTALL_DIR)/gorai"
 
 # ============================================================================
 # Protocol Buffers
