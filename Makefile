@@ -238,7 +238,11 @@ $(BIN_DIR):
 INSTALL_DIR := /usr/local/bin
 
 .PHONY: install
-install: build
+install:
+	@if [ ! -f $(BIN_DIR)/gorai ]; then \
+		echo "ERROR: Binary not found. Run 'make build' first, then 'sudo make install'."; \
+		exit 1; \
+	fi
 	@echo "==> Installing binaries to $(INSTALL_DIR)..."
 	@echo "    (requires sudo)"
 	install -m 755 $(BIN_DIR)/gorai $(INSTALL_DIR)/gorai
