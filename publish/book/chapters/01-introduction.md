@@ -6,6 +6,8 @@
 
 *Gorai: Building Modern Robots with Go and NATS* is a practical guide to a new approach in robotics software. Whether you're a software developer curious about robotics, a robotics enthusiast tired of fighting complex frameworks, or an experienced engineer looking for something better, this book will get you building.
 
+Gorai is a lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI. It provides the essential capabilities of modern robotics frameworks without the complexity of DDS, the legacy constraints of C++ middleware, or mandatory cloud dependencies. Single-binary deployment, type-safe messaging, and battle-tested infrastructure.
+
 We wrote this book because we believe robotics software should be simpler. The tools exist—Go's elegant concurrency, NATS's battle-tested messaging, modern AI accelerators—but nobody had put them together in a way that prioritized developer experience. Gorai is our answer, and this book is your guide to using it.
 
 ## Who We Are

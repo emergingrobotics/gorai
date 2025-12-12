@@ -89,10 +89,14 @@ This means you can write code that works with "any sensor" or "any actuator" wit
 
 ## Why This Design?
 
+This design reflects Gorai's core principles:
+
 1. **Uniform treatment** - Everything is a Resource, so management code works on everything
 2. **Hot reconfiguration** - Change settings without rebooting the robot
 3. **Discoverable** - Find components by type (`GetByType("motor")`)
 4. **Extensible** - Add new components by implementing the interface
+
+These choices come from what we adopted from existing frameworks (resource-centric model from Viam, NWS/NWC pattern from YARP) while differentiating with NATS as core middleware and TinyGo support for microcontrollers. See the [homepage](/) for the full comparison with ROS 2, Viam, and YARP.
 
 ## A Concrete Example
 

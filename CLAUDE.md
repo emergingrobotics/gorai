@@ -24,3 +24,16 @@ We aim to become the robotics platform of choice for:
 - who want to use AI assisted development
 - who want the more powerful parts of the robot to be Linux-based
 - who want to use Go, and for microcontrollers, use tinygo
+
+## Why Gorai
+
+- Gorai learns from three generations of robotics middleware and the entire cloud distributed system experience
+- Gorai has a "Robotics Definition Language" (RDL) that defines software not physical attributes
+- Gorai is co-designed by AI with AI development as a prime goal
+- Gorai auto-generates most of the plumbing code for you, based on the RDL and using AI
+- Gorai is intended from the start to use AI/ML inferencing on the robot
+- Gorai assumes actual Linux devices as the core brain - think Raspberry Pi 5
+- Gorai uses core building blocks proven in the real world - NATS.io and Prometheus
+- Gorai is commercially-friendly open (source, 3D printing, hardware)
+- Gorai wants to democratize the creation and use of prosumer robotics 
+- This means making "real" robots (not toys) buildable by the experienced maker

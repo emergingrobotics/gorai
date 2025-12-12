@@ -10,7 +10,9 @@ weight: 40
 
 *By Greg Herlein & Luca Herlein*
 
-A comprehensive guide to building robotics software with Gorai. Available for free in multiple formats.
+A comprehensive guide to building robotics software with Gorai—the lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI. Learn to build robot software without the complexity of DDS, C++ middleware, or mandatory cloud dependencies.
+
+Available for free in multiple formats.
 
 ## Download
 

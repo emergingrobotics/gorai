@@ -35,7 +35,30 @@ We've covered a lot of ground. Let's step back and see the whole picture.
 
 ## The Gorai Vision
 
-Returning to Chapter 1's question: What if we designed a robotics framework for today?
+Returning to Chapter 2's question: What if we designed a robotics framework for today?
+
+### How We Compare
+
+| Aspect | Gorai | ROS 2 | Viam | YARP |
+|--------|-------|-------|------|------|
+| **Language** | Go + TinyGo | C++/Python | Go | C++ |
+| **Middleware** | NATS | DDS | gRPC | Custom carriers |
+| **Discovery** | NATS (embedded/cluster) | DDS multicast | Cloud/local | Name server |
+| **Build** | Go modules | CMake + ament + colcon | Go modules | CMake |
+| **AI/ML** | First-class + TPU/NPU | Package ecosystem | First-class services | Minimal |
+| **MCU Support** | TinyGo | micro-ROS | None | None |
+| **Cloud** | Optional | Ecosystem | Core feature | None |
+| **License** | Apache 2.0 | Apache 2.0 | AGPL | BSD-3 |
+
+### Our Design Principles
+
+**What we adopted** from existing frameworks: resource-centric model, named addressing, transport abstraction, configuration-driven design, clean device interfaces, and the NWS/NWC pattern for network transparency.
+
+**What we differentiate**: NATS as core (simpler than DDS), TinyGo support (microcontrollers to cloud), TPU/NPU focus (edge AI first), no cloud dependency (standalone-first), and lower barrier to entry.
+
+**What we avoid**: Heavy build systems, mandatory cloud connectivity, complex middleware abstractions, and central coordinators as single points of failure.
+
+### Core Capabilities
 
 **Go-first**: The language provides simplicity without sacrificing performance. Concurrency is natural. Deployment is trivial. The same language works from data center to microcontroller.
 

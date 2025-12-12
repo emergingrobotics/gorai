@@ -9,6 +9,10 @@ bookFlatSection: true
 
 Welcome to the Gorai documentation. Here you'll find guides, tutorials, and reference material for building robotics applications with Go and NATS.
 
+Gorai is a lightweight, Go-based alternative to ROS 2, YARP, and Viam optimized for AI. It provides the essential capabilities of modern robotics frameworks without the complexity of DDS, the legacy constraints of C++ middleware, or mandatory cloud dependencies.
+
+**Why Gorai?** See the [homepage](/) for a comparison with other frameworks and our design principles.
+
 ## Getting Started
 
 New to Gorai? Start here:

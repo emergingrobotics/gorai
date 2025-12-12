@@ -18,6 +18,23 @@ The world of robotics software has evolved dramatically over the past two decade
 
 **Viam** represents the modern cloud-connected approach: a managed platform where robots connect to cloud services for configuration, monitoring, and ML inference. It's elegant but introduces cloud dependencies that not every robot application can accept.
 
+### Framework Comparison
+
+Gorai learns from three generations of robotics middleware. Here's how they compare:
+
+| Aspect | Gorai | ROS 2 | Viam | YARP |
+|--------|-------|-------|------|------|
+| **Language** | Go + TinyGo | C++/Python | Go | C++ |
+| **Middleware** | NATS | DDS | gRPC | Custom carriers |
+| **Discovery** | NATS (embedded/cluster) | DDS multicast | Cloud/local | Name server |
+| **Build** | Go modules | CMake + ament + colcon | Go modules | CMake |
+| **AI/ML** | First-class + TPU/NPU | Package ecosystem | First-class services | Minimal |
+| **MCU Support** | TinyGo | micro-ROS | None | None |
+| **Cloud** | Optional | Ecosystem | Core feature | None |
+| **License** | Apache 2.0 | Apache 2.0 | AGPL | BSD-3 |
+
+This table captures technical choices, but the real differences are in philosophy and daily experience.
+
 ### Common Pain Points
 
 After years of working with these platforms, recurring frustrations emerge:
@@ -39,6 +56,34 @@ These pain points aren't inevitable. They reflect choices made in different cont
 What if we started fresh? What if we took the best ideas from distributed systems and cloud computing, combined them with Go's simplicity and performance, and designed specifically for modern robotics development?
 
 That's the question Gorai answers.
+
+## Design Principles
+
+Before diving into specifics, here's a summary of what Gorai adopts from existing frameworks, what it does differently, and what it deliberately avoids.
+
+### What We Adopt
+
+- **Resource-centric model** (from Viam): Unified abstraction for components and services
+- **Named addressing** (from all): Hierarchical, human-readable identifiers
+- **Transport abstraction** (from YARP): NATS as unified transport for pub/sub and request/reply
+- **Configuration-driven** (from Viam): JSON config with hot reload
+- **Device interfaces** (from all): Clean separation of hardware from logic
+- **NWS/NWC pattern** (from YARP): Transparent local/remote resource access
+
+### What We Differentiate
+
+- **NATS as core**: Simpler than DDS, more capable than gRPC for pub/sub patterns
+- **TinyGo support**: Unified language from microcontrollers to cloud
+- **TPU/NPU focus**: Edge AI as primary concern, not afterthought
+- **No cloud dependency**: Standalone-first, cloud-optional
+- **Lower barrier**: Simpler than ROS 2, more flexible than Viam
+
+### What We Avoid
+
+- Heavy build systems that increase barrier to entry
+- Mandatory cloud connectivity
+- Complex middleware abstractions that leak implementation details
+- Central coordinators as single points of failure
 
 ## Design Philosophy
 
