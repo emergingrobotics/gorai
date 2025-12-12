@@ -1,33 +1,18 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Community on Gorai</title><link>https://gorai.dev/community/</link><description>Recent content in Community on Gorai</description><generator>Hugo</generator><language>en-us</language><atom:link href="https://gorai.dev/community/index.xml" rel="self" type="application/rss+xml"/><item><title>Contributing</title><link>https://gorai.dev/community/contributing/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/community/contributing/</guid><description>&lt;h1 id="contributing-to-gorai"&gt;Contributing to Gorai&lt;a class="anchor" href="#contributing-to-gorai"&gt;#&lt;/a&gt;&lt;/h1&gt;
-&lt;p&gt;Thank you for your interest in contributing! Here&amp;rsquo;s how to get started.&lt;/p&gt;
-&lt;h2 id="ways-to-contribute"&gt;Ways to Contribute&lt;a class="anchor" href="#ways-to-contribute"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Bug reports&lt;/strong&gt; — Found a bug? Open an issue&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Feature requests&lt;/strong&gt; — Have an idea? Start a discussion&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Documentation&lt;/strong&gt; — Improve docs, fix typos&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Code&lt;/strong&gt; — Fix bugs, implement features&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id="development-setup"&gt;Development Setup&lt;a class="anchor" href="#development-setup"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Clone the repository&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;git clone https://github.com/gorai/gorai.git
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;cd&lt;/span&gt; gorai
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Install dependencies&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;go mod download
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Run tests&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;go &lt;span class="nb"&gt;test&lt;/span&gt; ./...&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="pull-request-process"&gt;Pull Request Process&lt;a class="anchor" href="#pull-request-process"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;ol&gt;
-&lt;li&gt;Fork the repository&lt;/li&gt;
-&lt;li&gt;Create a feature branch&lt;/li&gt;
-&lt;li&gt;Make your changes&lt;/li&gt;
-&lt;li&gt;Run tests: &lt;code&gt;go test ./...&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;Submit a pull request&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h2 id="code-style"&gt;Code Style&lt;a class="anchor" href="#code-style"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;Follow standard Go conventions&lt;/li&gt;
-&lt;li&gt;Run &lt;code&gt;go fmt&lt;/code&gt; before committing&lt;/li&gt;
-&lt;li&gt;Add tests for new functionality&lt;/li&gt;
-&lt;li&gt;Update documentation as needed&lt;/li&gt;
-&lt;/ul&gt;</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Community on Gorai</title>
+    <link>http://localhost:1313/community/</link>
+    <description>Recent content in Community on Gorai</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <atom:link href="http://localhost:1313/community/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Contributing</title>
+      <link>http://localhost:1313/community/contributing/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/community/contributing/</guid>
+      <description>&lt;h1 id=&#34;contributing-to-gorai&#34;&gt;Contributing to Gorai&lt;/h1&gt;&#xA;&lt;p&gt;Thank you for your interest in contributing! Here&amp;rsquo;s how to get started.&lt;/p&gt;&#xA;&lt;h2 id=&#34;ways-to-contribute&#34;&gt;Ways to Contribute&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;Bug reports&lt;/strong&gt; — Found a bug? Open an issue&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Feature requests&lt;/strong&gt; — Have an idea? Start a discussion&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Documentation&lt;/strong&gt; — Improve docs, fix typos&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Code&lt;/strong&gt; — Fix bugs, implement features&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;development-setup&#34;&gt;Development Setup&lt;/h2&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# Clone the repository&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;git clone https://github.com/gorai/gorai.git&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;cd&lt;/span&gt; gorai&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# Install dependencies&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;go mod download&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# Run tests&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;go &lt;span class=&#34;nb&#34;&gt;test&lt;/span&gt; ./...&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;pull-request-process&#34;&gt;Pull Request Process&lt;/h2&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;Fork the repository&lt;/li&gt;&#xA;&lt;li&gt;Create a feature branch&lt;/li&gt;&#xA;&lt;li&gt;Make your changes&lt;/li&gt;&#xA;&lt;li&gt;Run tests: &lt;code&gt;go test ./...&lt;/code&gt;&lt;/li&gt;&#xA;&lt;li&gt;Submit a pull request&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;h2 id=&#34;code-style&#34;&gt;Code Style&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Follow standard Go conventions&lt;/li&gt;&#xA;&lt;li&gt;Run &lt;code&gt;go fmt&lt;/code&gt; before committing&lt;/li&gt;&#xA;&lt;li&gt;Add tests for new functionality&lt;/li&gt;&#xA;&lt;li&gt;Update documentation as needed&lt;/li&gt;&#xA;&lt;/ul&gt;</description>
+    </item>
+  </channel>
+</rss>

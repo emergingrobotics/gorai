@@ -1,34 +1,18 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Reference on Gorai</title><link>https://gorai.dev/docs/reference/</link><description>Recent content in Reference on Gorai</description><generator>Hugo</generator><language>en-us</language><atom:link href="https://gorai.dev/docs/reference/index.xml" rel="self" type="application/rss+xml"/><item><title>CLI Reference</title><link>https://gorai.dev/docs/reference/cli/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://gorai.dev/docs/reference/cli/</guid><description>&lt;h1 id="cli-reference"&gt;CLI Reference&lt;a class="anchor" href="#cli-reference"&gt;#&lt;/a&gt;&lt;/h1&gt;
-&lt;p&gt;The &lt;code&gt;gorai&lt;/code&gt; command-line tool provides utilities for development and deployment.&lt;/p&gt;
-&lt;h2 id="commands"&gt;Commands&lt;a class="anchor" href="#commands"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;h3 id="gorai-init"&gt;gorai init&lt;a class="anchor" href="#gorai-init"&gt;#&lt;/a&gt;&lt;/h3&gt;
-&lt;p&gt;Create a new Gorai project:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;gorai init &amp;lt;project-name&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="gorai-run"&gt;gorai run&lt;a class="anchor" href="#gorai-run"&gt;#&lt;/a&gt;&lt;/h3&gt;
-&lt;p&gt;Run a Gorai application:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;gorai run &lt;span class="o"&gt;[&lt;/span&gt;--config config.yaml&lt;span class="o"&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="gorai-build"&gt;gorai build&lt;a class="anchor" href="#gorai-build"&gt;#&lt;/a&gt;&lt;/h3&gt;
-&lt;p&gt;Build for deployment:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;gorai build &lt;span class="o"&gt;[&lt;/span&gt;--target linux/arm64&lt;span class="o"&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="gorai-version"&gt;gorai version&lt;a class="anchor" href="#gorai-version"&gt;#&lt;/a&gt;&lt;/h3&gt;
-&lt;p&gt;Show version information:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;gorai version&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="global-flags"&gt;Global Flags&lt;a class="anchor" href="#global-flags"&gt;#&lt;/a&gt;&lt;/h2&gt;
-&lt;table&gt;
- &lt;thead&gt;
- &lt;tr&gt;
- &lt;th&gt;Flag&lt;/th&gt;
- &lt;th&gt;Description&lt;/th&gt;
- &lt;/tr&gt;
- &lt;/thead&gt;
- &lt;tbody&gt;
- &lt;tr&gt;
- &lt;td&gt;&lt;code&gt;--config&lt;/code&gt;&lt;/td&gt;
- &lt;td&gt;Configuration file path&lt;/td&gt;
- &lt;/tr&gt;
- &lt;tr&gt;
- &lt;td&gt;&lt;code&gt;--log-level&lt;/code&gt;&lt;/td&gt;
- &lt;td&gt;Log level (debug, info, warn, error)&lt;/td&gt;
- &lt;/tr&gt;
- &lt;tr&gt;
- &lt;td&gt;&lt;code&gt;--nats-url&lt;/code&gt;&lt;/td&gt;
- &lt;td&gt;NATS server URL&lt;/td&gt;
- &lt;/tr&gt;
- &lt;/tbody&gt;
-&lt;/table&gt;</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Reference on Gorai</title>
+    <link>http://localhost:1313/docs/reference/</link>
+    <description>Recent content in Reference on Gorai</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <atom:link href="http://localhost:1313/docs/reference/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>CLI Reference</title>
+      <link>http://localhost:1313/docs/reference/cli/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/docs/reference/cli/</guid>
+      <description>&lt;h1 id=&#34;cli-reference&#34;&gt;CLI Reference&lt;/h1&gt;&#xA;&lt;p&gt;The &lt;code&gt;gorai&lt;/code&gt; command-line tool provides utilities for development and deployment.&lt;/p&gt;&#xA;&lt;h2 id=&#34;commands&#34;&gt;Commands&lt;/h2&gt;&#xA;&lt;h3 id=&#34;gorai-init&#34;&gt;gorai init&lt;/h3&gt;&#xA;&lt;p&gt;Create a new Gorai project:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;gorai init &amp;lt;project-name&amp;gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;gorai-run&#34;&gt;gorai run&lt;/h3&gt;&#xA;&lt;p&gt;Run a Gorai application:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;gorai run &lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;--config config.yaml&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;gorai-build&#34;&gt;gorai build&lt;/h3&gt;&#xA;&lt;p&gt;Build for deployment:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;gorai build &lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;--target linux/arm64&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;gorai-version&#34;&gt;gorai version&lt;/h3&gt;&#xA;&lt;p&gt;Show version information:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;gorai version&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;global-flags&#34;&gt;Global Flags&lt;/h2&gt;&#xA;&lt;table&gt;&#xA;  &lt;thead&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;th&gt;Flag&lt;/th&gt;&#xA;          &lt;th&gt;Description&lt;/th&gt;&#xA;      &lt;/tr&gt;&#xA;  &lt;/thead&gt;&#xA;  &lt;tbody&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;&lt;code&gt;--config&lt;/code&gt;&lt;/td&gt;&#xA;          &lt;td&gt;Configuration file path&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;&lt;code&gt;--log-level&lt;/code&gt;&lt;/td&gt;&#xA;          &lt;td&gt;Log level (debug, info, warn, error)&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;      &lt;tr&gt;&#xA;          &lt;td&gt;&lt;code&gt;--nats-url&lt;/code&gt;&lt;/td&gt;&#xA;          &lt;td&gt;NATS server URL&lt;/td&gt;&#xA;      &lt;/tr&gt;&#xA;  &lt;/tbody&gt;&#xA;&lt;/table&gt;</description>
+    </item>
+  </channel>
+</rss>
