@@ -32,6 +32,18 @@ func Execute() error {
 	case "list":
 		return cmdList()
 
+	// Container orchestration commands
+	case "start":
+		return cmdStart()
+	case "stop":
+		return cmdStop()
+	case "status":
+		return cmdStatus()
+	case "logs":
+		return cmdLogs()
+	case "build":
+		return cmdBuild()
+
 	// Runtime commands
 	case "version":
 		return cmdVersion()
@@ -54,10 +66,7 @@ func printUsage() error {
 	fmt.Printf(`gorai - Gorai Robotics Framework CLI (v%s)
 
 Usage:
-  gorai <command> <robot-name> [flags]
-
-All commands accept a robot name and read/write <robot-name>.json.
-Set GORAI_ROBOT_NAME environment variable to avoid typing the name.
+  gorai <command> [flags]
 
 Project Commands:
   init <name>       Initialize project from <name>.json (must exist)
@@ -66,8 +75,15 @@ Project Commands:
   add               Add custom components or services
   list              List available component and service types
 
+Container Orchestration (Podman):
+  start             Start robot containers from RDL configuration
+  stop              Stop robot containers
+  status            Show robot and container status
+  logs              View container logs
+  build             Build container images
+
 Runtime Commands:
-  run               Run a robot from configuration
+  run               Run a robot from configuration (monolithic mode)
   topic             Topic operations (list, echo, pub)
   service           Service operations (list, call)
 
@@ -78,19 +94,16 @@ Other Commands:
 Use "gorai <command> -h" for more information about a command.
 
 Examples:
-  # Create my-robot.json first, then:
+  # Container orchestration (recommended):
+  gorai start --config robot.json --build --detach
+  gorai status --config robot.json
+  gorai logs --config robot.json --follow
+  gorai stop --config robot.json
+
+  # Project management:
   gorai init my-robot              Initialize project from my-robot.json
-  gorai generate my-robot          Generate code from my-robot.json
   gorai validate my-robot          Validate my-robot.json
-
-  # Or set environment variable to save typing:
-  export GORAI_ROBOT_NAME=my-robot
-  gorai init
-  gorai generate
-  gorai validate
-
   gorai add component my_sensor    Add a custom component
-  gorai list components            List available component types
 
 Documentation:
   https://gorai.dev/docs

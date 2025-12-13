@@ -12,15 +12,18 @@ import (
 
 // RDL represents the complete Robot Definition Language configuration.
 type RDL struct {
-	Schema     string            `json:"$schema,omitempty"`
-	Version    string            `json:"version"`
-	Robot      RobotConfig       `json:"robot"`
-	NATS       *NATSConfig       `json:"nats,omitempty"`
-	Components []ComponentConfig `json:"components,omitempty"`
-	Services   []ServiceConfig   `json:"services,omitempty"`
-	Remotes    []RemoteConfig    `json:"remotes,omitempty"`
-	Log        *LogConfig        `json:"log,omitempty"`
-	Dashboard  *DashboardConfig  `json:"dashboard,omitempty"`
+	Schema     string                       `json:"$schema,omitempty"`
+	Version    string                       `json:"version"`
+	Robot      RobotConfig                  `json:"robot"`
+	NATS       *NATSConfig                  `json:"nats,omitempty"`
+	Containers map[string]*ContainerConfig  `json:"containers,omitempty"`
+	Networks   map[string]*NetworkConfig    `json:"networks,omitempty"`
+	Volumes    map[string]*VolumeConfig     `json:"volumes,omitempty"`
+	Components []ComponentConfig            `json:"components,omitempty"`
+	Services   []ServiceConfig              `json:"services,omitempty"`
+	Remotes    []RemoteConfig               `json:"remotes,omitempty"`
+	Log        *LogConfig                   `json:"log,omitempty"`
+	Dashboard  *DashboardConfig             `json:"dashboard,omitempty"`
 }
 
 // RobotConfig defines the robot's identity.
@@ -40,6 +43,7 @@ type NATSConfig struct {
 	ConnectTimeout  string     `json:"connect_timeout,omitempty"`
 	ReconnectWait   string     `json:"reconnect_wait,omitempty"`
 	MaxReconnects   int        `json:"max_reconnects,omitempty"`
+	Container       string     `json:"container,omitempty"` // Container name for NATS service
 }
 
 // TLSConfig defines TLS settings for NATS.
@@ -55,6 +59,7 @@ type ComponentConfig struct {
 	Type       string         `json:"type"`
 	Model      string         `json:"model"`
 	Disabled   bool           `json:"disabled,omitempty"`
+	Container  string         `json:"container,omitempty"` // Container this component runs in
 	Attributes map[string]any `json:"attributes,omitempty"`
 	DependsOn  []string       `json:"depends_on,omitempty"`
 }
@@ -65,6 +70,7 @@ type ServiceConfig struct {
 	Type       string         `json:"type"`
 	Model      string         `json:"model"`
 	Disabled   bool           `json:"disabled,omitempty"`
+	Container  string         `json:"container,omitempty"` // Container this service runs in
 	Attributes map[string]any `json:"attributes,omitempty"`
 	DependsOn  []string       `json:"depends_on,omitempty"`
 }
@@ -109,6 +115,101 @@ type VideoConfig struct {
 	Format  string `json:"format,omitempty"`
 	MaxFPS  int    `json:"max_fps,omitempty"`
 	Quality int    `json:"quality,omitempty"`
+}
+
+// ContainerConfig defines a container for Podman orchestration.
+type ContainerConfig struct {
+	// Image specification (one of: Image, Build)
+	Image string        `json:"image,omitempty"`
+	Build *BuildConfig  `json:"build,omitempty"`
+
+	// Dependencies
+	DependsOn map[string]*DependsOnCondition `json:"depends_on,omitempty"`
+
+	// Runtime configuration
+	Environment map[string]string `json:"environment,omitempty"`
+	EnvFile     []string          `json:"env_file,omitempty"`
+	Command     []string          `json:"command,omitempty"`
+	Entrypoint  []string          `json:"entrypoint,omitempty"`
+
+	// Storage
+	Volumes []string `json:"volumes,omitempty"`
+
+	// Devices (for hardware access)
+	Devices []string `json:"devices,omitempty"`
+
+	// Networking
+	Ports       []string `json:"ports,omitempty"`
+	NetworkMode string   `json:"network_mode,omitempty"`
+	Networks    []string `json:"networks,omitempty"`
+
+	// Security
+	Privileged  bool     `json:"privileged,omitempty"`
+	SecurityOpt []string `json:"security_opt,omitempty"`
+	CapAdd      []string `json:"cap_add,omitempty"`
+	CapDrop     []string `json:"cap_drop,omitempty"`
+	GroupAdd    []string `json:"group_add,omitempty"`
+
+	// Resource limits
+	Resources *ResourceConfig `json:"resources,omitempty"`
+
+	// Lifecycle
+	Restart         string `json:"restart,omitempty"`
+	StopGracePeriod string `json:"stop_grace_period,omitempty"`
+
+	// Health checking
+	Healthcheck *HealthcheckConfig `json:"healthcheck,omitempty"`
+
+	// Gorai-specific: which components/services run here
+	ComponentNames []string `json:"components,omitempty"`
+	ServiceNames   []string `json:"services,omitempty"`
+}
+
+// BuildConfig defines container build settings.
+type BuildConfig struct {
+	Context    string            `json:"context,omitempty"`
+	Dockerfile string            `json:"dockerfile,omitempty"`
+	Args       map[string]string `json:"args,omitempty"`
+	Target     string            `json:"target,omitempty"`
+}
+
+// DependsOnCondition defines a dependency condition.
+type DependsOnCondition struct {
+	Condition string `json:"condition,omitempty"` // service_started, service_healthy, service_completed_successfully
+}
+
+// HealthcheckConfig defines container health check settings.
+type HealthcheckConfig struct {
+	Test        []string `json:"test,omitempty"`
+	Interval    string   `json:"interval,omitempty"`
+	Timeout     string   `json:"timeout,omitempty"`
+	Retries     int      `json:"retries,omitempty"`
+	StartPeriod string   `json:"start_period,omitempty"`
+}
+
+// ResourceConfig defines container resource limits.
+type ResourceConfig struct {
+	Limits       *ResourceLimits `json:"limits,omitempty"`
+	Reservations *ResourceLimits `json:"reservations,omitempty"`
+}
+
+// ResourceLimits defines CPU and memory limits.
+type ResourceLimits struct {
+	CPUs   string `json:"cpus,omitempty"`
+	Memory string `json:"memory,omitempty"`
+}
+
+// NetworkConfig defines a custom network.
+type NetworkConfig struct {
+	Driver   string            `json:"driver,omitempty"`
+	Internal bool              `json:"internal,omitempty"`
+	Options  map[string]string `json:"driver_opts,omitempty"`
+}
+
+// VolumeConfig defines a named volume.
+type VolumeConfig struct {
+	Driver  string            `json:"driver,omitempty"`
+	Options map[string]string `json:"driver_opts,omitempty"`
 }
 
 // Load loads configuration from a JSON file.
