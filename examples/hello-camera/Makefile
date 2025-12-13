@@ -142,6 +142,8 @@ services-start: nats-start prom-start
 nats-start:
 	@if [ -f $(NATS_PID_FILE) ] && kill -0 $$(cat $(NATS_PID_FILE)) 2>/dev/null; then \
 		echo "==> NATS server already running (PID: $$(cat $(NATS_PID_FILE)))"; \
+	elif nc -z localhost 4222 2>/dev/null; then \
+		echo "==> NATS already running on port 4222 (external instance)"; \
 	else \
 		if ! command -v nats-server >/dev/null 2>&1; then \
 			echo "ERROR: nats-server not found. Install with:"; \
@@ -153,7 +155,8 @@ nats-start:
 		nats-server -p 4222 -m 8222 & echo $$! > $(NATS_PID_FILE); \
 		sleep 1; \
 		if ! kill -0 $$(cat $(NATS_PID_FILE)) 2>/dev/null; then \
-			echo "ERROR: NATS server failed to start"; \
+			echo "ERROR: NATS server failed to start (port 4222 may be in use)"; \
+			echo "       Run: make stop  or  pkill nats-server"; \
 			rm -f $(NATS_PID_FILE); \
 			exit 1; \
 		fi; \
@@ -169,9 +172,10 @@ nats-stop:
 		kill $$(cat $(NATS_PID_FILE)) 2>/dev/null || true; \
 		rm -f $(NATS_PID_FILE); \
 		echo "    NATS server stopped"; \
+	elif pkill -x nats-server 2>/dev/null; then \
+		echo "    NATS server stopped (was running without PID file)"; \
 	else \
-		echo "    No NATS PID file found"; \
-		pkill -x nats-server 2>/dev/null || true; \
+		echo "    No NATS server running"; \
 	fi
 
 .PHONY: prom-start
