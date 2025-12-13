@@ -386,6 +386,46 @@ func generateImportsGo(cfg *config.RDL, imports []importInfo, moduleName, robotN
 	return string(formatted)
 }
 
+// componentTypeNames maps component types to their primary interface/type name
+var componentTypeNames = map[string]string{
+	"imu":                "IMU",
+	"ahrs":               "AHRS",
+	"gps":                "GPS",
+	"encoder":            "Encoder",
+	"range_sensor":       "RangeSensor",
+	"lidar":              "Lidar",
+	"presence_sensor":    "PresenceSensor",
+	"thermal_array":      "ThermalArray",
+	"force_sensor":       "ForceSensor",
+	"force_6dof":         "Force6DOF",
+	"current_sensor":     "CurrentSensor",
+	"reflectance_sensor": "ReflectanceSensor",
+	"camera":             "Camera",
+	"temperature":        "TemperatureSensor",
+	"motor":              "Motor",
+	"servo":              "Servo",
+	"stepper":            "Stepper",
+	"thruster":           "Thruster",
+	"valve":              "Valve",
+	"gripper":            "Gripper",
+	"arm":                "Arm",
+	"base":               "Base",
+	"power":              "Power",
+	"space":              "Space",
+	"link":               "Link",
+}
+
+// serviceTypeNames maps service types to their primary interface/type name
+var serviceTypeNames = map[string]string{
+	"vision":      "Vision",
+	"slam":        "SLAM",
+	"navigation":  "Navigation",
+	"motion":      "Motion",
+	"behavior":    "Behavior",
+	"coordinator": "Coordinator",
+	"mlmodel":     "MLModel",
+}
+
 func generateValidateGo(cfg *config.RDL, imports []importInfo) string {
 	var sb strings.Builder
 
@@ -411,12 +451,29 @@ func generateValidateGo(cfg *config.RDL, imports []importInfo) string {
 	sb.WriteString(")\n\n")
 
 	sb.WriteString("// Type assertions to verify imports are valid\n")
+	sb.WriteString("// These declarations use the interface types which will fail to compile\n")
+	sb.WriteString("// if the packages don't export the expected types.\n")
 	sb.WriteString("var (\n")
 	for _, imp := range imports {
 		parts := strings.Split(imp.Path, "/")
 		pkgName := parts[len(parts)-1]
-		// Use a simple assertion that the package exists
-		sb.WriteString(fmt.Sprintf("\t_ = %s.Name // %s exists\n", pkgName, imp.Comment))
+		// Get the comment which contains the type info (e.g., "camera: main_camera")
+		commentParts := strings.SplitN(imp.Comment, ":", 2)
+		compType := strings.TrimSpace(commentParts[0])
+
+		// Look up the interface/type name for this component/service type
+		typeName := ""
+		if name, ok := componentTypeNames[compType]; ok {
+			typeName = name
+		} else if name, ok := serviceTypeNames[compType]; ok {
+			typeName = name
+		} else {
+			// Fall back to capitalized package name
+			typeName = strings.Title(pkgName)
+		}
+
+		// Use a var declaration with the interface type - this validates the type exists
+		sb.WriteString(fmt.Sprintf("\t_ %s.%s // %s\n", pkgName, typeName, imp.Comment))
 	}
 	sb.WriteString(")\n")
 

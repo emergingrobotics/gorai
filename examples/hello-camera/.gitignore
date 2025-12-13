@@ -1,0 +1,8 @@
+# Generated project directory (created by make init)
+hello-camera/
+
+# Generated code directory (created by gorai generate)
+internal/
+
+# Auto-generated Prometheus config
+prometheus.yml
