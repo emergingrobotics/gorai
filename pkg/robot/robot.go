@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorai/gorai/driver/camera/v4l2"
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/dashboard"
 	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/topics"
@@ -25,6 +26,9 @@ type Robot struct {
 	// NATS client for messaging
 	nats   *gorainats.Client
 	topics *topics.Builder
+
+	// Web dashboard
+	dashboard *dashboard.Dashboard
 
 	// Active cameras
 	cameras   map[string]*v4l2.Camera
@@ -78,6 +82,11 @@ func (r *Robot) Start(ctx context.Context) error {
 	// Connect to NATS
 	if err := r.connectNATS(ctx); err != nil {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
+	}
+
+	// Start dashboard if enabled
+	if err := r.startDashboard(ctx); err != nil {
+		r.logger.Warn("Failed to start dashboard", "error", err)
 	}
 
 	// Publish robot started event
@@ -149,6 +158,41 @@ func (r *Robot) connectNATS(ctx context.Context) error {
 
 	r.nats = client
 	r.logger.Info("Connected to NATS", "url", natsURL)
+	return nil
+}
+
+// startDashboard creates and starts the web dashboard if enabled.
+func (r *Robot) startDashboard(ctx context.Context) error {
+	if !r.cfg.IsDashboardEnabled() {
+		r.logger.Debug("Dashboard disabled")
+		return nil
+	}
+
+	dashCfg := r.cfg.Dashboard
+	if dashCfg == nil {
+		dashCfg = &config.DashboardConfig{}
+	}
+
+	d, err := dashboard.New(dashCfg, r.cfg,
+		dashboard.WithNATS(r.nats),
+		dashboard.WithTopics(r.topics),
+		dashboard.WithLogger(r.logger),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create dashboard: %w", err)
+	}
+
+	if err := d.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start dashboard: %w", err)
+	}
+
+	r.dashboard = d
+
+	listen := dashCfg.Listen
+	if listen == "" {
+		listen = ":8080"
+	}
+	r.logger.Info("Dashboard started", "listen", listen)
 	return nil
 }
 
@@ -365,6 +409,13 @@ func (r *Robot) Stop(ctx context.Context) error {
 
 	// Publish shutdown event
 	r.publishStartupEvent(topics.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
+
+	// Stop dashboard
+	if r.dashboard != nil {
+		if err := r.dashboard.Stop(ctx); err != nil {
+			r.logger.Warn("Error stopping dashboard", "error", err)
+		}
+	}
 
 	// Stop all cameras
 	r.camerasMu.Lock()

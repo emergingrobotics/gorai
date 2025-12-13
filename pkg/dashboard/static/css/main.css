@@ -1,0 +1,362 @@
+/* Gorai Dashboard - Main Stylesheet */
+
+:root {
+    --bg-primary: #0f0f0f;
+    --bg-secondary: #1a1a1a;
+    --bg-card: #1e1e1e;
+    --bg-header: #2d2d2d;
+    --bg-controls: #252525;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666666;
+    --border-color: #333333;
+    --accent-primary: #3b82f6;
+    --accent-hover: #2563eb;
+    --success-bg: #1b4332;
+    --success-text: #95d5b2;
+    --error-bg: #4a1919;
+    --error-text: #f5c6cb;
+    --warning-bg: #422006;
+    --warning-text: #fcd34d;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+/* Navigation */
+.nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    height: 56px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-brand {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    letter-spacing: -0.5px;
+}
+
+.nav-tabs {
+    display: flex;
+    list-style: none;
+    gap: 0.5rem;
+    height: 100%;
+}
+
+.nav-tabs li {
+    display: flex;
+    align-items: center;
+}
+
+.nav-tabs a {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    height: 100%;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs a:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tabs a.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+}
+
+/* Main content */
+main {
+    padding: 1.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--bg-header);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    background: var(--bg-controls);
+    border-color: var(--text-muted);
+}
+
+.btn-primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+/* Camera Grid */
+.cameras-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.cameras-toolbar h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.cameras-toolbar select {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--bg-header);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.camera-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.camera-grid.grid-1x1 {
+    grid-template-columns: 1fr;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.camera-grid.grid-2x2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.camera-grid.grid-3x3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1024px) {
+    .camera-grid.grid-3x3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .camera-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Camera Card */
+.camera-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg-header);
+}
+
+.camera-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.camera-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.camera-status.online {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.camera-status.offline {
+    background: var(--error-bg);
+    color: var(--error-text);
+}
+
+.camera-status.connecting {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.camera-feed {
+    width: 100%;
+    height: auto;
+    display: block;
+    aspect-ratio: 4/3;
+    object-fit: contain;
+    background: #000;
+}
+
+.camera-offline {
+    aspect-ratio: 4/3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+    color: var(--text-muted);
+    gap: 0.5rem;
+}
+
+.camera-offline svg {
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+}
+
+.camera-controls {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--bg-controls);
+}
+
+.camera-controls button,
+.camera-controls a {
+    flex: 1;
+}
+
+/* Status page */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.status-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 1.25rem;
+}
+
+.status-card h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+}
+
+.status-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.status-card .label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* Component list */
+.component-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.component-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+.component-item .name {
+    font-weight: 500;
+}
+
+.component-item .type {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* No cameras message */
+.no-cameras {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.no-cameras p {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.no-cameras small {
+    color: var(--text-muted);
+}
+
+/* Loading spinner */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.loading::after {
+    content: "";
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

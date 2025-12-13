@@ -4,6 +4,8 @@ go 1.22
 
 require (
 	github.com/blackjack/webcam v0.6.1
+	github.com/coder/websocket v1.8.12
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/nats-io/nats.go v1.37.0
 	google.golang.org/protobuf v1.35.2
 )
