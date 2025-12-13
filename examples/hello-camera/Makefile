@@ -49,10 +49,11 @@ help:
 	@echo "  tidy            Download dependencies (go mod tidy)"
 	@echo ""
 	@echo "Build Targets:"
-	@echo "  $(ROBOT_NAME)   Build the robot binary"
+	@echo "  build           Build the robot binary"
 	@echo ""
 	@echo "Run Targets:"
 	@echo "  run             Build and run the robot (starts NATS and Prometheus)"
+	@echo "  stop            Stop robot, NATS, and Prometheus"
 	@echo "  nats-start      Start local NATS server"
 	@echo "  nats-stop       Stop local NATS server"
 	@echo "  prom-start      Start local Prometheus server"
@@ -115,8 +116,8 @@ tidy:
 # Build Targets
 # ============================================================================
 
-.PHONY: $(ROBOT_NAME)
-$(ROBOT_NAME): tidy
+.PHONY: build
+build: tidy
 	@if [ ! -d "$(PROJECT_DIR)" ]; then \
 		echo "ERROR: Project not initialized. Run 'make init' first."; \
 		exit 1; \
@@ -129,7 +130,7 @@ $(ROBOT_NAME): tidy
 # ============================================================================
 
 .PHONY: run
-run: services-start $(ROBOT_NAME)
+run: services-start build
 	@echo "==> Running $(ROBOT_NAME)..."
 	cd $(PROJECT_DIR) && ./build/$(ROBOT_NAME) --config $(ROBOT_NAME).json
 
@@ -142,9 +143,20 @@ nats-start:
 	@if [ -f $(NATS_PID_FILE) ] && kill -0 $$(cat $(NATS_PID_FILE)) 2>/dev/null; then \
 		echo "==> NATS server already running (PID: $$(cat $(NATS_PID_FILE)))"; \
 	else \
+		if ! command -v nats-server >/dev/null 2>&1; then \
+			echo "ERROR: nats-server not found. Install with:"; \
+			echo "  go install github.com/nats-io/nats-server/v2@latest"; \
+			echo "  # or: sudo apt install nats-server"; \
+			exit 1; \
+		fi; \
 		echo "==> Starting NATS server..."; \
 		nats-server -p 4222 -m 8222 & echo $$! > $(NATS_PID_FILE); \
 		sleep 1; \
+		if ! kill -0 $$(cat $(NATS_PID_FILE)) 2>/dev/null; then \
+			echo "ERROR: NATS server failed to start"; \
+			rm -f $(NATS_PID_FILE); \
+			exit 1; \
+		fi; \
 		echo "    NATS server started (PID: $$(cat $(NATS_PID_FILE)))"; \
 		echo "    Client port: 4222"; \
 		echo "    Monitor:     http://localhost:8222"; \
@@ -207,12 +219,18 @@ prom-stop:
 services-stop: nats-stop prom-stop
 	@echo "==> All services stopped"
 
+.PHONY: stop
+stop: services-stop
+	@echo "==> Stopping any running $(ROBOT_NAME) processes..."
+	@pkill -x $(ROBOT_NAME) 2>/dev/null && echo "    $(ROBOT_NAME) stopped" || echo "    No $(ROBOT_NAME) process found"
+	@echo "==> All stopped"
+
 # ============================================================================
 # Utility Targets
 # ============================================================================
 
 .PHONY: all
-all: validate init $(ROBOT_NAME)
+all: validate init build
 	@echo "==> Setup complete!"
 	@echo ""
 	@echo "Next steps:"
