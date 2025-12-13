@@ -1,3 +1,5 @@
+github.com/blackjack/webcam v0.6.1 h1:K0T6Q0zto23U99gNAa5q/hFoye6uGcKr2aE6hFoxVoE=
+github.com/blackjack/webcam v0.6.1/go.mod h1:zs+RkUZzqpFPHPiwBZ6U5B34ZXXe9i+SiHLKnnukJuI=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/klauspost/compress v1.17.11 h1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc=

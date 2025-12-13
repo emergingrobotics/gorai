@@ -52,7 +52,7 @@ help:
 	@echo "  build           Build the robot binary"
 	@echo ""
 	@echo "Run Targets:"
-	@echo "  run             Build and run the robot (starts NATS and Prometheus)"
+	@echo "  start           Build and start the robot (starts NATS and Prometheus)"
 	@echo "  stop            Stop robot, NATS, and Prometheus"
 	@echo "  nats-start      Start local NATS server"
 	@echo "  nats-stop       Stop local NATS server"
@@ -67,7 +67,7 @@ help:
 	@echo ""
 	@echo "Quick Start:"
 	@echo "  make all        # Setup everything"
-	@echo "  make run        # Run the robot"
+	@echo "  make start      # Start the robot"
 
 .DEFAULT_GOAL := help
 
@@ -129,9 +129,9 @@ build: tidy
 # Run Targets
 # ============================================================================
 
-.PHONY: run
-run: services-start build
-	@echo "==> Running $(ROBOT_NAME)..."
+.PHONY: start
+start: services-start build
+	@echo "==> Starting $(ROBOT_NAME)..."
 	cd $(PROJECT_DIR) && ./build/$(ROBOT_NAME) --config $(ROBOT_NAME).json
 
 .PHONY: services-start
@@ -238,7 +238,7 @@ all: validate init build
 	@echo "==> Setup complete!"
 	@echo ""
 	@echo "Next steps:"
-	@echo "  make run        # Run the robot"
+	@echo "  make start      # Start the robot"
 
 .PHONY: clean
 clean: services-stop

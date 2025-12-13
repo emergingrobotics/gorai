@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
+	"github.com/gorai/gorai/driver/camera/v4l2"
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/hardware/v4l2"
+	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/topics"
 )
@@ -23,6 +25,14 @@ type Robot struct {
 	// NATS client for messaging
 	nats   *gorainats.Client
 	topics *topics.Builder
+
+	// Active cameras
+	cameras   map[string]*v4l2.Camera
+	camerasMu sync.RWMutex
+
+	// Frame counters for logging
+	frameCounters   map[string]uint64
+	frameCountersMu sync.Mutex
 }
 
 // Option configures a Robot.
@@ -43,11 +53,13 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 
 	rCtx, cancel := context.WithCancel(ctx)
 	r := &Robot{
-		cfg:    cfg,
-		logger: slog.Default(),
-		ctx:    rCtx,
-		cancel: cancel,
-		topics: topics.NewBuilder(cfg.Robot.Name),
+		cfg:           cfg,
+		logger:        slog.Default(),
+		ctx:           rCtx,
+		cancel:        cancel,
+		topics:        topics.NewBuilder(cfg.Robot.Name),
+		cameras:       make(map[string]*v4l2.Camera),
+		frameCounters: make(map[string]uint64),
 	}
 
 	for _, opt := range opts {
@@ -77,14 +89,22 @@ func (r *Robot) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Initialize components
+	// Initialize and start components
 	for _, comp := range r.cfg.Components {
 		if comp.Disabled {
 			r.logger.Info("Skipping disabled component", "name", comp.Name)
 			continue
 		}
-		r.logger.Info("Initializing component", "name", comp.Name, "type", comp.Type, "model", comp.Model)
-		// TODO: Actually initialize component from registry
+
+		switch comp.Type {
+		case "camera":
+			if err := r.startCamera(ctx, comp); err != nil {
+				return fmt.Errorf("failed to start camera %s: %w", comp.Name, err)
+			}
+		default:
+			r.logger.Info("Initializing component", "name", comp.Name, "type", comp.Type, "model", comp.Model)
+			// TODO: Initialize other component types from registry
+		}
 	}
 
 	// Initialize services
@@ -144,7 +164,6 @@ func (r *Robot) detectHardware(ctx context.Context) error {
 			if err := r.detectCamera(comp); err != nil {
 				return err
 			}
-		// Add other component types as needed
 		default:
 			r.logger.Debug("No hardware detection for component type", "type", comp.Type, "name", comp.Name)
 		}
@@ -154,8 +173,7 @@ func (r *Robot) detectHardware(ctx context.Context) error {
 
 // detectCamera checks if a camera device is present.
 func (r *Robot) detectCamera(comp config.ComponentConfig) error {
-	// Get device path from attributes
-	devicePath := "/dev/video0" // default
+	devicePath := "/dev/video0"
 	if comp.Attributes != nil {
 		if dev, ok := comp.Attributes["device"].(string); ok {
 			devicePath = dev
@@ -164,14 +182,12 @@ func (r *Robot) detectCamera(comp config.ComponentConfig) error {
 
 	r.logger.Info("Detecting camera", "name", comp.Name, "device", devicePath)
 
-	// Check if device exists
-	result := v4l2.DetectDevice(devicePath)
+	result := hwv4l2.DetectDevice(devicePath)
 
 	if !result.Found {
 		errMsg := fmt.Sprintf("Camera %q not found at %s: %s", comp.Name, devicePath, result.Error)
 		r.logger.Error("Camera detection failed", "name", comp.Name, "device", devicePath, "error", result.Error)
 
-		// Publish failure event
 		r.publishStartupEvent(topics.EventComponentMissing, comp.Name, comp.Type, errMsg, false, map[string]any{
 			"device": devicePath,
 			"error":  result.Error,
@@ -180,9 +196,8 @@ func (r *Robot) detectCamera(comp config.ComponentConfig) error {
 		return fmt.Errorf(errMsg)
 	}
 
-	// Camera found
 	deviceInfo := result.Device
-	summary := v4l2.GetDeviceSummary(deviceInfo)
+	summary := hwv4l2.GetDeviceSummary(deviceInfo)
 
 	r.logger.Info("Camera detected",
 		"name", comp.Name,
@@ -191,7 +206,6 @@ func (r *Robot) detectCamera(comp config.ComponentConfig) error {
 		"driver", deviceInfo.Driver,
 	)
 
-	// Publish success event
 	r.publishStartupEvent(topics.EventComponentDetected, comp.Name, comp.Type,
 		fmt.Sprintf("Camera %q detected: %s", comp.Name, summary), true, map[string]any{
 			"device":      devicePath,
@@ -201,6 +215,111 @@ func (r *Robot) detectCamera(comp config.ComponentConfig) error {
 		})
 
 	return nil
+}
+
+// startCamera creates and starts a camera component.
+func (r *Robot) startCamera(ctx context.Context, comp config.ComponentConfig) error {
+	// Extract configuration from attributes
+	devicePath := "/dev/video0"
+	width := uint32(640)
+	height := uint32(480)
+	frameRate := float64(30)
+	jpegQuality := 80
+
+	if comp.Attributes != nil {
+		if dev, ok := comp.Attributes["device"].(string); ok {
+			devicePath = dev
+		}
+		if w, ok := comp.Attributes["width"].(float64); ok {
+			width = uint32(w)
+		}
+		if h, ok := comp.Attributes["height"].(float64); ok {
+			height = uint32(h)
+		}
+		if fr, ok := comp.Attributes["frame_rate"].(float64); ok {
+			frameRate = fr
+		}
+		if q, ok := comp.Attributes["jpeg_quality"].(float64); ok {
+			jpegQuality = int(q)
+		}
+	}
+
+	cfg := &v4l2.Config{
+		Device:      devicePath,
+		Width:       width,
+		Height:      height,
+		FrameRate:   frameRate,
+		JPEGQuality: jpegQuality,
+	}
+
+	// Create frame topic for this camera
+	frameTopic := r.topics.ComponentData(comp.Name)
+
+	// Create camera with frame callback
+	cam, err := v4l2.New(cfg,
+		v4l2.WithLogger(r.logger),
+		v4l2.WithOnFrame(func(jpeg []byte, timestamp time.Time) {
+			r.publishFrame(comp.Name, frameTopic, jpeg, timestamp)
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create camera: %w", err)
+	}
+
+	// Open the camera
+	if err := cam.Open(); err != nil {
+		return fmt.Errorf("failed to open camera: %w", err)
+	}
+
+	// Start streaming
+	if err := cam.Start(r.ctx); err != nil {
+		cam.Close()
+		return fmt.Errorf("failed to start camera: %w", err)
+	}
+
+	// Store camera reference
+	r.camerasMu.Lock()
+	r.cameras[comp.Name] = cam
+	r.camerasMu.Unlock()
+
+	r.logger.Info("Camera started",
+		"name", comp.Name,
+		"device", devicePath,
+		"resolution", fmt.Sprintf("%dx%d", width, height),
+		"fps", frameRate,
+		"topic", frameTopic,
+	)
+
+	return nil
+}
+
+// publishFrame publishes a camera frame to NATS.
+func (r *Robot) publishFrame(cameraName, topic string, jpeg []byte, timestamp time.Time) {
+	if r.nats == nil {
+		return
+	}
+
+	// Publish raw JPEG data to the topic
+	if err := r.nats.Publish(topic, jpeg); err != nil {
+		r.logger.Warn("Failed to publish frame", "camera", cameraName, "error", err)
+		return
+	}
+
+	// Update frame counter and log periodically
+	r.frameCountersMu.Lock()
+	r.frameCounters[cameraName]++
+	count := r.frameCounters[cameraName]
+	r.frameCountersMu.Unlock()
+
+	// Log every 100 frames
+	if count%100 == 0 {
+		r.logger.Debug("Camera frames published",
+			"camera", cameraName,
+			"frames", count,
+			"topic", topic,
+			"size_kb", len(jpeg)/1024,
+		)
+	}
 }
 
 // publishStartupEvent publishes a startup event to the NATS system topic.
@@ -247,10 +366,19 @@ func (r *Robot) Stop(ctx context.Context) error {
 	// Publish shutdown event
 	r.publishStartupEvent(topics.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
 
+	// Stop all cameras
+	r.camerasMu.Lock()
+	for name, cam := range r.cameras {
+		r.logger.Info("Stopping camera", "name", name)
+		if err := cam.Close(); err != nil {
+			r.logger.Warn("Error closing camera", "name", name, "error", err)
+		}
+	}
+	r.cameras = make(map[string]*v4l2.Camera)
+	r.camerasMu.Unlock()
+
 	// Cancel internal context
 	r.cancel()
-
-	// TODO: Stop all components and services gracefully
 
 	// Close NATS connection
 	if r.nats != nil {
