@@ -1,6 +1,6 @@
 # Gorai Container Orchestration with Podman
 
-**Version**: 1.0
+**Version**: 1.1
 **Date**: 2025-12-13
 **Status**: Specification
 
@@ -8,9 +8,32 @@
 
 Gorai uses **Podman** as its container runtime for orchestrating robot components and services. This specification defines how the Robot Definition Language (RDL) integrates with Podman to build, run, and manage containerized robot systems.
 
+**Key Design Decision**: The `gorai` CLI itself runs in a container, requiring only Podman on the host. This eliminates the need to install podman-compose or any other dependencies on the host system.
+
 ## Design Principles
 
-### 1. Go-First Language Policy
+### 1. Containerized CLI (No Host Dependencies)
+
+The `gorai` CLI runs inside a container that includes:
+- The compiled `gorai` binary (Go)
+- `podman-compose` (Python)
+- All required dependencies
+
+**Host requirements**: Only `podman` needs to be installed on the host.
+
+```bash
+# Users run gorai via podman (wrapper script provided)
+gorai start --config robot.json
+
+# Under the hood, this runs:
+podman run --rm \
+  -v /run/podman/podman.sock:/run/podman/podman.sock \
+  -v $(pwd):/workspace \
+  -w /workspace \
+  ghcr.io/gorai/gorai:latest start --config robot.json
+```
+
+### 2. Go-First Language Policy
 
 Gorai's primary implementation language is **Go**. However, specific components may use other languages when required by technology constraints:
 
@@ -23,7 +46,7 @@ Gorai's primary implementation language is **Go**. However, specific components 
 
 When a non-Go language is required, that component runs in an **isolated OCI container**.
 
-### 2. Container Isolation Strategy
+### 3. Container Isolation Strategy
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -52,7 +75,7 @@ When a non-Go language is required, that component runs in an **isolated OCI con
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Why Podman (Not Docker)
+### 4. Why Podman (Not Docker)
 
 - **Rootless by default**: Better security for robot systems
 - **Systemd integration**: Native service management
@@ -60,6 +83,114 @@ When a non-Go language is required, that component runs in an **isolated OCI con
 - **Docker-compatible**: Same CLI, Dockerfile support
 - **Quadlet**: Generates systemd units from containers
 - **Pod support**: Group related containers
+
+---
+
+## Gorai CLI Container
+
+The `gorai` CLI runs in a container to avoid installing dependencies on the host.
+
+### Container Contents
+
+```
+ghcr.io/gorai/gorai:latest
+├── /usr/local/bin/gorai        # Go binary
+├── /usr/local/bin/podman-compose  # Python podman-compose
+└── /usr/local/bin/gorai-wrapper   # Entrypoint script
+```
+
+### Containerfile (Containerfile.gorai)
+
+```dockerfile
+# Build stage - compile Go binary
+FROM docker.io/golang:1.22-alpine AS builder
+
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o gorai ./cmd/gorai
+
+# Runtime stage
+FROM docker.io/python:3.11-slim-bookworm
+
+# Install podman-compose
+RUN pip install --no-cache-dir podman-compose
+
+# Copy Go binary
+COPY --from=builder /build/gorai /usr/local/bin/gorai
+
+# Create workspace directory
+WORKDIR /workspace
+
+ENTRYPOINT ["/usr/local/bin/gorai"]
+```
+
+### Host Wrapper Script
+
+Install this as `/usr/local/bin/gorai` on the host:
+
+```bash
+#!/bin/bash
+# gorai wrapper - runs gorai CLI in container
+
+GORAI_IMAGE="${GORAI_IMAGE:-ghcr.io/gorai/gorai:latest}"
+
+exec podman run --rm -it \
+  --security-opt label=disable \
+  -v /run/podman/podman.sock:/run/podman/podman.sock:rw \
+  -v "$(pwd):/workspace:rw" \
+  -w /workspace \
+  -e "GORAI_ROBOT_NAME=${GORAI_ROBOT_NAME:-}" \
+  "$GORAI_IMAGE" "$@"
+```
+
+### Podman Socket Access
+
+The container needs access to the host's Podman socket to manage containers:
+
+```bash
+# Ensure podman socket is running (for rootless)
+systemctl --user enable --now podman.socket
+
+# Verify socket exists
+ls -la /run/user/$(id -u)/podman/podman.sock
+
+# For rootful podman
+sudo systemctl enable --now podman.socket
+ls -la /run/podman/podman.sock
+```
+
+### Makefile Integration
+
+```makefile
+GORAI_IMAGE ?= ghcr.io/gorai/gorai:latest
+
+# Build the gorai CLI container
+container:
+	podman build -t $(GORAI_IMAGE) -f Containerfile.gorai .
+
+# Run gorai commands via container
+gorai = podman run --rm -it \
+	--security-opt label=disable \
+	-v /run/podman/podman.sock:/run/podman/podman.sock:rw \
+	-v $(PWD):/workspace:rw \
+	-w /workspace \
+	$(GORAI_IMAGE)
+
+up: container
+	$(gorai) start --config robot.json --build --detach
+
+down:
+	$(gorai) stop --config robot.json
+
+status:
+	$(gorai) status --config robot.json
+
+logs:
+	$(gorai) logs --config robot.json --follow
+```
 
 ---
 

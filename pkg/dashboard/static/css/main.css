@@ -360,3 +360,156 @@ main {
         transform: rotate(360deg);
     }
 }
+
+/* Models Grid */
+.models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+/* Model Card */
+.model-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.model-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg-header);
+}
+
+.model-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.model-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.model-metrics .metric {
+    text-align: center;
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+.model-metrics .metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: block;
+    color: var(--accent-primary);
+}
+
+.model-metrics .metric-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.model-uptime {
+    padding: 0.75rem 1rem;
+    background: var(--bg-controls);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.model-stream {
+    background: #000;
+}
+
+.annotated-feed {
+    width: 100%;
+    height: auto;
+    display: block;
+    aspect-ratio: 4/3;
+    object-fit: contain;
+}
+
+/* Error status */
+.camera-status.error {
+    background: var(--error-bg);
+    color: var(--error-text);
+}
+
+/* Detections container */
+.detections-container {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.detection-item {
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.detection-item:last-child {
+    margin-bottom: 0;
+}
+
+.detection-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.detection-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.detection-count {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    background: var(--accent-primary);
+    color: white;
+    border-radius: 10px;
+}
+
+.detection-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.detection-classes {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.detection-metrics {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.no-data {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .model-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

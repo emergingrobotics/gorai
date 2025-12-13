@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/dashboard/cameras"
+	"github.com/gorai/gorai/pkg/dashboard/models"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/topics"
 )
@@ -29,6 +30,9 @@ type Dashboard struct {
 
 	// Camera monitoring
 	cameraMonitor *cameras.Monitor
+
+	// Model service monitoring
+	modelMonitor *models.Monitor
 
 	// WebSocket hub for real-time updates
 	wsHub *WebSocketHub
@@ -97,6 +101,13 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		d.wsHub.BroadcastJSON(status)
 	})
 
+	// Create model service monitor
+	d.modelMonitor = models.NewMonitor(
+		d.nats,
+		d.topics,
+		d.logger,
+	)
+
 	// Set up routes
 	d.setupRoutes()
 
@@ -130,6 +141,11 @@ func (d *Dashboard) Start(ctx context.Context) error {
 		d.logger.Warn("Failed to start camera monitor", "error", err)
 	}
 
+	// Start model monitor
+	if err := d.modelMonitor.Start(ctx); err != nil {
+		d.logger.Warn("Failed to start model monitor", "error", err)
+	}
+
 	// Start HTTP server in background
 	go func() {
 		d.logger.Info("Dashboard server starting", "addr", d.server.Addr)
@@ -153,6 +169,9 @@ func (d *Dashboard) Stop(ctx context.Context) error {
 
 	// Stop camera monitor
 	d.cameraMonitor.Stop()
+
+	// Stop model monitor
+	d.modelMonitor.Stop()
 
 	// Shutdown HTTP server
 	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

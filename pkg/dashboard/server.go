@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorai/gorai/pkg/dashboard/cameras"
+	"github.com/gorai/gorai/pkg/dashboard/models"
 	"github.com/gorai/gorai/pkg/dashboard/static"
 )
 
@@ -63,6 +64,31 @@ func (d *Dashboard) setupRoutes() {
 
 	// Camera status WebSocket
 	r.Get("/ws/cameras", cameraHandler.HandleWebSocket)
+
+	// Create model handlers
+	modelStreamHandler := models.NewStreamHandler(
+		d.nats,
+		d.topics,
+		d.logger,
+		d.getMaxFPS(),
+	)
+
+	modelHandler := models.NewHandler(
+		d.modelMonitor,
+		d.robotCfg,
+		d.logger,
+	)
+
+	// Model endpoints
+	r.Route("/models", func(r chi.Router) {
+		r.Get("/", modelHandler.HandleList)
+		r.Get("/detections", modelHandler.HandleDetections)
+		r.Get("/{name}/stream", modelStreamHandler.HandleStream)
+		r.Get("/{name}/snapshot", modelStreamHandler.HandleSnapshot)
+	})
+
+	// Model status WebSocket
+	r.Get("/ws/models", modelHandler.HandleWebSocket)
 
 	d.router = r
 }

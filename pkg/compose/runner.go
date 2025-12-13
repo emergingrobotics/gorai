@@ -13,11 +13,12 @@ import (
 
 // Runner executes podman-compose commands.
 type Runner struct {
-	composePath string // Path to generated compose file
-	projectName string // Project name (robot name)
-	workDir     string // Working directory for compose commands
+	composePath string    // Path to generated compose file
+	projectName string    // Project name (robot name)
+	workDir     string    // Working directory for compose commands
 	stdout      io.Writer
 	stderr      io.Writer
+	podmanHost  string    // Optional: podman socket path for containerized execution
 }
 
 // NewRunner creates a new podman-compose runner.
@@ -236,12 +237,29 @@ func (r *Runner) run(ctx context.Context, args ...string) error {
 	// Set environment
 	cmd.Env = os.Environ()
 
+	// Set podman socket if running in container
+	if r.podmanHost != "" {
+		cmd.Env = append(cmd.Env, "CONTAINER_HOST=unix://"+r.podmanHost)
+	} else {
+		// Auto-detect podman socket when running in container
+		socketPaths := []string{
+			"/run/podman/podman.sock",
+			fmt.Sprintf("/run/user/%d/podman/podman.sock", os.Getuid()),
+		}
+		for _, sock := range socketPaths {
+			if _, err := os.Stat(sock); err == nil {
+				cmd.Env = append(cmd.Env, "CONTAINER_HOST=unix://"+sock)
+				break
+			}
+		}
+	}
+
 	return cmd.Run()
 }
 
 // findComposeCommand finds the podman-compose command.
 func (r *Runner) findComposeCommand() (string, error) {
-	// Try podman-compose first
+	// Try podman-compose first (installed in gorai container)
 	if path, err := exec.LookPath("podman-compose"); err == nil {
 		return path, nil
 	}
@@ -260,7 +278,13 @@ func (r *Runner) findComposeCommand() (string, error) {
 		return path, nil
 	}
 
-	return "", fmt.Errorf("podman-compose not found. Install with: pip install podman-compose")
+	return "", fmt.Errorf("podman-compose not found. Run gorai in the gorai container or install with: pip install podman-compose")
+}
+
+// SetPodmanHost sets the CONTAINER_HOST environment variable for the runner.
+// This is needed when running inside a container with podman socket mounted.
+func (r *Runner) SetPodmanHost(socketPath string) {
+	r.podmanHost = socketPath
 }
 
 // GetProjectDir returns a suitable project directory for the compose file.
@@ -287,7 +311,7 @@ func GetProjectDir(configPath string) string {
 // GetComposePath returns the path for the generated compose file.
 func GetComposePath(configPath, robotName string) string {
 	dir := GetProjectDir(configPath)
-	return filepath.Join(dir, ".gorai", robotName+"-compose.yaml")
+	return filepath.Join(dir, ".gorai", robotName+"-compose.json")
 }
 
 // ContainerStatus represents the status of a container.

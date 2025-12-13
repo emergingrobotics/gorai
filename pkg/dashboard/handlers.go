@@ -25,6 +25,7 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
         <ul class="nav-tabs">
             <li><a href="/" class="active">Status</a></li>
             <li><a href="/cameras">Cameras</a></li>
+            <li><a href="/models">AI / Models</a></li>
         </ul>
     </nav>
     <main>

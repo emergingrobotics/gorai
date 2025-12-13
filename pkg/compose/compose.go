@@ -1,7 +1,8 @@
-// Package compose generates podman-compose.yaml files from RDL configuration.
+// Package compose generates podman-compose.json files from RDL configuration.
 package compose
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,94 +10,93 @@ import (
 	"strings"
 
 	"github.com/gorai/gorai/pkg/config"
-	"gopkg.in/yaml.v3"
 )
 
-// ComposeFile represents a podman-compose.yaml file structure.
+// ComposeFile represents a podman-compose.json file structure.
 type ComposeFile struct {
-	Version  string                     `yaml:"version,omitempty"`
-	Services map[string]*ComposeService `yaml:"services,omitempty"`
-	Networks map[string]*ComposeNetwork `yaml:"networks,omitempty"`
-	Volumes  map[string]*ComposeVolume  `yaml:"volumes,omitempty"`
+	Version  string                     `json:"version,omitempty"`
+	Services map[string]*ComposeService `json:"services,omitempty"`
+	Networks map[string]*ComposeNetwork `json:"networks,omitempty"`
+	Volumes  map[string]*ComposeVolume  `json:"volumes,omitempty"`
 }
 
-// ComposeService represents a service in podman-compose.yaml.
+// ComposeService represents a service in podman-compose.json.
 type ComposeService struct {
-	Image         string                         `yaml:"image,omitempty"`
-	Build         *ComposeBuild                  `yaml:"build,omitempty"`
-	ContainerName string                         `yaml:"container_name,omitempty"`
-	DependsOn     map[string]*ComposeDependsOn   `yaml:"depends_on,omitempty"`
-	Environment   map[string]string              `yaml:"environment,omitempty"`
-	EnvFile       []string                       `yaml:"env_file,omitempty"`
-	Command       []string                       `yaml:"command,omitempty"`
-	Entrypoint    []string                       `yaml:"entrypoint,omitempty"`
-	Volumes       []string                       `yaml:"volumes,omitempty"`
-	Devices       []string                       `yaml:"devices,omitempty"`
-	Ports         []string                       `yaml:"ports,omitempty"`
-	NetworkMode   string                         `yaml:"network_mode,omitempty"`
-	Networks      []string                       `yaml:"networks,omitempty"`
-	Privileged    bool                           `yaml:"privileged,omitempty"`
-	SecurityOpt   []string                       `yaml:"security_opt,omitempty"`
-	CapAdd        []string                       `yaml:"cap_add,omitempty"`
-	CapDrop       []string                       `yaml:"cap_drop,omitempty"`
-	GroupAdd      []string                       `yaml:"group_add,omitempty"`
-	Deploy        *ComposeDeploy                 `yaml:"deploy,omitempty"`
-	Restart       string                         `yaml:"restart,omitempty"`
-	StopGracePeriod string                       `yaml:"stop_grace_period,omitempty"`
-	Healthcheck   *ComposeHealthcheck            `yaml:"healthcheck,omitempty"`
+	Image           string                       `json:"image,omitempty"`
+	Build           *ComposeBuild                `json:"build,omitempty"`
+	ContainerName   string                       `json:"container_name,omitempty"`
+	DependsOn       map[string]*ComposeDependsOn `json:"depends_on,omitempty"`
+	Environment     map[string]string            `json:"environment,omitempty"`
+	EnvFile         []string                     `json:"env_file,omitempty"`
+	Command         []string                     `json:"command,omitempty"`
+	Entrypoint      []string                     `json:"entrypoint,omitempty"`
+	Volumes         []string                     `json:"volumes,omitempty"`
+	Devices         []string                     `json:"devices,omitempty"`
+	Ports           []string                     `json:"ports,omitempty"`
+	NetworkMode     string                       `json:"network_mode,omitempty"`
+	Networks        []string                     `json:"networks,omitempty"`
+	Privileged      bool                         `json:"privileged,omitempty"`
+	SecurityOpt     []string                     `json:"security_opt,omitempty"`
+	CapAdd          []string                     `json:"cap_add,omitempty"`
+	CapDrop         []string                     `json:"cap_drop,omitempty"`
+	GroupAdd        []string                     `json:"group_add,omitempty"`
+	Deploy          *ComposeDeploy               `json:"deploy,omitempty"`
+	Restart         string                       `json:"restart,omitempty"`
+	StopGracePeriod string                       `json:"stop_grace_period,omitempty"`
+	Healthcheck     *ComposeHealthcheck          `json:"healthcheck,omitempty"`
 }
 
 // ComposeBuild represents build configuration.
 type ComposeBuild struct {
-	Context    string            `yaml:"context,omitempty"`
-	Dockerfile string            `yaml:"dockerfile,omitempty"`
-	Args       map[string]string `yaml:"args,omitempty"`
-	Target     string            `yaml:"target,omitempty"`
+	Context    string            `json:"context,omitempty"`
+	Dockerfile string            `json:"dockerfile,omitempty"`
+	Args       map[string]string `json:"args,omitempty"`
+	Target     string            `json:"target,omitempty"`
 }
 
 // ComposeDependsOn represents a dependency with condition.
 type ComposeDependsOn struct {
-	Condition string `yaml:"condition,omitempty"`
+	Condition string `json:"condition,omitempty"`
 }
 
 // ComposeHealthcheck represents healthcheck configuration.
 type ComposeHealthcheck struct {
-	Test        []string `yaml:"test,omitempty"`
-	Interval    string   `yaml:"interval,omitempty"`
-	Timeout     string   `yaml:"timeout,omitempty"`
-	Retries     int      `yaml:"retries,omitempty"`
-	StartPeriod string   `yaml:"start_period,omitempty"`
+	Test        []string `json:"test,omitempty"`
+	Interval    string   `json:"interval,omitempty"`
+	Timeout     string   `json:"timeout,omitempty"`
+	Retries     int      `json:"retries,omitempty"`
+	StartPeriod string   `json:"start_period,omitempty"`
 }
 
 // ComposeDeploy represents deploy configuration for resource limits.
 type ComposeDeploy struct {
-	Resources *ComposeResources `yaml:"resources,omitempty"`
+	Resources *ComposeResources `json:"resources,omitempty"`
 }
 
 // ComposeResources represents resource limits.
 type ComposeResources struct {
-	Limits       *ComposeLimits `yaml:"limits,omitempty"`
-	Reservations *ComposeLimits `yaml:"reservations,omitempty"`
+	Limits       *ComposeLimits `json:"limits,omitempty"`
+	Reservations *ComposeLimits `json:"reservations,omitempty"`
 }
 
 // ComposeLimits represents CPU/memory limits.
 type ComposeLimits struct {
-	CPUs   string `yaml:"cpus,omitempty"`
-	Memory string `yaml:"memory,omitempty"`
+	CPUs   string `json:"cpus,omitempty"`
+	Memory string `json:"memory,omitempty"`
 }
 
 // ComposeNetwork represents a network definition.
 type ComposeNetwork struct {
-	Name       string            `yaml:"name,omitempty"`
-	Driver     string            `yaml:"driver,omitempty"`
-	Internal   bool              `yaml:"internal,omitempty"`
-	DriverOpts map[string]string `yaml:"driver_opts,omitempty"`
+	Name       string            `json:"name,omitempty"`
+	Driver     string            `json:"driver,omitempty"`
+	Internal   bool              `json:"internal,omitempty"`
+	DriverOpts map[string]string `json:"driver_opts,omitempty"`
 }
 
 // ComposeVolume represents a volume definition.
 type ComposeVolume struct {
-	Driver     string            `yaml:"driver,omitempty"`
-	DriverOpts map[string]string `yaml:"driver_opts,omitempty"`
+	Driver     string            `json:"driver,omitempty"`
+	DriverOpts map[string]string `json:"driver_opts,omitempty"`
 }
 
 // Generator creates podman-compose.yaml from RDL configuration.
@@ -294,21 +294,17 @@ func (g *Generator) interpolateVariable(value string) string {
 	return value
 }
 
-// WriteYAML writes the compose file to the specified path.
-func (g *Generator) WriteYAML(path string) error {
+// WriteJSON writes the compose file to the specified path as JSON.
+func (g *Generator) WriteJSON(path string) error {
 	compose, err := g.Generate()
 	if err != nil {
 		return err
 	}
 
-	data, err := yaml.Marshal(compose)
+	data, err := json.MarshalIndent(compose, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal compose file: %w", err)
 	}
-
-	// Add header comment
-	header := fmt.Sprintf("# Generated by gorai from %s\n# DO NOT EDIT - regenerated on each 'gorai start'\n\n",
-		g.cfg.Robot.Name+".json")
 
 	// Ensure directory exists
 	dir := filepath.Dir(path)
@@ -318,11 +314,17 @@ func (g *Generator) WriteYAML(path string) error {
 		}
 	}
 
-	if err := os.WriteFile(path, append([]byte(header), data...), 0644); err != nil {
+	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write compose file: %w", err)
 	}
 
 	return nil
+}
+
+// WriteYAML is an alias for WriteJSON for backward compatibility.
+// Podman-compose accepts JSON files with .yaml extension.
+func (g *Generator) WriteYAML(path string) error {
+	return g.WriteJSON(path)
 }
 
 // GetServiceNames returns the sorted list of service names.

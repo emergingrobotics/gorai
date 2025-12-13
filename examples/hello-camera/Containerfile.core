@@ -1,0 +1,85 @@
+# Containerfile for gorai-core robot runtime
+#
+# This builds the Go-based robot runtime that handles:
+# - Camera component (V4L2)
+# - Dashboard service
+# - NATS messaging
+#
+# Build context should be the gorai repository root:
+#   podman build -t localhost/hello-camera-core:latest -f Containerfile.core ../..
+
+# =============================================================================
+# Build stage - compile Go binary
+# =============================================================================
+FROM docker.io/golang:1.22-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+WORKDIR /build
+
+# Cache Go modules
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Build the robot binary
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w -X main.Version=0.1.0" \
+    -o gorai-robot \
+    ./cmd/gorai-robot
+
+# =============================================================================
+# Runtime stage
+# =============================================================================
+FROM docker.io/alpine:3.19
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    wget \
+    # V4L2 utilities for camera debugging
+    v4l-utils
+
+# Copy binary from builder
+COPY --from=builder /build/gorai-robot /usr/local/bin/gorai-robot
+
+# Create directories
+RUN mkdir -p /etc/gorai /var/gorai
+
+# Create non-root user for security
+RUN addgroup -g 1000 gorai && \
+    adduser -D -u 1000 -G gorai gorai && \
+    # Add to video group for camera access
+    addgroup gorai video
+
+# Set ownership
+RUN chown -R gorai:gorai /var/gorai
+
+# Switch to non-root user
+USER gorai
+
+# Set working directory
+WORKDIR /var/gorai
+
+# Environment defaults
+ENV LOG_LEVEL=info
+ENV GORAI_CONFIG=/etc/gorai/robot.json
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget -q --spider http://localhost:8080/health || exit 1
+
+# Expose dashboard port
+EXPOSE 8080
+
+# Labels
+LABEL org.opencontainers.image.title="Gorai Robot Core"
+LABEL org.opencontainers.image.description="Gorai robot runtime with camera and dashboard"
+LABEL org.opencontainers.image.source="https://github.com/gorai/gorai"
+
+ENTRYPOINT ["/usr/local/bin/gorai-robot"]
+CMD ["--config", "/etc/gorai/robot.json"]

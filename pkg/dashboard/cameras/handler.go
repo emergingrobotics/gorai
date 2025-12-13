@@ -74,6 +74,7 @@ func (h *Handler) writeCamerasHTML(w http.ResponseWriter, cameras []CameraInfo) 
         <ul class="nav-tabs">
             <li><a href="/">Status</a></li>
             <li><a href="/cameras" class="active">Cameras</a></li>
+            <li><a href="/models">AI / Models</a></li>
         </ul>
     </nav>
     <main>

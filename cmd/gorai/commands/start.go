@@ -85,7 +85,7 @@ func cmdStart() error {
 
 	fmt.Printf("Generating compose file: %s\n", composePath)
 	gen := compose.NewGenerator(cfg)
-	if err := gen.WriteYAML(composePath); err != nil {
+	if err := gen.WriteJSON(composePath); err != nil {
 		return fmt.Errorf("failed to generate compose file: %w", err)
 	}
 

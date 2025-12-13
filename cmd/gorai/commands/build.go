@@ -91,7 +91,7 @@ func cmdBuild() error {
 	// Generate compose file
 	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
 	gen := compose.NewGenerator(cfg)
-	if err := gen.WriteYAML(composePath); err != nil {
+	if err := gen.WriteJSON(composePath); err != nil {
 		return fmt.Errorf("failed to generate compose file: %w", err)
 	}
 
