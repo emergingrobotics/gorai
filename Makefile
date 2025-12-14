@@ -39,12 +39,6 @@ help:
 	@echo "  build-linux       Cross-compile for Linux ARM64"
 	@echo "  build-pi          Cross-compile for Raspberry Pi"
 	@echo ""
-	@echo "Containers:"
-	@echo "  container         Build gorai container (CLI + runtime + podman-compose)"
-	@echo "  container-test    Build and test the container"
-	@echo "  container-push    Push container to registry"
-	@echo "  container-clean   Remove gorai container images"
-	@echo ""
 	@echo "Protocol Buffers:"
 	@echo "  proto             Generate all Protocol Buffer code"
 	@echo "  proto-lint        Lint Protocol Buffer files"
@@ -225,79 +219,6 @@ build-all-platforms: $(BIN_DIR)
 
 $(BIN_DIR):
 	@mkdir -p $(BIN_DIR)
-
-# ============================================================================
-# Containers
-# ============================================================================
-
-# Container image settings
-CONTAINER_REGISTRY ?= ghcr.io/gorai
-CONTAINER_IMAGE := $(CONTAINER_REGISTRY)/gorai
-CONTAINER_TAG ?= latest
-CONTAINER_LOCAL := localhost/gorai:latest
-
-# Version info for container builds
-GORAI_VERSION ?= 0.1.0
-GORAI_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-GORAI_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-
-.PHONY: container
-container:
-	@echo "==> Building gorai container..."
-	@echo "    Image:   $(CONTAINER_LOCAL)"
-	@echo "    Version: $(GORAI_VERSION)"
-	@echo "    Commit:  $(GORAI_COMMIT)"
-	podman build -t $(CONTAINER_LOCAL) \
-		--build-arg VERSION=$(GORAI_VERSION) \
-		--build-arg COMMIT=$(GORAI_COMMIT) \
-		--build-arg DATE=$(GORAI_DATE) \
-		-f Containerfile.gorai .
-	@echo ""
-	@echo "==> Container built successfully"
-	@echo "    Binaries included:"
-	@echo "      - gorai (CLI)"
-	@echo "      - gorai-robot (runtime)"
-	@echo "    Tooling included:"
-	@echo "      - podman-compose"
-	@echo ""
-	@echo "    Test with: podman run --rm $(CONTAINER_LOCAL) version"
-
-.PHONY: container-tag
-container-tag: container
-	@echo "==> Tagging container for registry..."
-	podman tag $(CONTAINER_LOCAL) $(CONTAINER_IMAGE):$(CONTAINER_TAG)
-	@echo "    Tagged: $(CONTAINER_IMAGE):$(CONTAINER_TAG)"
-
-.PHONY: container-push
-container-push: container-tag
-	@echo "==> Pushing container to registry..."
-	podman push $(CONTAINER_IMAGE):$(CONTAINER_TAG)
-	@echo "    Pushed: $(CONTAINER_IMAGE):$(CONTAINER_TAG)"
-
-.PHONY: container-clean
-container-clean:
-	@echo "==> Removing gorai container images..."
-	-podman rmi $(CONTAINER_LOCAL) 2>/dev/null || true
-	-podman rmi $(CONTAINER_IMAGE):$(CONTAINER_TAG) 2>/dev/null || true
-	@echo "==> Done"
-
-.PHONY: container-test
-container-test: container
-	@echo "==> Testing gorai container..."
-	@echo ""
-	@echo "--- gorai version ---"
-	podman run --rm $(CONTAINER_LOCAL) version
-	@echo ""
-	@echo "--- gorai help ---"
-	podman run --rm $(CONTAINER_LOCAL) help
-	@echo ""
-	@echo "--- gorai-robot available ---"
-	podman run --rm --entrypoint /usr/local/bin/gorai-robot $(CONTAINER_LOCAL) --help 2>&1 | head -5 || true
-	@echo ""
-	@echo "--- podman-compose installed ---"
-	podman run --rm --entrypoint which $(CONTAINER_LOCAL) podman-compose
-	@echo ""
-	@echo "==> Container test complete"
 
 # ============================================================================
 # Installation

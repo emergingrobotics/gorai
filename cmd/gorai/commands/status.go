@@ -1,18 +1,17 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+	"os/exec"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdStatus() error {
 	// Parse flags
 	var configPath string
+	var userMode bool = true
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -23,6 +22,8 @@ func cmdStatus() error {
 			}
 			i++
 			configPath = args[i]
+		case "--system":
+			userMode = false
 		case "-h", "--help":
 			return printStatusUsage()
 		default:
@@ -48,10 +49,7 @@ func cmdStatus() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Check if containers are defined
-	if cfg.Containers == nil || len(cfg.Containers) == 0 {
-		return fmt.Errorf("no containers defined in %s", configPath)
-	}
+	serviceName := cfg.Robot.Name
 
 	// Print robot info
 	fmt.Printf("Robot: %s\n", cfg.Robot.Name)
@@ -60,59 +58,52 @@ func cmdStatus() error {
 	}
 	fmt.Println()
 
-	// Get service directory
-	workspaceDir := filepath.Dir(configPath)
-	if !filepath.IsAbs(workspaceDir) {
-		workspaceDir, _ = filepath.Abs(workspaceDir)
-	}
-	serviceDir := filepath.Join(workspaceDir, ".gorai")
+	// Show systemd service status
+	fmt.Println("SERVICE STATUS")
+	fmt.Println("─────────────────────────────────────────────────────────")
 
-	// Create runner
-	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
-
-	// Get container status
-	ctx := context.Background()
-	statuses, err := runner.GetStatus(ctx)
-	if err != nil {
-		fmt.Println("Container status: Unable to retrieve")
-		fmt.Printf("Error: %v\n", err)
-	} else if len(statuses) > 0 {
-		fmt.Println("CONTAINERS")
-		fmt.Printf("%-30s %-12s %-15s\n", "SERVICE", "ACTIVE", "STATUS")
-		fmt.Println("─────────────────────────────────────────────────────────")
-		for _, s := range statuses {
-			fmt.Printf("%-30s %-12s %-15s\n", s.Service, s.Active, s.Status)
-		}
-	} else {
-		fmt.Println("No container services found.")
-		fmt.Println("Run 'gorai start' to start the robot.")
+	if err := systemctlCmd(userMode, "status", serviceName+".service", "--no-pager"); err != nil {
+		// Service might not exist or not be running
+		fmt.Printf("\nService %s.service is not running or not installed.\n", serviceName)
+		fmt.Println("\nTo start the robot:")
+		fmt.Printf("  gorai start --config %s\n", configPath)
 	}
 
-	// Show component mapping
+	// Show components
 	if len(cfg.Components) > 0 {
-		fmt.Println("\nCOMPONENT → CONTAINER MAPPING")
-		fmt.Printf("%-20s %-20s %-10s\n", "COMPONENT", "CONTAINER", "TYPE")
+		fmt.Println("\nCOMPONENTS")
+		fmt.Printf("%-20s %-15s %-10s\n", "NAME", "TYPE", "MODEL")
 		fmt.Println("─────────────────────────────────────────────────────")
 		for _, comp := range cfg.Components {
-			container := comp.Container
-			if container == "" {
-				container = "(default)"
+			status := ""
+			if comp.Disabled {
+				status = " (disabled)"
 			}
-			fmt.Printf("%-20s %-20s %-10s\n", comp.Name, container, comp.Type)
+			fmt.Printf("%-20s %-15s %-10s%s\n", comp.Name, comp.Type, comp.Model, status)
 		}
 	}
 
-	// Show service mapping
+	// Show services
 	if len(cfg.Services) > 0 {
-		fmt.Println("\nSERVICE → CONTAINER MAPPING")
-		fmt.Printf("%-20s %-20s %-10s\n", "SERVICE", "CONTAINER", "TYPE")
-		fmt.Println("─────────────────────────────────────────────────────")
+		fmt.Println("\nSERVICES")
+		fmt.Printf("%-20s %-15s %-10s %-10s\n", "NAME", "TYPE", "MODEL", "EXTERNAL")
+		fmt.Println("─────────────────────────────────────────────────────────────")
 		for _, svc := range cfg.Services {
-			container := svc.Container
-			if container == "" {
-				container = "(default)"
+			external := ""
+			if svc.IsExternal() {
+				if svc.IsManaged() {
+					external = "managed"
+				} else {
+					external = "unmanaged"
+				}
+			} else {
+				external = "internal"
 			}
-			fmt.Printf("%-20s %-20s %-10s\n", svc.Name, container, svc.Type)
+			status := ""
+			if svc.Disabled {
+				status = " (disabled)"
+			}
+			fmt.Printf("%-20s %-15s %-10s %-10s%s\n", svc.Name, svc.Type, svc.Model, external, status)
 		}
 	}
 
@@ -120,17 +111,30 @@ func cmdStatus() error {
 }
 
 func printStatusUsage() error {
-	fmt.Println(`gorai status - Show robot container status
+	fmt.Println(`gorai status - Show robot service status
 
 Usage:
   gorai status [--config robot.json] [flags]
 
 Flags:
   -c, --config <file>     Path to robot configuration file
+  --system                Use system mode (default: user mode)
   -h, --help              Show this help message
 
 Examples:
   gorai status --config robot.json
   gorai status -c robot.json`)
 	return nil
+}
+
+// systemctlStatusCmd runs systemctl status without capturing output (direct to terminal)
+func systemctlStatusCmd(userMode bool, serviceName string) error {
+	args := []string{"status", serviceName, "--no-pager"}
+	if userMode {
+		args = append([]string{"--user"}, args...)
+	}
+	cmd := exec.Command("systemctl", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
