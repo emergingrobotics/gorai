@@ -101,12 +101,18 @@ type ComposeVolume struct {
 
 // Generator creates podman-compose.yaml from RDL configuration.
 type Generator struct {
-	cfg *config.RDL
+	cfg         *config.RDL
+	workspaceDir string // absolute path to workspace root (where RDL file is)
 }
 
 // NewGenerator creates a new compose file generator.
 func NewGenerator(cfg *config.RDL) *Generator {
 	return &Generator{cfg: cfg}
+}
+
+// SetWorkspaceDir sets the workspace directory for resolving relative paths.
+func (g *Generator) SetWorkspaceDir(dir string) {
+	g.workspaceDir = dir
 }
 
 // Generate creates a ComposeFile from the RDL configuration.
@@ -182,15 +188,24 @@ func (g *Generator) convertContainer(name string, container *config.ContainerCon
 
 	// Handle build configuration
 	if container.Build != nil {
+		context := container.Build.Context
+		dockerfile := container.Build.Dockerfile
+
+		// Convert relative paths to absolute paths if workspace is set
+		if g.workspaceDir != "" && context != "" && !filepath.IsAbs(context) {
+			context = filepath.Join(g.workspaceDir, context)
+		}
+
+		// Default dockerfile name
+		if dockerfile == "" {
+			dockerfile = "Containerfile"
+		}
+
 		service.Build = &ComposeBuild{
-			Context:    container.Build.Context,
-			Dockerfile: container.Build.Dockerfile,
+			Context:    context,
+			Dockerfile: dockerfile,
 			Args:       container.Build.Args,
 			Target:     container.Build.Target,
-		}
-		// Default dockerfile name
-		if service.Build.Dockerfile == "" {
-			service.Build.Dockerfile = "Containerfile"
 		}
 	}
 

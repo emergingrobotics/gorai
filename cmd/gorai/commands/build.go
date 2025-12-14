@@ -91,6 +91,9 @@ func cmdBuild() error {
 	// Generate compose file
 	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
 	gen := compose.NewGenerator(cfg)
+	// Set workspace directory for resolving relative paths in build contexts
+	workspaceDir := compose.GetProjectDir(configPath)
+	gen.SetWorkspaceDir(workspaceDir)
 	if err := gen.WriteJSON(composePath); err != nil {
 		return fmt.Errorf("failed to generate compose file: %w", err)
 	}

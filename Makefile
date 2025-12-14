@@ -36,8 +36,6 @@ help:
 	@echo ""
 	@echo "Building:"
 	@echo "  build             Build all binaries"
-	@echo "  build-examples    Build all examples"
-	@echo "  build-hello       Build hello-sensor example"
 	@echo "  build-linux       Cross-compile for Linux ARM64"
 	@echo "  build-pi          Cross-compile for Raspberry Pi"
 	@echo ""
@@ -202,15 +200,6 @@ $(COVERAGE_DIR):
 build: $(BIN_DIR)
 	@echo "==> Building all binaries..."
 	$(GOBUILD) $(GOFLAGS) -o $(BIN_DIR)/gorai ./cmd/gorai
-
-.PHONY: build-examples
-build-examples: $(BIN_DIR) build-hello
-	@echo "==> All examples built"
-
-.PHONY: build-hello
-build-hello: $(BIN_DIR)
-	@echo "==> Building hello-sensor example..."
-	$(GOBUILD) $(GOFLAGS) -o $(BIN_DIR)/hello-sensor ./examples/hello-sensor
 
 .PHONY: build-linux
 build-linux: $(BIN_DIR)

@@ -69,8 +69,11 @@ RUN echo "Building gorai-robot runtime" && \
 # =============================================================================
 FROM docker.io/python:3.11-slim-bookworm
 
-# Install podman-compose for container orchestration
-RUN pip install --no-cache-dir podman-compose && \
+# Install podman client (talks to host podman via socket) and podman-compose
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends podman && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir podman-compose && \
     rm -rf /root/.cache/pip
 
 # Copy Go binaries from builder
@@ -86,6 +89,8 @@ WORKDIR /workspace
 # Environment defaults
 ENV PYTHONUNBUFFERED=1
 ENV LOG_LEVEL=info
+# Tell podman client to use the mounted socket
+ENV CONTAINER_HOST=unix:///run/podman/podman.sock
 
 # Labels
 LABEL org.opencontainers.image.title="Gorai"
