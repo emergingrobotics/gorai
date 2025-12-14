@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/quadlet"
+	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdStart() error {
@@ -76,22 +76,22 @@ func cmdStart() error {
 		return fmt.Errorf("no containers defined in %s. Add a 'containers' section to use gorai start", configPath)
 	}
 
-	// Generate Quadlet files
+	// Generate systemd service files
 	workspaceDir := filepath.Dir(configPath)
 	if !filepath.IsAbs(workspaceDir) {
 		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
 
-	gen := quadlet.NewGenerator(cfg,
-		quadlet.WithWorkspaceDir(workspaceDir),
-		quadlet.WithUserMode(true),
+	gen := systemd.NewGenerator(cfg,
+		systemd.WithWorkspaceDir(workspaceDir),
+		systemd.WithUserMode(true),
 	)
 
-	quadletDir := gen.GetLocalDir()
-	fmt.Printf("Generating Quadlet files in: %s\n", quadletDir)
+	serviceDir := gen.GetLocalDir()
+	fmt.Printf("Generating systemd service files in: %s\n", serviceDir)
 
 	if err := gen.WriteFiles(); err != nil {
-		return fmt.Errorf("failed to generate Quadlet files: %w", err)
+		return fmt.Errorf("failed to generate systemd files: %w", err)
 	}
 
 	// Build containers if requested
@@ -137,14 +137,14 @@ func cmdStart() error {
 		}
 	}
 
-	// Install Quadlet files to systemd
-	fmt.Println("Installing Quadlet files to systemd...")
+	// Install service files to systemd
+	fmt.Println("Installing systemd service files...")
 	if err := gen.InstallFiles(); err != nil {
-		return fmt.Errorf("failed to install Quadlet files: %w", err)
+		return fmt.Errorf("failed to install systemd files: %w", err)
 	}
 
 	// Create runner
-	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
 
 	// Reload systemd
 	fmt.Println("Reloading systemd daemon...")

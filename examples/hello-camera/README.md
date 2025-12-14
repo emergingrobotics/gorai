@@ -1,6 +1,6 @@
 # Hello Camera Example
 
-A camera robot with person detection using Hailo NPU, demonstrating multi-container deployment with Quadlet and systemd.
+A camera robot with person detection using Hailo NPU, demonstrating multi-container deployment with systemd.
 
 ## Architecture
 
@@ -25,17 +25,10 @@ A camera robot with person detection using Hailo NPU, demonstrating multi-contai
 ## Prerequisites
 
 - Linux (Raspberry Pi OS, Ubuntu, Fedora)
-- [Podman](https://podman.io/) 4.4+ (for Quadlet support)
+- [Podman](https://podman.io/) (any version)
 - systemd with user session support
 - Camera at `/dev/video0`
 - Hailo NPU at `/dev/hailo0` (for ML inference)
-
-### Verify Podman Version
-
-```bash
-podman --version
-# Must be 4.4.0 or higher
-```
 
 ### Enable User Lingering
 
@@ -54,7 +47,7 @@ loginctl enable-linger $USER
 gorai build --config hello-camera.json
 ```
 
-This generates Quadlet files in `.gorai/` and builds the container images.
+This generates systemd service files in `.gorai/` and builds the container images.
 
 ### 2. Start the Robot
 
@@ -74,17 +67,14 @@ gorai status --config hello-camera.json
 
 Expected output:
 ```
-● hello-camera-nats.service - Gorai container hello-camera-nats
-     Loaded: loaded
-     Active: active (running)
+Robot: hello-camera
 
-● hello-camera-gorai-core.service - Gorai container hello-camera-gorai-core
-     Loaded: loaded
-     Active: active (running)
-
-● hello-camera-gorai-hailo.service - Gorai container hello-camera-gorai-hailo
-     Loaded: loaded
-     Active: active (running)
+CONTAINERS
+SERVICE                        ACTIVE       STATUS
+───────────────────────────────────────────────────────────
+hello-camera-nats.service      active       running
+hello-camera-gorai-core.service active      running
+hello-camera-gorai-hailo.service active     running
 ```
 
 ### 4. View Logs
@@ -107,37 +97,33 @@ Open http://localhost:8080 in your browser to view the camera feed and detection
 gorai stop --config hello-camera.json
 ```
 
-## Quadlet Files
+## Generated Service Files
 
-The `.gorai/` directory contains the generated Quadlet unit files:
+The `.gorai/` directory contains the generated systemd service files:
 
 | File | Purpose |
 |------|---------|
-| `hello-camera-network.network` | Bridge network for container communication |
-| `hello-camera-nats.container` | NATS messaging server |
-| `hello-camera-gorai-core.container` | Camera capture and web dashboard |
-| `hello-camera-gorai-hailo.container` | Hailo NPU person detection |
+| `hello-camera-nats.service` | NATS messaging server |
+| `hello-camera-gorai-core.service` | Camera capture and web dashboard |
+| `hello-camera-gorai-hailo.service` | Hailo NPU person detection |
 
 ### Installation Location
 
 When you run `gorai start`, these files are copied to:
 ```
-~/.config/containers/systemd/
+~/.config/systemd/user/
 ```
-
-systemd automatically generates `.service` files from the Quadlet unit files.
 
 ## Manual Deployment
 
 If you prefer to manage services directly with systemctl:
 
-### Install Quadlet Files
+### Install Service Files
 
 ```bash
-# Copy Quadlet files to user systemd directory
-mkdir -p ~/.config/containers/systemd
-cp .gorai/*.container ~/.config/containers/systemd/
-cp .gorai/*.network ~/.config/containers/systemd/
+# Copy service files to user systemd directory
+mkdir -p ~/.config/systemd/user
+cp .gorai/*.service ~/.config/systemd/user/
 
 # Reload systemd to pick up new units
 systemctl --user daemon-reload
@@ -146,12 +132,9 @@ systemctl --user daemon-reload
 ### Start Services
 
 ```bash
-# Start all robot services
+# Start all robot services (dependencies start automatically)
 systemctl --user start hello-camera-nats.service
 systemctl --user start hello-camera-gorai-core.service
-systemctl --user start hello-camera-gorai-hailo.service
-
-# Or start just the top-level service (dependencies start automatically)
 systemctl --user start hello-camera-gorai-hailo.service
 ```
 
@@ -187,7 +170,7 @@ systemctl --user stop hello-camera-nats.service
 
 - Image: `docker.io/nats:2.10-alpine`
 - Ports: 4222 (clients), 8222 (monitoring)
-- Health check: HTTP on port 8222
+- Network alias: `nats`
 
 ### Core Container (`hello-camera-gorai-core`)
 
@@ -213,14 +196,6 @@ systemctl --user stop hello-camera-nats.service
 gorai stop --config hello-camera.json
 gorai build --config hello-camera.json
 gorai start --config hello-camera.json
-```
-
-### Auto-Update (Registry Images)
-
-For images with `AutoUpdate=registry`, use:
-
-```bash
-podman auto-update
 ```
 
 ## Troubleshooting
@@ -256,16 +231,8 @@ sudo usermod -aG hailo $USER
 
 Log out and back in for changes to take effect.
 
-### Quadlet Files Not Loading
-
-Verify Podman version supports Quadlet:
+### View Generated Service File
 
 ```bash
-podman --version  # Must be 4.4+
-```
-
-Check for syntax errors:
-
-```bash
-/usr/libexec/podman/quadlet --dryrun --user
+cat ~/.config/systemd/user/hello-camera-nats.service
 ```

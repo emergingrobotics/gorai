@@ -1,9 +1,0 @@
-[Unit]
-Description=Gorai default network for hello-camera
-
-[Network]
-NetworkName=hello-camera-network
-Driver=bridge
-
-[Install]
-WantedBy=default.target

@@ -1,0 +1,33 @@
+[Unit]
+Description=Gorai container hello-camera-gorai-core
+Requires=hello-camera-nats.service
+After=hello-camera-nats.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+
+# Cleanup any existing container
+ExecStartPre=-/usr/bin/podman stop -t 10 hello-camera-gorai-core
+ExecStartPre=-/usr/bin/podman rm -f hello-camera-gorai-core
+ExecStartPre=-/usr/bin/podman network create hello-camera-network
+
+# Start container
+ExecStart=/usr/bin/podman run --rm \
+    --name hello-camera-gorai-core \
+    --network hello-camera-network \
+    --network-alias gorai-core \
+    -p 8080:8080 \
+    -e GORAI_ROBOT_NAME=hello-camera \
+    -e NATS_URL=nats://nats:4222 \
+    -e LOG_LEVEL=info \
+    -v /gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
+    --device /dev/video0 \
+    localhost/hello-camera-core:latest
+
+ExecStop=/usr/bin/podman stop -t 10 hello-camera-gorai-core
+
+[Install]
+WantedBy=default.target

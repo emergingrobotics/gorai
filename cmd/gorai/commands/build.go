@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/quadlet"
+	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdBuild() error {
@@ -87,22 +87,22 @@ func cmdBuild() error {
 		}
 	}
 
-	// Generate Quadlet files
+	// Generate systemd service files
 	workspaceDir := filepath.Dir(configPath)
 	if !filepath.IsAbs(workspaceDir) {
 		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
 
-	gen := quadlet.NewGenerator(cfg,
-		quadlet.WithWorkspaceDir(workspaceDir),
-		quadlet.WithUserMode(true),
+	gen := systemd.NewGenerator(cfg,
+		systemd.WithWorkspaceDir(workspaceDir),
+		systemd.WithUserMode(true),
 	)
 
-	quadletDir := gen.GetLocalDir()
-	fmt.Printf("Generating Quadlet files in: %s\n", quadletDir)
+	serviceDir := gen.GetLocalDir()
+	fmt.Printf("Generating systemd service files in: %s\n", serviceDir)
 
 	if err := gen.WriteFiles(); err != nil {
-		return fmt.Errorf("failed to generate Quadlet files: %w", err)
+		return fmt.Errorf("failed to generate systemd files: %w", err)
 	}
 
 	// Build container images if any have build configs
@@ -185,20 +185,20 @@ func cmdBuild() error {
 		fmt.Println("No containers with build configuration found.")
 	}
 
-	// Install Quadlet files to systemd if requested
+	// Install service files to systemd if requested
 	if install {
-		fmt.Println("\nInstalling Quadlet files to systemd...")
+		fmt.Println("\nInstalling systemd service files...")
 		if err := gen.InstallFiles(); err != nil {
-			return fmt.Errorf("failed to install Quadlet files: %w", err)
+			return fmt.Errorf("failed to install systemd files: %w", err)
 		}
 
 		// Reload systemd
-		runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+		runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
 		if err := runner.DaemonReload(context.Background()); err != nil {
 			return fmt.Errorf("failed to reload systemd: %w", err)
 		}
 
-		fmt.Println("Quadlet files installed. Services are now available.")
+		fmt.Println("Service files installed. Services are now available.")
 		fmt.Printf("Use 'gorai start --config %s' to start the robot.\n", configPath)
 	}
 

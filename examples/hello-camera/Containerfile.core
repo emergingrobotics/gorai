@@ -1,12 +1,12 @@
-# Containerfile for gorai-core robot runtime
+# Containerfile for hello-camera gorai-core robot
 #
 # This builds the Go-based robot runtime that handles:
 # - Camera component (V4L2)
 # - Dashboard service
 # - NATS messaging
 #
-# Build context should be the gorai repository root:
-#   podman build -t localhost/hello-camera-core:latest -f Containerfile.core ../..
+# Build context: gorai repo root (../..)
+#   podman build -t localhost/hello-camera-core:latest -f examples/hello-camera/Containerfile.core .
 
 # =============================================================================
 # Build stage - compile Go binary
@@ -18,18 +18,27 @@ RUN apk add --no-cache git
 
 WORKDIR /build
 
-# Cache Go modules
+# Copy gorai framework first (for module caching)
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source
+# Copy gorai source
 COPY . .
+
+# Now build the hello-camera application
+WORKDIR /build/examples/hello-camera/hello-camera
+
+# Update replace directive for container build context
+RUN sed -i 's|replace github.com/gorai/gorai => ../../..|replace github.com/gorai/gorai => /build|' go.mod
+
+# Download hello-camera dependencies
+RUN go mod download
 
 # Build the robot binary
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w -X main.Version=0.1.0" \
-    -o gorai-robot \
-    ./cmd/gorai-robot
+    -o /hello-camera-robot \
+    .
 
 # =============================================================================
 # Runtime stage
@@ -45,7 +54,7 @@ RUN apk add --no-cache \
     v4l-utils
 
 # Copy binary from builder
-COPY --from=builder /build/gorai-robot /usr/local/bin/gorai-robot
+COPY --from=builder /hello-camera-robot /usr/local/bin/hello-camera-robot
 
 # Create directories
 RUN mkdir -p /etc/gorai /var/gorai
@@ -77,9 +86,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Labels
-LABEL org.opencontainers.image.title="Gorai Robot Core"
-LABEL org.opencontainers.image.description="Gorai robot runtime with camera and dashboard"
+LABEL org.opencontainers.image.title="Hello Camera Robot Core"
+LABEL org.opencontainers.image.description="Hello Camera robot with V4L2 camera and dashboard"
 LABEL org.opencontainers.image.source="https://github.com/gorai/gorai"
 
-ENTRYPOINT ["/usr/local/bin/gorai-robot"]
+ENTRYPOINT ["/usr/local/bin/hello-camera-robot"]
 CMD ["--config", "/etc/gorai/robot.json"]

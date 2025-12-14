@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/quadlet"
+	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdStop() error {
@@ -66,15 +66,15 @@ func cmdStop() error {
 		return fmt.Errorf("no containers defined in %s", configPath)
 	}
 
-	// Get quadlet directory
+	// Get service directory
 	workspaceDir := filepath.Dir(configPath)
 	if !filepath.IsAbs(workspaceDir) {
 		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
-	quadletDir := filepath.Join(workspaceDir, ".gorai")
+	serviceDir := filepath.Join(workspaceDir, ".gorai")
 
 	// Create runner
-	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
 
 	// Disable services if requested
 	if disable {
@@ -95,13 +95,13 @@ func cmdStop() error {
 
 	fmt.Println("Containers stopped.")
 
-	// Uninstall Quadlet files if requested
+	// Uninstall service files if requested
 	if uninstall {
-		fmt.Println("Uninstalling Quadlet files from systemd...")
+		fmt.Println("Uninstalling service files from systemd...")
 		if err := runner.Uninstall(ctx); err != nil {
-			return fmt.Errorf("failed to uninstall Quadlet files: %w", err)
+			return fmt.Errorf("failed to uninstall service files: %w", err)
 		}
-		fmt.Println("Quadlet files removed.")
+		fmt.Println("Service files removed.")
 	}
 
 	return nil
@@ -116,7 +116,7 @@ Usage:
 Flags:
   -c, --config <file>     Path to robot configuration file
   --disable               Disable services from auto-start at boot
-  --uninstall             Remove Quadlet files from systemd
+  --uninstall             Remove service files from systemd
   --containers <list>     Stop only specific containers (comma-separated)
   -h, --help              Show this help message
 

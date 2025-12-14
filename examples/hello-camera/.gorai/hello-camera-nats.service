@@ -1,0 +1,31 @@
+[Unit]
+Description=Gorai container hello-camera-nats
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+
+# Cleanup any existing container
+ExecStartPre=-/usr/bin/podman stop -t 10 hello-camera-nats
+ExecStartPre=-/usr/bin/podman rm -f hello-camera-nats
+ExecStartPre=-/usr/bin/podman network create hello-camera-network
+
+# Start container
+ExecStart=/usr/bin/podman run --rm \
+    --name hello-camera-nats \
+    --network hello-camera-network \
+    --network-alias nats \
+    -p 4222:4222 \
+    -p 8222:8222 \
+    -e GORAI_ROBOT_NAME=hello-camera \
+    -e NATS_URL=nats://nats:4222 \
+    docker.io/nats:2.10-alpine
+
+ExecStop=/usr/bin/podman stop -t 10 hello-camera-nats
+
+[Install]
+WantedBy=default.target

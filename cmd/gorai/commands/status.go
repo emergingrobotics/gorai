@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/quadlet"
+	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdStatus() error {
@@ -60,15 +60,15 @@ func cmdStatus() error {
 	}
 	fmt.Println()
 
-	// Get quadlet directory
+	// Get service directory
 	workspaceDir := filepath.Dir(configPath)
 	if !filepath.IsAbs(workspaceDir) {
 		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
-	quadletDir := filepath.Join(workspaceDir, ".gorai")
+	serviceDir := filepath.Join(workspaceDir, ".gorai")
 
 	// Create runner
-	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
 
 	// Get container status
 	ctx := context.Background()

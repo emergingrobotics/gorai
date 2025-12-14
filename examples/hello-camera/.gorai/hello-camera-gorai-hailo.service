@@ -1,0 +1,36 @@
+[Unit]
+Description=Gorai container hello-camera-gorai-hailo
+Requires=hello-camera-gorai-core.service hello-camera-nats.service
+After=hello-camera-gorai-core.service hello-camera-nats.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+
+# Cleanup any existing container
+ExecStartPre=-/usr/bin/podman stop -t 10 hello-camera-gorai-hailo
+ExecStartPre=-/usr/bin/podman rm -f hello-camera-gorai-hailo
+ExecStartPre=-/usr/bin/podman network create hello-camera-network
+
+# Start container
+ExecStart=/usr/bin/podman run --rm \
+    --name hello-camera-gorai-hailo \
+    --network hello-camera-network \
+    --network-alias gorai-hailo \
+    -e GORAI_ROBOT_NAME=hello-camera \
+    -e NATS_URL=nats://nats:4222 \
+    -e MODEL_PATH=/models/yolox_s_leaky.hef \
+    -e CONFIDENCE_THRESHOLD=0.5 \
+    -v /gorai/examples/hello-camera/models:/models:ro \
+    -v /gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
+    --device /dev/hailo0 \
+    --security-opt label=disable \
+    --memory=1G \
+    localhost/hello-camera-hailo:latest
+
+ExecStop=/usr/bin/podman stop -t 10 hello-camera-gorai-hailo
+
+[Install]
+WantedBy=default.target

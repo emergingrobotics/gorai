@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/quadlet"
+	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdLogs() error {
@@ -85,15 +85,15 @@ func cmdLogs() error {
 		return fmt.Errorf("no containers defined in %s", configPath)
 	}
 
-	// Get quadlet directory
+	// Get service directory
 	workspaceDir := filepath.Dir(configPath)
 	if !filepath.IsAbs(workspaceDir) {
 		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
-	quadletDir := filepath.Join(workspaceDir, ".gorai")
+	serviceDir := filepath.Join(workspaceDir, ".gorai")
 
 	// Create runner
-	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
 
 	// Setup context with signal handling
 	ctx, cancel := context.WithCancel(context.Background())
@@ -107,7 +107,7 @@ func cmdLogs() error {
 	}()
 
 	// Get logs using journalctl
-	opts := quadlet.LogsOptions{
+	opts := systemd.LogsOptions{
 		Containers: containers,
 		Follow:     follow,
 		Tail:       tail,

@@ -28,8 +28,8 @@
 
     "gorai-core": {
       "build": {
-        "context": ".",
-        "dockerfile": "Containerfile.core"
+        "context": "../..",
+        "dockerfile": "examples/hello-camera/Containerfile.core"
       },
       "image": "localhost/hello-camera-core:latest",
       "depends_on": {

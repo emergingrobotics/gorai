@@ -12,30 +12,29 @@ We originally wanted to name this project "Gort" after the iconic robot from *Th
 
 ## Deployment Model
 
-A Gorai robot is a **set of containers managed by systemd** via [Quadlet](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html). There are no binaries to install on the robot—only container images and Quadlet unit files.
+A Gorai robot is a **set of containers managed by systemd**. There are no binaries to install on the robot—only container images and systemd service files.
 
 ```
 Robot Deployment
 ┌─────────────────────────────────────────────────────────────────┐
 │  systemd                                                        │
-│  ├── hello-camera-nats.service      (from .container file)     │
-│  ├── hello-camera-gorai-core.service                           │
-│  └── hello-camera-gorai-hailo.service                          │
-│                                                                 │
-│  Quadlet Files (~/.config/containers/systemd/)                 │
-│  ├── hello-camera-network.network                              │
-│  ├── hello-camera-nats.container                               │
-│  ├── hello-camera-gorai-core.container                         │
-│  └── hello-camera-gorai-hailo.container                        │
-│                                                                 │
-│  Container Images                                               │
-│  ├── nats:2.10-alpine                                          │
-│  ├── localhost/hello-camera-core:latest                        │
-│  └── localhost/hello-camera-hailo:latest                       │
+│  ├── hello-camera-nats.service                                  │
+│  ├── hello-camera-gorai-core.service                            │
+│  └── hello-camera-gorai-hailo.service                           │
+│                                                                  │
+│  Service Files (~/.config/systemd/user/)                        │
+│  ├── hello-camera-nats.service                                  │
+│  ├── hello-camera-gorai-core.service                            │
+│  └── hello-camera-gorai-hailo.service                           │
+│                                                                  │
+│  Container Images                                                │
+│  ├── nats:2.10-alpine                                           │
+│  ├── localhost/hello-camera-core:latest                         │
+│  └── localhost/hello-camera-hailo:latest                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Why Containers + Quadlet?
+### Why Containers + systemd?
 
 | Benefit | Description |
 |---------|-------------|
@@ -43,14 +42,14 @@ Robot Deployment
 | **Reproducible** | Same images work on any Linux system with Podman |
 | **Native systemd** | Services start at boot, restart on failure, use journald |
 | **Rootless** | Run without root privileges for security |
-| **Auto-updates** | Built-in `podman auto-update` with rollback |
+| **Universal** | Works on any Linux with Podman + systemd |
 
 ## Quick Start
 
 ### Prerequisites
 
 - Linux (Raspberry Pi OS, Ubuntu, Fedora, etc.)
-- [Podman](https://podman.io/) 4.4+ (for Quadlet support)
+- [Podman](https://podman.io/) (any recent version)
 - systemd (standard on most Linux distributions)
 
 ### 1. Install the gorai CLI
@@ -263,26 +262,36 @@ Robots are defined in JSON configuration files:
 }
 ```
 
-### Generated Quadlet Files
+### Generated systemd Service Files
 
-The `gorai build` command generates systemd Quadlet files:
+The `gorai build` command generates systemd service files that use `podman run`:
 
-**hello-camera-nats.container:**
+**hello-camera-nats.service:**
 ```ini
 [Unit]
 Description=Gorai container hello-camera-nats
-
-[Container]
-ContainerName=hello-camera-nats
-Image=nats:2.10-alpine
-Network=hello-camera-network.network
-PublishPort=4222:4222
-HealthCmd=wget -q --spider http://localhost:8222/healthz
-AutoUpdate=registry
+After=network-online.target
+Wants=network-online.target
 
 [Service]
+Type=simple
 Restart=always
+RestartSec=10
 TimeoutStartSec=300
+
+ExecStartPre=-/usr/bin/podman stop -t 10 hello-camera-nats
+ExecStartPre=-/usr/bin/podman rm -f hello-camera-nats
+ExecStartPre=-/usr/bin/podman network create hello-camera-network
+
+ExecStart=/usr/bin/podman run --rm \
+    --name hello-camera-nats \
+    --network hello-camera-network \
+    --network-alias nats \
+    -p 4222:4222 \
+    -e GORAI_ROBOT_NAME=hello-camera \
+    docker.io/nats:2.10-alpine
+
+ExecStop=/usr/bin/podman stop -t 10 hello-camera-nats
 
 [Install]
 WantedBy=default.target
@@ -357,7 +366,7 @@ gorai logs --config robot.json --tail 100
 
 ## Documentation
 
-- [Quadlet Specification](specs/quadlet-functionality.md) - Container orchestration details
+- [systemd Container Orchestration](specs/systemd-container-orchestration.md) - Container orchestration details
 - [Framework Specification](specs/gorai-framework-specification.md) - Complete technical specification
 - [RDL Specification](specs/robot-definition-language.md) - Robot configuration format
 - [Code Organization](specs/code-organization.md) - Module structure

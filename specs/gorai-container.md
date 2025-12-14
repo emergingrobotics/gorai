@@ -136,29 +136,29 @@ make container
 podman build -t ghcr.io/gorai/gorai:latest -f Containerfile.gorai .
 ```
 
-## Quadlet Integration
+## systemd Integration
 
-The gorai CLI generates Quadlet unit files and manages them via systemd:
+The gorai CLI generates systemd service files and manages them via systemctl:
 
 ### Generated Files
 
 ```
 .gorai/                                    # Local generated files
-├── robot-network.network
-├── robot-nats.container
-└── robot-core.container
+├── robot-nats.service
+├── robot-gorai-core.service
+└── robot-gorai-hailo.service
 
-~/.config/containers/systemd/              # Installed for systemd
-├── robot-network.network
-├── robot-nats.container
-└── robot-core.container
+~/.config/systemd/user/                    # Installed for systemd
+├── robot-nats.service
+├── robot-gorai-core.service
+└── robot-gorai-hailo.service
 ```
 
 ### CLI Commands
 
 | Command | Action | systemd Equivalent |
 |---------|--------|-------------------|
-| `gorai build` | Generate Quadlet files | N/A |
+| `gorai build` | Generate service files | N/A |
 | `gorai start` | Install + start services | `systemctl --user start` |
 | `gorai stop` | Stop services | `systemctl --user stop` |
 | `gorai status` | Show service status | `systemctl --user status` |
