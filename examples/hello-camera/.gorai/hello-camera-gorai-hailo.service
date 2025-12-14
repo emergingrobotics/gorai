@@ -23,8 +23,8 @@ ExecStart=/usr/bin/podman run --rm \
     -e NATS_URL=nats://nats:4222 \
     -e MODEL_PATH=/models/yolox_s_leaky.hef \
     -e CONFIDENCE_THRESHOLD=0.5 \
-    -v /gorai/examples/hello-camera/models:/models:ro \
-    -v /gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
+    -v /home/gherlein/src/er/gorai/examples/hello-camera/models:/models:ro \
+    -v /home/gherlein/src/er/gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
     --device /dev/hailo0 \
     --security-opt label=disable \
     --memory=1G \

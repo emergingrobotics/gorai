@@ -23,7 +23,7 @@ ExecStart=/usr/bin/podman run --rm \
     -e GORAI_ROBOT_NAME=hello-camera \
     -e NATS_URL=nats://nats:4222 \
     -e LOG_LEVEL=info \
-    -v /gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
+    -v /home/gherlein/src/er/gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
     --device /dev/video0 \
     localhost/hello-camera-core:latest
 

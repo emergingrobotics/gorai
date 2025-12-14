@@ -206,7 +206,7 @@ func cmdBuild() error {
 }
 
 func printBuildUsage() error {
-	fmt.Println(`gorai build - Build container images and generate Quadlet files
+	fmt.Println(`gorai build - Build container images and generate systemd service files
 
 Usage:
   gorai build [--config robot.json] [flags] [container...]
@@ -215,7 +215,7 @@ Flags:
   -c, --config <file>     Path to robot configuration file
   --no-cache              Do not use cache when building
   --pull                  Always attempt to pull newer base images
-  --install               Install Quadlet files to systemd
+  --install               Install service files to systemd
   --container <name>      Build specific container
   -h, --help              Show this help message
 
