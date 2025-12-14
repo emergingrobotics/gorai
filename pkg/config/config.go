@@ -43,7 +43,9 @@ type NATSConfig struct {
 	ConnectTimeout  string     `json:"connect_timeout,omitempty"`
 	ReconnectWait   string     `json:"reconnect_wait,omitempty"`
 	MaxReconnects   int        `json:"max_reconnects,omitempty"`
-	Container       string     `json:"container,omitempty"` // Container name for NATS service
+
+	// Deprecated: Container field is no longer used in RDL v2
+	Container string `json:"container,omitempty"`
 }
 
 // TLSConfig defines TLS settings for NATS.
@@ -59,20 +61,49 @@ type ComponentConfig struct {
 	Type       string         `json:"type"`
 	Model      string         `json:"model"`
 	Disabled   bool           `json:"disabled,omitempty"`
-	Container  string         `json:"container,omitempty"` // Container this component runs in
 	Attributes map[string]any `json:"attributes,omitempty"`
 	DependsOn  []string       `json:"depends_on,omitempty"`
+
+	// Deprecated: Container field is no longer used in RDL v2
+	Container string `json:"container,omitempty"`
 }
 
 // ServiceConfig represents a service configuration.
 type ServiceConfig struct {
-	Name       string         `json:"name"`
-	Type       string         `json:"type"`
-	Model      string         `json:"model"`
-	Disabled   bool           `json:"disabled,omitempty"`
-	Container  string         `json:"container,omitempty"` // Container this service runs in
-	Attributes map[string]any `json:"attributes,omitempty"`
-	DependsOn  []string       `json:"depends_on,omitempty"`
+	Name       string          `json:"name"`
+	Type       string          `json:"type"`
+	Model      string          `json:"model"`
+	Disabled   bool            `json:"disabled,omitempty"`
+	External   *ExternalConfig `json:"external,omitempty"`
+	Attributes map[string]any  `json:"attributes,omitempty"`
+	DependsOn  []string        `json:"depends_on,omitempty"`
+
+	// Deprecated: Container field is no longer used in RDL v2
+	Container string `json:"container,omitempty"`
+}
+
+// ExternalConfig configures a service to run as an external process.
+type ExternalConfig struct {
+	Enabled bool              `json:"enabled,omitempty"`
+	Command string            `json:"command,omitempty"`
+	Args    []string          `json:"args,omitempty"`
+	Managed bool              `json:"managed,omitempty"`
+	Restart string            `json:"restart,omitempty"` // "always", "on-failure", "never"
+	Env     map[string]string `json:"env,omitempty"`
+}
+
+// IsExternal returns true if this service should run as an external process.
+func (s *ServiceConfig) IsExternal() bool {
+	return s.External != nil && s.External.Enabled
+}
+
+// IsManaged returns true if this external service should be managed by the robot.
+func (s *ServiceConfig) IsManaged() bool {
+	if !s.IsExternal() {
+		return false
+	}
+	// Default to managed if not specified
+	return s.External.Managed || s.External.Command != ""
 }
 
 // RemoteConfig defines a connection to a remote robot/node.
@@ -322,8 +353,8 @@ func (cfg *RDL) Validate() error {
 	// Validate version
 	if cfg.Version == "" {
 		errs = append(errs, "version is required")
-	} else if cfg.Version != "1" {
-		errs = append(errs, fmt.Sprintf("unsupported version %q, expected \"1\"", cfg.Version))
+	} else if cfg.Version != "1" && cfg.Version != "2" {
+		errs = append(errs, fmt.Sprintf("unsupported version %q, expected \"1\" or \"2\"", cfg.Version))
 	}
 
 	// Validate robot name
@@ -501,4 +532,66 @@ func (cfg *RDL) ToJSON(indent bool) ([]byte, error) {
 		return json.MarshalIndent(cfg, "", "  ")
 	}
 	return json.Marshal(cfg)
+}
+
+// DeprecationWarnings returns a list of deprecation warnings for v1 features.
+func (cfg *RDL) DeprecationWarnings() []string {
+	var warnings []string
+
+	// Check for containers section
+	if cfg.Containers != nil && len(cfg.Containers) > 0 {
+		warnings = append(warnings, "The 'containers' section is deprecated in RDL v2 and will be ignored. "+
+			"Use 'external' on services for processes that need to run separately.")
+	}
+
+	// Check for container field in NATS config
+	if cfg.NATS != nil && cfg.NATS.Container != "" {
+		warnings = append(warnings, "nats.container is deprecated in RDL v2. "+
+			"NATS should run as a native systemd service, not in a container.")
+	}
+
+	// Check for container field in components
+	for _, comp := range cfg.Components {
+		if comp.Container != "" {
+			warnings = append(warnings, fmt.Sprintf("components[%s].container is deprecated in RDL v2. "+
+				"All components run in the main robot process.", comp.Name))
+		}
+	}
+
+	// Check for container field in services
+	for _, svc := range cfg.Services {
+		if svc.Container != "" {
+			warnings = append(warnings, fmt.Sprintf("services[%s].container is deprecated in RDL v2. "+
+				"Use 'external' instead for services that need to run separately.", svc.Name))
+		}
+	}
+
+	return warnings
+}
+
+// HasDeprecatedFields returns true if the config uses any deprecated v1 fields.
+func (cfg *RDL) HasDeprecatedFields() bool {
+	return len(cfg.DeprecationWarnings()) > 0
+}
+
+// GetExternalServices returns all services configured to run as external processes.
+func (cfg *RDL) GetExternalServices() []ServiceConfig {
+	var external []ServiceConfig
+	for _, svc := range cfg.Services {
+		if svc.IsExternal() {
+			external = append(external, svc)
+		}
+	}
+	return external
+}
+
+// GetInternalServices returns all services configured to run in the main process.
+func (cfg *RDL) GetInternalServices() []ServiceConfig {
+	var internal []ServiceConfig
+	for _, svc := range cfg.Services {
+		if !svc.IsExternal() {
+			internal = append(internal, svc)
+		}
+	}
+	return internal
 }

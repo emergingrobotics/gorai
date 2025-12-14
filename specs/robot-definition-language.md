@@ -1,12 +1,14 @@
 # Robot Definition Language (RDL) Specification
 
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
-**Last Updated:** 2024
+**Last Updated:** 2024-12
 
 ## 1. Overview
 
 The Robot Definition Language (RDL) is a JSON-based configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
+
+> **Note:** Version 2.0 removes containerization support in favor of a simpler monolithic architecture. Robots run as a single binary with optional external services for specialized workloads (e.g., ML inference).
 
 ### 1.1 Scope
 
@@ -51,8 +53,8 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 
 ```json
 {
-  "$schema": "https://gorai.dev/schemas/rdl-v1.json",
-  "version": "1",
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
   "robot": { },
   "nats": { },
   "prometheus": { },
@@ -68,7 +70,7 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `$schema` | string | No | JSON Schema URL for validation |
-| `version` | string | Yes | RDL version ("1") |
+| `version` | string | Yes | RDL version ("2") |
 | `robot` | object | Yes | Robot identity |
 | `nats` | object | No | NATS connection config |
 | `prometheus` | object | No | Prometheus time-series database config (required dependency) |
@@ -78,6 +80,8 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 | `log` | object | No | Logging configuration |
 | `dashboard` | object | No | Web dashboard configuration (enabled by default) |
 | `alerting` | object | No | Alert Manager configuration |
+
+> **Deprecated:** The `containers` field from RDL v1 is no longer supported. Use `external` on services for processes that need to run separately.
 
 ---
 
@@ -335,6 +339,7 @@ Services are software capabilities that process data or make decisions.
 | `type` | string | Yes | - | Service type (see 6.2) |
 | `model` | string | Yes | - | Implementation model |
 | `disabled` | bool | No | false | Skip loading this service |
+| `external` | object | No | - | External process configuration (see 6.4) |
 | `attributes` | object | No | {} | Model-specific configuration |
 | `depends_on` | array | No | [] | Component/service dependencies |
 
@@ -357,6 +362,56 @@ Services can depend on:
 - Other services (by name)
 
 Dependencies are resolved after all components are loaded.
+
+### 6.4 External Services
+
+Services can optionally run as separate processes, connected to the main robot via NATS. This is useful for:
+- ML inference requiring specialized hardware (TPU, NPU)
+- Services with different resource requirements
+- Services written in different languages (e.g., Python for ML)
+
+```json
+{
+  "services": [
+    {
+      "name": "person_detector",
+      "type": "object_detection",
+      "model": "hailo_yolox",
+      "external": {
+        "enabled": true,
+        "command": "/opt/gorai/services/hailo-detector",
+        "args": ["--confidence", "0.5"],
+        "managed": true,
+        "restart": "always",
+        "env": {
+          "MODEL_PATH": "/opt/models/yolox.hef"
+        }
+      },
+      "attributes": {
+        "input_topic": "gorai.myrobot.camera.data",
+        "output_topic": "gorai.myrobot.person_detector.detections"
+      }
+    }
+  ]
+}
+```
+
+#### External Object Fields
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `enabled` | bool | No | false | Enable external process mode |
+| `command` | string | Yes* | - | Path to executable (*required if managed) |
+| `args` | array | No | [] | Command line arguments |
+| `managed` | bool | No | true | If true, robot spawns/monitors the process |
+| `restart` | string | No | "always" | Restart policy: "always", "on-failure", "never" |
+| `env` | object | No | {} | Environment variables for the process |
+
+#### External Service Behavior
+
+- **Managed services** (`managed: true`): The robot process spawns the external service as a child process, monitors it, and restarts it according to the restart policy.
+- **Unmanaged services** (`managed: false`): The robot expects the service to be running independently (e.g., started by systemd). The robot verifies connectivity via NATS.
+- External services receive the robot config path via `--config` argument and service name via `--service` argument.
 
 ---
 
@@ -861,8 +916,8 @@ robot.json:15: components[0].type: unknown component type "imu2"
 
 ```json
 {
-  "$schema": "https://gorai.dev/schemas/rdl-v1.json",
-  "version": "1",
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
 
   "robot": {
     "name": "wheeled-robot",
@@ -963,6 +1018,12 @@ robot.json:15: components[0].type: unknown component type "imu2"
       "name": "detector",
       "type": "vision",
       "model": "yolox",
+      "external": {
+        "enabled": true,
+        "command": "/opt/gorai/services/yolox-detector",
+        "managed": true,
+        "restart": "always"
+      },
       "attributes": {
         "model_path": "/opt/models/yolox_s.onnx",
         "confidence_threshold": 0.5,

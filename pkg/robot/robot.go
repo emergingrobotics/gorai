@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -18,10 +20,11 @@ import (
 
 // Robot represents a running robot instance.
 type Robot struct {
-	cfg    *config.RDL
-	logger *slog.Logger
-	ctx    context.Context
-	cancel context.CancelFunc
+	cfg        *config.RDL
+	configPath string
+	logger     *slog.Logger
+	ctx        context.Context
+	cancel     context.CancelFunc
 
 	// NATS client for messaging
 	nats   *gorainats.Client
@@ -34,9 +37,22 @@ type Robot struct {
 	cameras   map[string]*v4l2.Camera
 	camerasMu sync.RWMutex
 
+	// External services (managed child processes)
+	externalServices   map[string]*ExternalService
+	externalServicesMu sync.RWMutex
+
 	// Frame counters for logging
 	frameCounters   map[string]uint64
 	frameCountersMu sync.Mutex
+}
+
+// ExternalService represents a managed external service process.
+type ExternalService struct {
+	Name    string
+	Config  config.ServiceConfig
+	Cmd     *exec.Cmd
+	Cancel  context.CancelFunc
+	Running bool
 }
 
 // Option configures a Robot.
@@ -49,6 +65,13 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+// WithConfigPath sets the config file path (used for external services).
+func WithConfigPath(path string) Option {
+	return func(r *Robot) {
+		r.configPath = path
+	}
+}
+
 // New creates a new Robot from the given configuration.
 func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 	if cfg == nil {
@@ -57,13 +80,14 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 
 	rCtx, cancel := context.WithCancel(ctx)
 	r := &Robot{
-		cfg:           cfg,
-		logger:        slog.Default(),
-		ctx:           rCtx,
-		cancel:        cancel,
-		topics:        topics.NewBuilder(cfg.Robot.Name),
-		cameras:       make(map[string]*v4l2.Camera),
-		frameCounters: make(map[string]uint64),
+		cfg:              cfg,
+		logger:           slog.Default(),
+		ctx:              rCtx,
+		cancel:           cancel,
+		topics:           topics.NewBuilder(cfg.Robot.Name),
+		cameras:          make(map[string]*v4l2.Camera),
+		externalServices: make(map[string]*ExternalService),
+		frameCounters:    make(map[string]uint64),
 	}
 
 	for _, opt := range opts {
@@ -122,8 +146,21 @@ func (r *Robot) Start(ctx context.Context) error {
 			r.logger.Info("Skipping disabled service", "name", svc.Name)
 			continue
 		}
-		r.logger.Info("Initializing service", "name", svc.Name, "type", svc.Type)
-		// TODO: Actually initialize service from registry
+
+		if svc.IsExternal() {
+			// Start external service
+			if svc.IsManaged() {
+				if err := r.startExternalService(ctx, svc); err != nil {
+					r.logger.Error("Failed to start external service", "name", svc.Name, "error", err)
+					// Don't fail robot startup for external service failures
+				}
+			} else {
+				r.logger.Info("External service (unmanaged)", "name", svc.Name, "type", svc.Type)
+			}
+		} else {
+			r.logger.Info("Initializing internal service", "name", svc.Name, "type", svc.Type)
+			// TODO: Actually initialize service from registry
+		}
 	}
 
 	// Publish robot ready event
@@ -390,6 +427,174 @@ func (r *Robot) publishStartupEvent(eventType, component, componentType, message
 	}
 }
 
+// startExternalService spawns a managed external service process.
+func (r *Robot) startExternalService(ctx context.Context, svc config.ServiceConfig) error {
+	if svc.External == nil || svc.External.Command == "" {
+		return fmt.Errorf("external service %s has no command configured", svc.Name)
+	}
+
+	r.logger.Info("Starting external service",
+		"name", svc.Name,
+		"command", svc.External.Command,
+		"managed", svc.External.Managed,
+	)
+
+	// Create cancellable context for this service
+	svcCtx, cancel := context.WithCancel(r.ctx)
+
+	// Build command arguments
+	args := svc.External.Args
+	if r.configPath != "" {
+		args = append(args, "--config", r.configPath)
+	}
+	args = append(args, "--service", svc.Name)
+
+	cmd := exec.CommandContext(svcCtx, svc.External.Command, args...)
+
+	// Set environment variables
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GORAI_ROBOT_NAME=%s", r.cfg.Robot.Name))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GORAI_SERVICE_NAME=%s", svc.Name))
+	if r.cfg.NATS != nil && r.cfg.NATS.URL != "" {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("NATS_URL=%s", r.cfg.NATS.URL))
+	}
+	for k, v := range svc.External.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	// Inherit stdout/stderr for logging
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("failed to start external service %s: %w", svc.Name, err)
+	}
+
+	// Track the service
+	extSvc := &ExternalService{
+		Name:    svc.Name,
+		Config:  svc,
+		Cmd:     cmd,
+		Cancel:  cancel,
+		Running: true,
+	}
+
+	r.externalServicesMu.Lock()
+	r.externalServices[svc.Name] = extSvc
+	r.externalServicesMu.Unlock()
+
+	// Monitor the process in a goroutine
+	go r.monitorExternalService(extSvc)
+
+	r.logger.Info("External service started", "name", svc.Name, "pid", cmd.Process.Pid)
+	return nil
+}
+
+// monitorExternalService monitors an external service and restarts if needed.
+func (r *Robot) monitorExternalService(svc *ExternalService) {
+	for {
+		// Wait for process to exit
+		err := svc.Cmd.Wait()
+
+		r.externalServicesMu.Lock()
+		svc.Running = false
+		r.externalServicesMu.Unlock()
+
+		// Check if we should restart
+		select {
+		case <-r.ctx.Done():
+			// Robot is shutting down, don't restart
+			r.logger.Debug("External service stopped (robot shutting down)", "name", svc.Name)
+			return
+		default:
+		}
+
+		// Determine restart policy
+		restart := svc.Config.External.Restart
+		if restart == "" {
+			restart = "always"
+		}
+
+		shouldRestart := false
+		switch restart {
+		case "always":
+			shouldRestart = true
+		case "on-failure":
+			shouldRestart = err != nil
+		case "never":
+			shouldRestart = false
+		}
+
+		if !shouldRestart {
+			if err != nil {
+				r.logger.Error("External service exited with error", "name", svc.Name, "error", err)
+			} else {
+				r.logger.Info("External service exited", "name", svc.Name)
+			}
+			return
+		}
+
+		r.logger.Warn("External service exited, restarting",
+			"name", svc.Name,
+			"error", err,
+			"restart_policy", restart,
+		)
+
+		// Wait a bit before restarting
+		time.Sleep(2 * time.Second)
+
+		// Check again if robot is still running
+		select {
+		case <-r.ctx.Done():
+			return
+		default:
+		}
+
+		// Restart the service
+		if err := r.startExternalService(r.ctx, svc.Config); err != nil {
+			r.logger.Error("Failed to restart external service", "name", svc.Name, "error", err)
+			return
+		}
+		return // The new instance will be monitored by its own goroutine
+	}
+}
+
+// stopExternalServices stops all managed external service processes.
+func (r *Robot) stopExternalServices(ctx context.Context) {
+	r.externalServicesMu.Lock()
+	defer r.externalServicesMu.Unlock()
+
+	for name, svc := range r.externalServices {
+		r.logger.Info("Stopping external service", "name", name)
+
+		// Cancel the context to signal shutdown
+		if svc.Cancel != nil {
+			svc.Cancel()
+		}
+
+		// Wait for process to exit or kill it
+		if svc.Cmd != nil && svc.Cmd.Process != nil && svc.Running {
+			// Give it 5 seconds to exit gracefully
+			done := make(chan error, 1)
+			go func() {
+				done <- svc.Cmd.Wait()
+			}()
+
+			select {
+			case <-done:
+				r.logger.Debug("External service stopped gracefully", "name", name)
+			case <-time.After(5 * time.Second):
+				r.logger.Warn("External service did not stop gracefully, killing", "name", name)
+				svc.Cmd.Process.Kill()
+			}
+		}
+	}
+
+	r.externalServices = make(map[string]*ExternalService)
+}
+
 // Run runs the robot until the context is cancelled.
 func (r *Robot) Run(ctx context.Context) error {
 	r.logger.Info("Robot running", "name", r.cfg.Robot.Name)
@@ -409,6 +614,9 @@ func (r *Robot) Stop(ctx context.Context) error {
 
 	// Publish shutdown event
 	r.publishStartupEvent(topics.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
+
+	// Stop external services first (they may depend on NATS)
+	r.stopExternalServices(ctx)
 
 	// Stop dashboard
 	if r.dashboard != nil {

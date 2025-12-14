@@ -32,7 +32,9 @@ func Execute() error {
 	case "list":
 		return cmdList()
 
-	// Container orchestration commands
+	// Runtime commands
+	case "run":
+		return cmdRun()
 	case "start":
 		return cmdStart()
 	case "stop":
@@ -41,14 +43,16 @@ func Execute() error {
 		return cmdStatus()
 	case "logs":
 		return cmdLogs()
+
+	// Build commands
 	case "build":
 		return cmdBuild()
+	case "migrate":
+		return cmdMigrate()
 
-	// Runtime commands
+	// Topic/service commands
 	case "version":
 		return cmdVersion()
-	case "run":
-		return cmdRun()
 	case "topic":
 		return cmdTopic()
 	case "service":
@@ -75,15 +79,18 @@ Project Commands:
   add               Add custom components or services
   list              List available component and service types
 
-Container Orchestration (Podman):
-  start             Start robot containers from RDL configuration
-  stop              Stop robot containers
-  status            Show robot and container status
-  logs              View container logs
-  build             Build container images
+Runtime Commands (Recommended):
+  run               Run robot directly (foreground, monolithic mode)
+  start             Start robot as native systemd service
+  stop              Stop robot systemd service
+  status            Show robot process status
+  logs              View robot logs
 
-Runtime Commands:
-  run               Run a robot from configuration (monolithic mode)
+Build Commands:
+  build             Build robot binary or container images
+  migrate           Migrate RDL v1 config to v2 format
+
+Topic/Service Commands:
   topic             Topic operations (list, echo, pub)
   service           Service operations (list, call)
 
@@ -94,8 +101,11 @@ Other Commands:
 Use "gorai <command> -h" for more information about a command.
 
 Examples:
-  # Container orchestration (recommended):
-  gorai start --config robot.json --build --detach
+  # Run robot directly (recommended):
+  gorai run --config robot.json
+
+  # Deploy as systemd service:
+  gorai start --config robot.json --enable
   gorai status --config robot.json
   gorai logs --config robot.json --follow
   gorai stop --config robot.json
@@ -104,6 +114,9 @@ Examples:
   gorai init my-robot              Initialize project from my-robot.json
   gorai validate my-robot          Validate my-robot.json
   gorai add component my_sensor    Add a custom component
+
+  # Migrate old config:
+  gorai migrate --config old-robot.json --output robot.json
 
 Documentation:
   https://gorai.dev/docs
@@ -115,16 +128,6 @@ func cmdVersion() error {
 	fmt.Printf("gorai version %s\n", Version)
 	fmt.Printf("  commit: %s\n", Commit)
 	fmt.Printf("  built:  %s\n", Date)
-	return nil
-}
-
-func cmdRun() error {
-	if len(os.Args) < 3 {
-		return fmt.Errorf("usage: gorai run <config.json>")
-	}
-	configPath := os.Args[2]
-	fmt.Printf("Running robot from %s...\n", configPath)
-	// TODO: Load config and start robot
 	return nil
 }
 

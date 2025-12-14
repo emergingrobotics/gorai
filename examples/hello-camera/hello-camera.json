@@ -1,6 +1,6 @@
 {
-  "$schema": "https://gorai.dev/schemas/rdl-v1.json",
-  "version": "1",
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
 
   "robot": {
     "name": "hello-camera",
@@ -9,90 +9,7 @@
   },
 
   "nats": {
-    "url": "nats://nats:4222",
-    "container": "nats"
-  },
-
-  "containers": {
-    "nats": {
-      "image": "docker.io/nats:2.10-alpine",
-      "ports": ["4222:4222", "8222:8222"],
-      "restart": "always",
-      "healthcheck": {
-        "test": ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"],
-        "interval": "10s",
-        "timeout": "5s",
-        "retries": 3
-      }
-    },
-
-    "gorai-core": {
-      "build": {
-        "context": "../..",
-        "dockerfile": "examples/hello-camera/Containerfile.core"
-      },
-      "image": "localhost/hello-camera-core:latest",
-      "depends_on": {
-        "nats": {
-          "condition": "service_healthy"
-        }
-      },
-      "environment": {
-        "LOG_LEVEL": "info"
-      },
-      "volumes": [
-        "./hello-camera.json:/etc/gorai/robot.json:ro"
-      ],
-      "devices": [
-        "/dev/video0"
-      ],
-      "group_add": ["video", "plugdev"],
-      "ports": ["8080:8080"],
-      "restart": "unless-stopped",
-      "healthcheck": {
-        "test": ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"],
-        "interval": "30s",
-        "timeout": "10s",
-        "retries": 3
-      },
-      "components": ["main_camera"],
-      "services": ["dashboard"]
-    },
-
-    "gorai-hailo": {
-      "build": {
-        "context": "./services/object-detection",
-        "dockerfile": "Containerfile"
-      },
-      "image": "localhost/hello-camera-hailo:latest",
-      "depends_on": {
-        "nats": {
-          "condition": "service_healthy"
-        },
-        "gorai-core": {
-          "condition": "service_started"
-        }
-      },
-      "environment": {
-        "MODEL_PATH": "/models/yolox_s_leaky.hef",
-        "CONFIDENCE_THRESHOLD": "0.5"
-      },
-      "volumes": [
-        "./models:/models:ro",
-        "./hello-camera.json:/etc/gorai/robot.json:ro"
-      ],
-      "devices": [
-        "/dev/hailo0"
-      ],
-      "security_opt": ["label=disable"],
-      "restart": "unless-stopped",
-      "resources": {
-        "limits": {
-          "memory": "1G"
-        }
-      },
-      "services": ["person_detector"]
-    }
+    "url": "nats://localhost:4222"
   },
 
   "components": [
@@ -100,7 +17,6 @@
       "name": "main_camera",
       "type": "camera",
       "model": "v4l2",
-      "container": "gorai-core",
       "attributes": {
         "device": "/dev/video0",
         "width": 640,
@@ -116,7 +32,6 @@
       "name": "dashboard",
       "type": "dashboard",
       "model": "web",
-      "container": "gorai-core",
       "attributes": {
         "listen": ":8080"
       }
@@ -125,7 +40,6 @@
       "name": "person_detector",
       "type": "object_detection",
       "model": "hailo_yolox",
-      "container": "gorai-hailo",
       "attributes": {
         "model_path": "/models/yolox_s_leaky.hef",
         "input_topic": "gorai.hello-camera.main_camera.data",
@@ -133,6 +47,17 @@
         "output_topic_detections": "gorai.hello-camera.person_detector.detections",
         "confidence_threshold": 0.5,
         "classes": ["person"]
+      },
+      "external": {
+        "enabled": true,
+        "command": "/opt/gorai/services/hailo-detector",
+        "args": ["--model", "/models/yolox_s_leaky.hef"],
+        "managed": true,
+        "restart": "always",
+        "env": {
+          "MODEL_PATH": "/models/yolox_s_leaky.hef",
+          "CONFIDENCE_THRESHOLD": "0.5"
+        }
       }
     }
   ],

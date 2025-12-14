@@ -1,13 +1,11 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdStop() error {
@@ -15,7 +13,7 @@ func cmdStop() error {
 	var configPath string
 	var uninstall bool
 	var disable bool
-	var containers []string
+	var userMode bool = true
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -30,12 +28,8 @@ func cmdStop() error {
 			uninstall = true
 		case "--disable":
 			disable = true
-		case "--containers":
-			if i+1 >= len(args) {
-				return fmt.Errorf("--containers requires a value")
-			}
-			i++
-			containers = splitComma(args[i])
+		case "--system":
+			userMode = false
 		case "-h", "--help":
 			return printStopUsage()
 		default:
@@ -61,69 +55,71 @@ func cmdStop() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Check if containers are defined
-	if cfg.Containers == nil || len(cfg.Containers) == 0 {
-		return fmt.Errorf("no containers defined in %s", configPath)
+	serviceName := cfg.Robot.Name
+
+	// Stop service
+	fmt.Printf("Stopping robot %q...\n", serviceName)
+	if err := systemctlCmd(userMode, "stop", serviceName+".service"); err != nil {
+		fmt.Printf("Note: service may not be running: %v\n", err)
+	} else {
+		fmt.Println("Robot stopped.")
 	}
 
-	// Get service directory
-	workspaceDir := filepath.Dir(configPath)
-	if !filepath.IsAbs(workspaceDir) {
-		workspaceDir, _ = filepath.Abs(workspaceDir)
-	}
-	serviceDir := filepath.Join(workspaceDir, ".gorai")
-
-	// Create runner
-	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
-
-	// Disable services if requested
+	// Disable service if requested
 	if disable {
-		fmt.Println("Disabling services from auto-start...")
-		if err := runner.Disable(context.Background(), containers...); err != nil {
-			fmt.Printf("Warning: failed to disable services: %v\n", err)
+		fmt.Println("Disabling service from auto-start...")
+		if err := systemctlCmd(userMode, "disable", serviceName+".service"); err != nil {
+			fmt.Printf("Warning: failed to disable service: %v\n", err)
 		}
 	}
 
-	// Stop containers
-	fmt.Printf("Stopping containers for robot %q...\n", cfg.Robot.Name)
-
-	ctx := context.Background()
-	if err := runner.Stop(ctx, containers...); err != nil {
-		// Don't fail if services aren't running
-		fmt.Printf("Note: %v\n", err)
-	}
-
-	fmt.Println("Containers stopped.")
-
-	// Uninstall service files if requested
+	// Uninstall service file if requested
 	if uninstall {
-		fmt.Println("Uninstalling service files from systemd...")
-		if err := runner.Uninstall(ctx); err != nil {
-			return fmt.Errorf("failed to uninstall service files: %w", err)
+		fmt.Println("Removing service file...")
+
+		var serviceFilePath string
+		if userMode {
+			home, _ := os.UserHomeDir()
+			serviceFilePath = filepath.Join(home, ".config", "systemd", "user", serviceName+".service")
+		} else {
+			serviceFilePath = filepath.Join("/etc/systemd/system", serviceName+".service")
 		}
-		fmt.Println("Service files removed.")
+
+		if err := os.Remove(serviceFilePath); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("failed to remove service file: %w", err)
+			}
+			fmt.Println("Service file not found (already removed).")
+		} else {
+			fmt.Printf("Removed: %s\n", serviceFilePath)
+		}
+
+		// Reload systemd
+		if err := systemctlCmd(userMode, "daemon-reload"); err != nil {
+			fmt.Printf("Warning: failed to reload systemd: %v\n", err)
+		}
 	}
 
 	return nil
 }
 
 func printStopUsage() error {
-	fmt.Println(`gorai stop - Stop robot containers
+	fmt.Println(`gorai stop - Stop robot systemd service
 
 Usage:
   gorai stop [--config robot.json] [flags]
 
 Flags:
   -c, --config <file>     Path to robot configuration file
-  --disable               Disable services from auto-start at boot
-  --uninstall             Remove service files from systemd
-  --containers <list>     Stop only specific containers (comma-separated)
+  --disable               Disable service from auto-start at boot
+  --uninstall             Remove service file from systemd
+  --system                Use system mode (default: user mode)
   -h, --help              Show this help message
 
 Examples:
   gorai stop --config robot.json
   gorai stop -c robot.json --uninstall
   gorai stop --config robot.json --disable
-  gorai stop --config robot.json --containers nats,gorai-core`)
+  sudo gorai stop --config robot.json --system`)
 	return nil
 }

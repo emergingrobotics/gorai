@@ -1,26 +1,21 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
+	"strings"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/systemd"
 )
 
 func cmdStart() error {
 	// Parse flags
 	var configPath string
-	var build bool
 	var enable bool
-	var containers []string
+	var userMode bool = true
 
-	// Simple flag parsing
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -30,21 +25,14 @@ func cmdStart() error {
 			}
 			i++
 			configPath = args[i]
-		case "--build":
-			build = true
 		case "--enable":
 			enable = true
-		case "--containers":
-			if i+1 >= len(args) {
-				return fmt.Errorf("--containers requires a value")
-			}
-			i++
-			containers = splitComma(args[i])
+		case "--system":
+			userMode = false
 		case "-h", "--help":
 			return printStartUsage()
 		default:
 			if args[i][0] != '-' {
-				// Treat as config path if not a flag
 				configPath = args[i]
 			} else {
 				return fmt.Errorf("unknown flag: %s", args[i])
@@ -60,6 +48,9 @@ func cmdStart() error {
 		}
 	}
 
+	// Make paths absolute
+	configPath, _ = filepath.Abs(configPath)
+
 	// Load configuration
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -71,117 +62,75 @@ func cmdStart() error {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Check if containers are defined
-	if cfg.Containers == nil || len(cfg.Containers) == 0 {
-		return fmt.Errorf("no containers defined in %s. Add a 'containers' section to use gorai start", configPath)
+	// Check for deprecation warnings
+	warnings := cfg.DeprecationWarnings()
+	for _, w := range warnings {
+		fmt.Fprintf(os.Stderr, "WARNING: %s\n", w)
 	}
 
-	// Generate systemd service files
-	workspaceDir := filepath.Dir(configPath)
-	if !filepath.IsAbs(workspaceDir) {
-		workspaceDir, _ = filepath.Abs(workspaceDir)
+	// Find gorai binary
+	goraiBin, err := findGoraiBinary()
+	if err != nil {
+		return fmt.Errorf("cannot find gorai binary: %w", err)
 	}
 
-	gen := systemd.NewGenerator(cfg,
-		systemd.WithWorkspaceDir(workspaceDir),
-		systemd.WithUserMode(true),
-	)
+	// Generate native systemd service file
+	serviceName := cfg.Robot.Name
+	serviceFile := generateNativeServiceFile(serviceName, goraiBin, configPath, userMode)
 
-	serviceDir := gen.GetLocalDir()
-	fmt.Printf("Generating systemd service files in: %s\n", serviceDir)
-
-	if err := gen.WriteFiles(); err != nil {
-		return fmt.Errorf("failed to generate systemd files: %w", err)
+	// Determine target directory
+	var targetDir string
+	if userMode {
+		home, _ := os.UserHomeDir()
+		targetDir = filepath.Join(home, ".config", "systemd", "user")
+	} else {
+		targetDir = "/etc/systemd/system"
 	}
 
-	// Build containers if requested
-	if build {
-		fmt.Println("Building container images...")
-		for name, container := range cfg.Containers {
-			if container.Build == nil {
-				continue
-			}
-
-			fmt.Printf("Building %s...\n", name)
-
-			buildArgs := []string{"build"}
-
-			tag := container.Image
-			if tag == "" {
-				tag = fmt.Sprintf("%s-%s:latest", cfg.Robot.Name, name)
-			}
-			buildArgs = append(buildArgs, "-t", tag)
-
-			dockerfile := container.Build.Dockerfile
-			if dockerfile == "" {
-				dockerfile = "Containerfile"
-			}
-			buildArgs = append(buildArgs, "-f", dockerfile)
-
-			buildContext := container.Build.Context
-			if buildContext == "" {
-				buildContext = "."
-			}
-			if !filepath.IsAbs(buildContext) {
-				buildContext = filepath.Join(workspaceDir, buildContext)
-			}
-			buildArgs = append(buildArgs, buildContext)
-
-			cmd := exec.CommandContext(context.Background(), "podman", buildArgs...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("failed to build %s: %w", name, err)
-			}
-		}
+	// Ensure directory exists
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return fmt.Errorf("failed to create systemd directory: %w", err)
 	}
 
-	// Install service files to systemd
-	fmt.Println("Installing systemd service files...")
-	if err := gen.InstallFiles(); err != nil {
-		return fmt.Errorf("failed to install systemd files: %w", err)
+	// Write service file
+	serviceFilePath := filepath.Join(targetDir, serviceName+".service")
+	if err := os.WriteFile(serviceFilePath, []byte(serviceFile), 0644); err != nil {
+		return fmt.Errorf("failed to write service file: %w", err)
 	}
-
-	// Create runner
-	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
+	fmt.Printf("Created service file: %s\n", serviceFilePath)
 
 	// Reload systemd
 	fmt.Println("Reloading systemd daemon...")
-	if err := runner.DaemonReload(context.Background()); err != nil {
+	if err := systemctlCmd(userMode, "daemon-reload"); err != nil {
 		return fmt.Errorf("failed to reload systemd: %w", err)
 	}
 
-	// Setup context with signal handling
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		fmt.Println("\nReceived interrupt, stopping containers...")
-		stopCtx := context.Background()
-		_ = runner.Stop(stopCtx, containers...)
-		cancel()
-	}()
-
-	// Enable services for auto-start at boot if requested
+	// Enable if requested
 	if enable {
-		fmt.Println("Enabling services for auto-start at boot...")
-		if err := runner.Enable(ctx, containers...); err != nil {
-			fmt.Printf("Warning: failed to enable services: %v\n", err)
+		fmt.Println("Enabling service for auto-start at boot...")
+		if err := systemctlCmd(userMode, "enable", serviceName+".service"); err != nil {
+			fmt.Printf("Warning: failed to enable service: %v\n", err)
+		}
+
+		// For user mode, enable lingering so service runs without login
+		if userMode {
+			user := os.Getenv("USER")
+			if user != "" {
+				cmd := exec.Command("loginctl", "enable-linger", user)
+				if err := cmd.Run(); err != nil {
+					fmt.Printf("Warning: failed to enable linger (service may not start at boot): %v\n", err)
+				}
+			}
 		}
 	}
 
-	// Start containers
-	fmt.Printf("Starting containers for robot %q...\n", cfg.Robot.Name)
-
-	if err := runner.Start(ctx, containers...); err != nil {
-		return fmt.Errorf("failed to start containers: %w", err)
+	// Start service
+	fmt.Printf("Starting robot %q...\n", cfg.Robot.Name)
+	if err := systemctlCmd(userMode, "start", serviceName+".service"); err != nil {
+		return fmt.Errorf("failed to start service: %w", err)
 	}
 
-	fmt.Printf("\nContainers started successfully.\n")
+	fmt.Printf("\nRobot started successfully.\n")
 	fmt.Printf("Use 'gorai status --config %s' to check status.\n", configPath)
 	fmt.Printf("Use 'gorai logs --config %s -f' to view logs.\n", configPath)
 	fmt.Printf("Use 'gorai stop --config %s' to stop.\n", configPath)
@@ -189,24 +138,117 @@ func cmdStart() error {
 	return nil
 }
 
+func generateNativeServiceFile(name, binary, configPath string, userMode bool) string {
+	var sb strings.Builder
+
+	sb.WriteString("[Unit]\n")
+	sb.WriteString(fmt.Sprintf("Description=Gorai Robot: %s\n", name))
+	sb.WriteString("After=network-online.target nats-server.service\n")
+	sb.WriteString("Wants=network-online.target nats-server.service\n")
+	sb.WriteString("\n")
+
+	sb.WriteString("[Service]\n")
+	sb.WriteString("Type=simple\n")
+	sb.WriteString(fmt.Sprintf("ExecStart=%s run --config %s\n", binary, configPath))
+	sb.WriteString("Restart=always\n")
+	sb.WriteString("RestartSec=5\n")
+	sb.WriteString("StandardOutput=journal\n")
+	sb.WriteString("StandardError=journal\n")
+	sb.WriteString(fmt.Sprintf("SyslogIdentifier=%s\n", name))
+	sb.WriteString("\n")
+
+	// Environment
+	sb.WriteString(fmt.Sprintf("Environment=\"GORAI_ROBOT_NAME=%s\"\n", name))
+	sb.WriteString("Environment=\"NATS_URL=nats://localhost:4222\"\n")
+	sb.WriteString("\n")
+
+	// Hardware access groups (for user mode)
+	if userMode {
+		sb.WriteString("# Hardware access - ensure user is in these groups\n")
+	} else {
+		sb.WriteString("# Hardware access groups\n")
+		sb.WriteString("SupplementaryGroups=gpio i2c spi video dialout plugdev input\n")
+	}
+	sb.WriteString("\n")
+
+	sb.WriteString("[Install]\n")
+	if userMode {
+		sb.WriteString("WantedBy=default.target\n")
+	} else {
+		sb.WriteString("WantedBy=multi-user.target\n")
+	}
+
+	return sb.String()
+}
+
+func systemctlCmd(userMode bool, args ...string) error {
+	cmdArgs := args
+	if userMode {
+		cmdArgs = append([]string{"--user"}, args...)
+	}
+	cmd := exec.Command("systemctl", cmdArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func findGoraiBinary() (string, error) {
+	// First try to find ourselves
+	exe, err := os.Executable()
+	if err == nil {
+		abs, err := filepath.Abs(exe)
+		if err == nil {
+			return abs, nil
+		}
+		return exe, nil
+	}
+
+	// Try common locations
+	candidates := []string{
+		"/usr/local/bin/gorai",
+		"/usr/bin/gorai",
+		filepath.Join(os.Getenv("GOPATH"), "bin", "gorai"),
+	}
+
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", fmt.Errorf("gorai binary not found")
+}
+
 func printStartUsage() error {
-	fmt.Println(`gorai start - Start robot containers using systemd/Quadlet
+	fmt.Println(`gorai start - Start robot as native systemd service
 
 Usage:
   gorai start [--config robot.json] [flags]
 
+This command installs and starts the robot as a native systemd service.
+The robot runs as a single process using 'gorai run' internally.
+
 Flags:
   -c, --config <file>     Path to robot configuration file
-  --build                 Build images before starting
-  --enable                Enable services for auto-start at boot
-  --containers <list>     Start only specific containers (comma-separated)
+  --enable                Enable service for auto-start at boot
+  --system                Use system mode (requires root, default: user mode)
   -h, --help              Show this help message
 
 Examples:
   gorai start --config robot.json
-  gorai start -c robot.json --build
   gorai start --config robot.json --enable
-  gorai start --config robot.json --containers nats,gorai-core`)
+  sudo gorai start --config robot.json --system --enable
+
+Prerequisites:
+  - NATS server must be running (install: sudo apt install nats-server)
+  - For hardware access, ensure your user is in appropriate groups:
+    sudo usermod -aG gpio,i2c,spi,video,dialout,plugdev $USER
+
+Service Management:
+  View status:  systemctl --user status <robot-name>
+  View logs:    journalctl --user -u <robot-name> -f
+  Stop:         gorai stop --config robot.json
+  Restart:      systemctl --user restart <robot-name>`)
 	return nil
 }
 

@@ -1,8 +1,18 @@
 # systemd Container Orchestration Specification
 
-## Overview
+> **DEPRECATED (v2)**: This document describes the v1 container-based approach which is no longer recommended. Gorai v2 uses a monolithic architecture where all components run in a single process.
+>
+> For new projects, use:
+> - `gorai run --config robot.json` - Run robot directly in foreground
+> - `gorai start --config robot.json` - Deploy as native systemd service
+>
+> To migrate from v1 configs: `gorai migrate --config old-robot.json`
+>
+> See the updated [Robot Definition Language](robot-definition-language.md) for v2 configuration format.
 
-Gorai uses **systemd service units** with `podman run` for container orchestration. This approach provides production-grade container management using native systemd capabilities, without requiring the Quadlet generator.
+## Overview (Legacy v1)
+
+Gorai v1 used **systemd service units** with `podman run` for container orchestration. This approach provided production-grade container management using native systemd capabilities, without requiring the Quadlet generator.
 
 ### Why Traditional systemd Units
 
