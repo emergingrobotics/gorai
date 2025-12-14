@@ -1,22 +1,18 @@
-# Containerfile for gorai
+# Containerfile for gorai CLI
 #
-# Contains all Gorai Go binaries plus container tooling.
-# This is the primary deployment container for Gorai.
+# The gorai CLI is used for:
+#   - Building robot container images (podman build)
+#   - Generating Quadlet systemd unit files
+#   - Managing robots via systemctl
 #
-# Binaries included:
-#   - gorai        CLI for robot management (start, stop, status, logs, build)
-#   - gorai-robot  Standalone robot runtime for containerized deployment
-#
-# Container orchestration:
-#   Gorai uses Quadlet (systemd-native container management) instead of
-#   podman-compose. The gorai CLI generates .container/.network/.volume
-#   files that systemd manages directly.
+# This container is for building images, not running robots.
+# Robots are deployed as Quadlet-managed container services.
 #
 # Build:
 #   podman build -t ghcr.io/gorai/gorai:latest -f Containerfile.gorai .
 #   make container
 #
-# Usage (build mode - for building container images):
+# Usage (build container images):
 #   podman run --rm -it \
 #     --security-opt label=disable \
 #     -v /run/podman/podman.sock:/run/podman/podman.sock:rw \
@@ -25,14 +21,13 @@
 #     ghcr.io/gorai/gorai:latest \
 #     build --config robot.json
 #
-# Note: For running containers, use Quadlet directly on the host:
+# For deployment, use gorai CLI directly on the host:
 #   gorai start --config robot.json
-#   # This generates Quadlet files and uses systemctl to manage services
 #
-# See: /gorai/specs/gorai-container.md for full specification
+# See: specs/quadlet-functionality.md for deployment details
 
 # =============================================================================
-# Stage 1: Build all Go binaries
+# Stage 1: Build gorai CLI
 # =============================================================================
 FROM docker.io/golang:1.22-alpine AS builder
 
@@ -63,13 +58,6 @@ RUN echo "Building gorai CLI: version=${VERSION} commit=${COMMIT} date=${DATE}" 
         -o gorai \
         ./cmd/gorai
 
-# Build gorai-robot runtime
-RUN echo "Building gorai-robot runtime" && \
-    CGO_ENABLED=0 GOOS=linux go build \
-        -ldflags="-s -w" \
-        -o gorai-robot \
-        ./cmd/gorai-robot
-
 # =============================================================================
 # Stage 2: Minimal runtime image
 # =============================================================================
@@ -78,12 +66,11 @@ FROM docker.io/alpine:3.19
 # Install podman client for building images (talks to host podman via socket)
 RUN apk add --no-cache podman
 
-# Copy Go binaries from builder
+# Copy gorai CLI from builder
 COPY --from=builder /build/gorai /usr/local/bin/gorai
-COPY --from=builder /build/gorai-robot /usr/local/bin/gorai-robot
 
-# Ensure binaries are executable
-RUN chmod +x /usr/local/bin/gorai /usr/local/bin/gorai-robot
+# Ensure binary is executable
+RUN chmod +x /usr/local/bin/gorai
 
 # Set working directory for mounted workspaces
 WORKDIR /workspace
@@ -94,8 +81,8 @@ ENV LOG_LEVEL=info
 ENV CONTAINER_HOST=unix:///run/podman/podman.sock
 
 # Labels
-LABEL org.opencontainers.image.title="Gorai"
-LABEL org.opencontainers.image.description="Gorai robotics framework - CLI and runtime binaries"
+LABEL org.opencontainers.image.title="Gorai CLI"
+LABEL org.opencontainers.image.description="Gorai robotics framework CLI for building and managing robots"
 LABEL org.opencontainers.image.source="https://github.com/gorai/gorai"
 LABEL org.opencontainers.image.vendor="Gorai Project"
 
