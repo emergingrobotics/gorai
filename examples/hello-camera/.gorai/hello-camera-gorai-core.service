@@ -25,6 +25,8 @@ ExecStart=/usr/bin/podman run --rm \
     -e LOG_LEVEL=info \
     -v /home/gherlein/src/er/gorai/examples/hello-camera/hello-camera.json:/etc/gorai/robot.json:ro \
     --device /dev/video0 \
+    --group-add video \
+    --group-add plugdev \
     localhost/hello-camera-core:latest
 
 ExecStop=/usr/bin/podman stop -t 10 hello-camera-gorai-core
