@@ -1,10 +1,33 @@
-# Containerfile for gorai CLI
-# Includes Go binary + podman-compose for container orchestration
+# Containerfile for gorai
 #
-# Build: podman build -t ghcr.io/gorai/gorai:latest -f Containerfile.gorai .
-# Run:   podman run --rm -v /run/podman/podman.sock:/run/podman/podman.sock -v $(pwd):/workspace ghcr.io/gorai/gorai start --config robot.json
+# Contains all Gorai Go binaries plus orchestration tooling.
+# This is the primary deployment container for Gorai.
+#
+# Binaries included:
+#   - gorai        CLI for robot management (start, stop, status, logs, build)
+#   - gorai-robot  Standalone robot runtime for containerized deployment
+#
+# Tooling included:
+#   - podman-compose  Container orchestration from RDL
+#
+# Build:
+#   podman build -t ghcr.io/gorai/gorai:latest -f Containerfile.gorai .
+#   make container
+#
+# Usage (orchestrator mode):
+#   podman run --rm -it \
+#     --security-opt label=disable \
+#     -v /run/podman/podman.sock:/run/podman/podman.sock:rw \
+#     -v $(pwd):/workspace:rw \
+#     -w /workspace \
+#     ghcr.io/gorai/gorai:latest \
+#     start --config robot.json --build --detach
+#
+# See: /gorai/specs/gorai-container.md for full specification
 
-# Build stage - compile Go binary
+# =============================================================================
+# Stage 1: Build all Go binaries
+# =============================================================================
 FROM docker.io/golang:1.22-alpine AS builder
 
 WORKDIR /build
@@ -16,31 +39,60 @@ RUN apk add --no-cache git
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source and build
+# Copy source code
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o gorai ./cmd/gorai
 
-# Runtime stage
+# Version info (passed from Makefile or defaults)
+ARG VERSION=0.1.0
+ARG COMMIT=unknown
+ARG DATE=unknown
+
+# Build gorai CLI with version info
+RUN echo "Building gorai CLI: version=${VERSION} commit=${COMMIT} date=${DATE}" && \
+    CGO_ENABLED=0 GOOS=linux go build \
+        -ldflags="-s -w \
+            -X github.com/gorai/gorai/cmd/gorai/commands.Version=${VERSION} \
+            -X github.com/gorai/gorai/cmd/gorai/commands.Commit=${COMMIT} \
+            -X github.com/gorai/gorai/cmd/gorai/commands.Date=${DATE}" \
+        -o gorai \
+        ./cmd/gorai
+
+# Build gorai-robot runtime
+RUN echo "Building gorai-robot runtime" && \
+    CGO_ENABLED=0 GOOS=linux go build \
+        -ldflags="-s -w" \
+        -o gorai-robot \
+        ./cmd/gorai-robot
+
+# =============================================================================
+# Stage 2: Runtime with podman-compose
+# =============================================================================
 FROM docker.io/python:3.11-slim-bookworm
 
-# Install podman-compose and cleanup
+# Install podman-compose for container orchestration
 RUN pip install --no-cache-dir podman-compose && \
     rm -rf /root/.cache/pip
 
-# Copy Go binary from builder
+# Copy Go binaries from builder
 COPY --from=builder /build/gorai /usr/local/bin/gorai
+COPY --from=builder /build/gorai-robot /usr/local/bin/gorai-robot
 
-# Create non-root user (optional, for security)
-# RUN useradd -m -u 1000 gorai
-# USER gorai
+# Ensure binaries are executable
+RUN chmod +x /usr/local/bin/gorai /usr/local/bin/gorai-robot
 
-# Set working directory
+# Set working directory for mounted workspaces
 WORKDIR /workspace
 
-# Labels
-LABEL org.opencontainers.image.title="Gorai CLI"
-LABEL org.opencontainers.image.description="Gorai robotics framework CLI with podman-compose"
-LABEL org.opencontainers.image.source="https://github.com/gorai/gorai"
+# Environment defaults
+ENV PYTHONUNBUFFERED=1
+ENV LOG_LEVEL=info
 
+# Labels
+LABEL org.opencontainers.image.title="Gorai"
+LABEL org.opencontainers.image.description="Gorai robotics framework - CLI and runtime binaries"
+LABEL org.opencontainers.image.source="https://github.com/gorai/gorai"
+LABEL org.opencontainers.image.vendor="Gorai Project"
+
+# Default entrypoint is the CLI
 ENTRYPOINT ["/usr/local/bin/gorai"]
 CMD ["help"]
