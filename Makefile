@@ -297,16 +297,16 @@ container-test: container
 	@echo "==> Testing gorai container..."
 	@echo ""
 	@echo "--- gorai version ---"
-	podman run --rm $(CONTAINER_LOCAL) version || podman run --rm $(CONTAINER_LOCAL) --version || echo "(version command not implemented)"
+	podman run --rm $(CONTAINER_LOCAL) version
 	@echo ""
 	@echo "--- gorai help ---"
 	podman run --rm $(CONTAINER_LOCAL) help
 	@echo ""
 	@echo "--- gorai-robot available ---"
-	podman run --rm --entrypoint /usr/local/bin/gorai-robot $(CONTAINER_LOCAL) --help || echo "(gorai-robot help)"
+	podman run --rm --entrypoint /usr/local/bin/gorai-robot $(CONTAINER_LOCAL) --help 2>&1 | head -5 || true
 	@echo ""
-	@echo "--- podman-compose available ---"
-	podman run --rm --entrypoint podman-compose $(CONTAINER_LOCAL) --version
+	@echo "--- podman-compose installed ---"
+	podman run --rm --entrypoint which $(CONTAINER_LOCAL) podman-compose
 	@echo ""
 	@echo "==> Container test complete"
 
