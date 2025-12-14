@@ -1,27 +1,33 @@
 # Containerfile for gorai
 #
-# Contains all Gorai Go binaries plus orchestration tooling.
+# Contains all Gorai Go binaries plus container tooling.
 # This is the primary deployment container for Gorai.
 #
 # Binaries included:
 #   - gorai        CLI for robot management (start, stop, status, logs, build)
 #   - gorai-robot  Standalone robot runtime for containerized deployment
 #
-# Tooling included:
-#   - podman-compose  Container orchestration from RDL
+# Container orchestration:
+#   Gorai uses Quadlet (systemd-native container management) instead of
+#   podman-compose. The gorai CLI generates .container/.network/.volume
+#   files that systemd manages directly.
 #
 # Build:
 #   podman build -t ghcr.io/gorai/gorai:latest -f Containerfile.gorai .
 #   make container
 #
-# Usage (orchestrator mode):
+# Usage (build mode - for building container images):
 #   podman run --rm -it \
 #     --security-opt label=disable \
 #     -v /run/podman/podman.sock:/run/podman/podman.sock:rw \
 #     -v $(pwd):/workspace:rw \
 #     -w /workspace \
 #     ghcr.io/gorai/gorai:latest \
-#     start --config robot.json --build --detach
+#     build --config robot.json
+#
+# Note: For running containers, use Quadlet directly on the host:
+#   gorai start --config robot.json
+#   # This generates Quadlet files and uses systemctl to manage services
 #
 # See: /gorai/specs/gorai-container.md for full specification
 
@@ -65,16 +71,12 @@ RUN echo "Building gorai-robot runtime" && \
         ./cmd/gorai-robot
 
 # =============================================================================
-# Stage 2: Runtime with podman-compose
+# Stage 2: Minimal runtime image
 # =============================================================================
-FROM docker.io/python:3.11-slim-bookworm
+FROM docker.io/alpine:3.19
 
-# Install podman client (talks to host podman via socket) and podman-compose
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends podman && \
-    rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir podman-compose && \
-    rm -rf /root/.cache/pip
+# Install podman client for building images (talks to host podman via socket)
+RUN apk add --no-cache podman
 
 # Copy Go binaries from builder
 COPY --from=builder /build/gorai /usr/local/bin/gorai
@@ -87,7 +89,6 @@ RUN chmod +x /usr/local/bin/gorai /usr/local/bin/gorai-robot
 WORKDIR /workspace
 
 # Environment defaults
-ENV PYTHONUNBUFFERED=1
 ENV LOG_LEVEL=info
 # Tell podman client to use the mounted socket
 ENV CONTAINER_HOST=unix:///run/podman/podman.sock

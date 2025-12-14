@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 
-	"github.com/gorai/gorai/pkg/compose"
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/quadlet"
 )
 
 func cmdBuild() error {
@@ -14,6 +16,7 @@ func cmdBuild() error {
 	var configPath string
 	var noCache bool
 	var pull bool
+	var install bool
 	var containers []string
 
 	args := os.Args[2:]
@@ -29,6 +32,8 @@ func cmdBuild() error {
 			noCache = true
 		case "--pull":
 			pull = true
+		case "--install":
+			install = true
 		case "--container":
 			if i+1 >= len(args) {
 				return fmt.Errorf("--container requires a value")
@@ -82,51 +87,126 @@ func cmdBuild() error {
 		}
 	}
 
-	if len(buildableContainers) == 0 {
-		fmt.Println("No containers with build configuration found.")
-		fmt.Println("Add a 'build' section to container definitions to enable building.")
-		return nil
+	// Generate Quadlet files
+	workspaceDir := filepath.Dir(configPath)
+	if !filepath.IsAbs(workspaceDir) {
+		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
 
-	// Generate compose file
-	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
-	gen := compose.NewGenerator(cfg)
-	// Set workspace directory for resolving relative paths in build contexts
-	workspaceDir := compose.GetProjectDir(configPath)
-	gen.SetWorkspaceDir(workspaceDir)
-	if err := gen.WriteJSON(composePath); err != nil {
-		return fmt.Errorf("failed to generate compose file: %w", err)
+	gen := quadlet.NewGenerator(cfg,
+		quadlet.WithWorkspaceDir(workspaceDir),
+		quadlet.WithUserMode(true),
+	)
+
+	quadletDir := gen.GetLocalDir()
+	fmt.Printf("Generating Quadlet files in: %s\n", quadletDir)
+
+	if err := gen.WriteFiles(); err != nil {
+		return fmt.Errorf("failed to generate Quadlet files: %w", err)
 	}
 
-	// Create runner
-	projectDir := compose.GetProjectDir(configPath)
-	runner := compose.NewRunner(composePath, cfg.Robot.Name, projectDir)
+	// Build container images if any have build configs
+	if len(buildableContainers) > 0 {
+		containersToBuild := containers
+		if len(containersToBuild) == 0 {
+			containersToBuild = buildableContainers
+		}
 
-	// Build containers
-	fmt.Printf("Building containers for robot %q...\n", cfg.Robot.Name)
-	if len(containers) > 0 {
-		fmt.Printf("Building: %v\n", containers)
+		fmt.Printf("Building containers for robot %q...\n", cfg.Robot.Name)
+		fmt.Printf("Building: %v\n", containersToBuild)
+
+		for _, containerName := range containersToBuild {
+			container, exists := cfg.Containers[containerName]
+			if !exists {
+				return fmt.Errorf("container %q not found in configuration", containerName)
+			}
+			if container.Build == nil {
+				fmt.Printf("Skipping %s (no build configuration)\n", containerName)
+				continue
+			}
+
+			fmt.Printf("Building %s...\n", containerName)
+
+			// Build using podman build
+			buildArgs := []string{"build"}
+
+			if noCache {
+				buildArgs = append(buildArgs, "--no-cache")
+			}
+			if pull {
+				buildArgs = append(buildArgs, "--pull=always")
+			}
+
+			// Tag
+			tag := container.Image
+			if tag == "" {
+				tag = fmt.Sprintf("%s-%s:latest", cfg.Robot.Name, containerName)
+			}
+			buildArgs = append(buildArgs, "-t", tag)
+
+			// Dockerfile
+			dockerfile := container.Build.Dockerfile
+			if dockerfile == "" {
+				dockerfile = "Containerfile"
+			}
+			buildArgs = append(buildArgs, "-f", dockerfile)
+
+			// Build args
+			for key, value := range container.Build.Args {
+				buildArgs = append(buildArgs, "--build-arg", fmt.Sprintf("%s=%s", key, value))
+			}
+
+			// Target
+			if container.Build.Target != "" {
+				buildArgs = append(buildArgs, "--target", container.Build.Target)
+			}
+
+			// Context
+			buildContext := container.Build.Context
+			if buildContext == "" {
+				buildContext = "."
+			}
+			if !filepath.IsAbs(buildContext) {
+				buildContext = filepath.Join(workspaceDir, buildContext)
+			}
+			buildArgs = append(buildArgs, buildContext)
+
+			cmd := exec.CommandContext(context.Background(), "podman", buildArgs...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("failed to build %s: %w", containerName, err)
+			}
+		}
+
+		fmt.Println("Build completed successfully.")
 	} else {
-		fmt.Printf("Building: %v\n", buildableContainers)
+		fmt.Println("No containers with build configuration found.")
 	}
 
-	ctx := context.Background()
-	opts := compose.BuildOptions{
-		NoCache:  noCache,
-		Pull:     pull,
-		Services: containers,
+	// Install Quadlet files to systemd if requested
+	if install {
+		fmt.Println("\nInstalling Quadlet files to systemd...")
+		if err := gen.InstallFiles(); err != nil {
+			return fmt.Errorf("failed to install Quadlet files: %w", err)
+		}
+
+		// Reload systemd
+		runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+		if err := runner.DaemonReload(context.Background()); err != nil {
+			return fmt.Errorf("failed to reload systemd: %w", err)
+		}
+
+		fmt.Println("Quadlet files installed. Services are now available.")
+		fmt.Printf("Use 'gorai start --config %s' to start the robot.\n", configPath)
 	}
 
-	if err := runner.Build(ctx, opts); err != nil {
-		return fmt.Errorf("build failed: %w", err)
-	}
-
-	fmt.Println("Build completed successfully.")
 	return nil
 }
 
 func printBuildUsage() error {
-	fmt.Println(`gorai build - Build container images
+	fmt.Println(`gorai build - Build container images and generate Quadlet files
 
 Usage:
   gorai build [--config robot.json] [flags] [container...]
@@ -135,12 +215,14 @@ Flags:
   -c, --config <file>     Path to robot configuration file
   --no-cache              Do not use cache when building
   --pull                  Always attempt to pull newer base images
+  --install               Install Quadlet files to systemd
   --container <name>      Build specific container
   -h, --help              Show this help message
 
 Examples:
   gorai build --config robot.json
   gorai build -c robot.json --no-cache
+  gorai build --config robot.json --install
   gorai build --config robot.json --container gorai-hailo`)
 	return nil
 }

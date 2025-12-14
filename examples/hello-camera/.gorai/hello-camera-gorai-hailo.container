@@ -1,0 +1,28 @@
+[Unit]
+Description=Gorai container hello-camera-gorai-hailo
+Requires=hello-camera-nats.service hello-camera-gorai-core.service
+After=hello-camera-nats.service hello-camera-gorai-core.service
+
+[Container]
+ContainerName=hello-camera-gorai-hailo
+Image=localhost/hello-camera-hailo:latest
+Network=hello-camera-network.network
+Volume=./models:/models:ro,Z
+Volume=./hello-camera.json:/etc/gorai/robot.json:ro,Z
+AddDevice=/dev/hailo0:/dev/hailo0
+SecurityLabelDisable=true
+Environment=GORAI_ROBOT_NAME=hello-camera
+Environment=NATS_URL=nats://nats:4222
+Environment=MODEL_PATH=/models/yolox_s_leaky.hef
+Environment=CONFIDENCE_THRESHOLD=0.5
+Environment=GORAI_SERVICES=person_detector
+PodmanArgs=--memory=1G
+AutoUpdate=registry
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

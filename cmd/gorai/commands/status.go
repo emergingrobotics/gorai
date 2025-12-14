@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
-	"github.com/gorai/gorai/pkg/compose"
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/quadlet"
 )
 
 func cmdStatus() error {
 	// Parse flags
 	var configPath string
-	var showAll bool
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -23,8 +23,6 @@ func cmdStatus() error {
 			}
 			i++
 			configPath = args[i]
-		case "-a", "--all":
-			showAll = true
 		case "-h", "--help":
 			return printStatusUsage()
 		default:
@@ -55,19 +53,6 @@ func cmdStatus() error {
 		return fmt.Errorf("no containers defined in %s", configPath)
 	}
 
-	// Get compose file path
-	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
-	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		fmt.Printf("Robot: %s\n", cfg.Robot.Name)
-		fmt.Println("Status: Not started (compose file not found)")
-		fmt.Println("\nRun 'gorai start' to start the robot.")
-		return nil
-	}
-
-	// Create runner
-	projectDir := compose.GetProjectDir(configPath)
-	runner := compose.NewRunner(composePath, cfg.Robot.Name, projectDir)
-
 	// Print robot info
 	fmt.Printf("Robot: %s\n", cfg.Robot.Name)
 	if cfg.Robot.Description != "" {
@@ -75,29 +60,46 @@ func cmdStatus() error {
 	}
 	fmt.Println()
 
+	// Get quadlet directory
+	workspaceDir := filepath.Dir(configPath)
+	if !filepath.IsAbs(workspaceDir) {
+		workspaceDir, _ = filepath.Abs(workspaceDir)
+	}
+	quadletDir := filepath.Join(workspaceDir, ".gorai")
+
+	// Create runner
+	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+
 	// Get container status
 	ctx := context.Background()
-	output, err := runner.Ps(ctx, showAll)
+	statuses, err := runner.GetStatus(ctx)
 	if err != nil {
 		fmt.Println("Container status: Unable to retrieve")
 		fmt.Printf("Error: %v\n", err)
-	} else if output != "" {
+	} else if len(statuses) > 0 {
 		fmt.Println("CONTAINERS")
-		fmt.Println(output)
+		fmt.Printf("%-30s %-12s %-15s\n", "SERVICE", "ACTIVE", "STATUS")
+		fmt.Println("─────────────────────────────────────────────────────────")
+		for _, s := range statuses {
+			fmt.Printf("%-30s %-12s %-15s\n", s.Service, s.Active, s.Status)
+		}
 	} else {
-		fmt.Println("No containers running.")
+		fmt.Println("No container services found.")
+		fmt.Println("Run 'gorai start' to start the robot.")
 	}
 
 	// Show component mapping
-	fmt.Println("\nCOMPONENT → CONTAINER MAPPING")
-	fmt.Printf("%-20s %-20s %-10s\n", "COMPONENT", "CONTAINER", "TYPE")
-	fmt.Println("─────────────────────────────────────────────────────")
-	for _, comp := range cfg.Components {
-		container := comp.Container
-		if container == "" {
-			container = "(default)"
+	if len(cfg.Components) > 0 {
+		fmt.Println("\nCOMPONENT → CONTAINER MAPPING")
+		fmt.Printf("%-20s %-20s %-10s\n", "COMPONENT", "CONTAINER", "TYPE")
+		fmt.Println("─────────────────────────────────────────────────────")
+		for _, comp := range cfg.Components {
+			container := comp.Container
+			if container == "" {
+				container = "(default)"
+			}
+			fmt.Printf("%-20s %-20s %-10s\n", comp.Name, container, comp.Type)
 		}
-		fmt.Printf("%-20s %-20s %-10s\n", comp.Name, container, comp.Type)
 	}
 
 	// Show service mapping
@@ -125,11 +127,10 @@ Usage:
 
 Flags:
   -c, --config <file>     Path to robot configuration file
-  -a, --all               Show all containers (including stopped)
   -h, --help              Show this help message
 
 Examples:
   gorai status --config robot.json
-  gorai status -c robot.json --all`)
+  gorai status -c robot.json`)
 	return nil
 }

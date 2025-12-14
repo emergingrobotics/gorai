@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
 	"syscall"
 
-	"github.com/gorai/gorai/pkg/compose"
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/quadlet"
 )
 
 func cmdLogs() error {
 	// Parse flags
 	var configPath string
 	var follow bool
-	var tail string
+	var tail int
 	var timestamps bool
 	var containers []string
 
@@ -35,7 +37,11 @@ func cmdLogs() error {
 				return fmt.Errorf("--tail requires a value")
 			}
 			i++
-			tail = args[i]
+			n, err := strconv.Atoi(args[i])
+			if err != nil {
+				return fmt.Errorf("invalid tail value: %s", args[i])
+			}
+			tail = n
 		case "-t", "--timestamps":
 			timestamps = true
 		case "--container":
@@ -79,15 +85,15 @@ func cmdLogs() error {
 		return fmt.Errorf("no containers defined in %s", configPath)
 	}
 
-	// Get compose file path
-	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
-	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		return fmt.Errorf("compose file not found: %s\nRun 'gorai start' first", composePath)
+	// Get quadlet directory
+	workspaceDir := filepath.Dir(configPath)
+	if !filepath.IsAbs(workspaceDir) {
+		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
+	quadletDir := filepath.Join(workspaceDir, ".gorai")
 
 	// Create runner
-	projectDir := compose.GetProjectDir(configPath)
-	runner := compose.NewRunner(composePath, cfg.Robot.Name, projectDir)
+	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
 
 	// Setup context with signal handling
 	ctx, cancel := context.WithCancel(context.Background())
@@ -100,12 +106,12 @@ func cmdLogs() error {
 		cancel()
 	}()
 
-	// Run podman-compose logs
-	opts := compose.LogsOptions{
+	// Get logs using journalctl
+	opts := quadlet.LogsOptions{
+		Containers: containers,
 		Follow:     follow,
 		Tail:       tail,
 		Timestamps: timestamps,
-		Services:   containers,
 	}
 
 	if err := runner.Logs(ctx, opts); err != nil {
@@ -120,7 +126,7 @@ func cmdLogs() error {
 }
 
 func printLogsUsage() error {
-	fmt.Println(`gorai logs - View container logs
+	fmt.Println(`gorai logs - View container logs (via journalctl)
 
 Usage:
   gorai logs [--config robot.json] [flags] [container...]
@@ -129,7 +135,7 @@ Flags:
   -c, --config <file>     Path to robot configuration file
   -f, --follow            Follow log output
   -n, --tail <lines>      Number of lines to show from end of logs
-  -t, --timestamps        Show timestamps
+  -t, --timestamps        Show timestamps in ISO format
   --container <name>      Show logs for specific container
   -h, --help              Show this help message
 

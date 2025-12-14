@@ -117,11 +117,11 @@ type VideoConfig struct {
 	Quality int    `json:"quality,omitempty"`
 }
 
-// ContainerConfig defines a container for Podman orchestration.
+// ContainerConfig defines a container for Quadlet/systemd orchestration.
 type ContainerConfig struct {
 	// Image specification (one of: Image, Build)
-	Image string        `json:"image,omitempty"`
-	Build *BuildConfig  `json:"build,omitempty"`
+	Image string       `json:"image,omitempty"`
+	Build *BuildConfig `json:"build,omitempty"`
 
 	// Dependencies
 	DependsOn map[string]*DependsOnCondition `json:"depends_on,omitempty"`
@@ -163,6 +163,11 @@ type ContainerConfig struct {
 	// Gorai-specific: which components/services run here
 	ComponentNames []string `json:"components,omitempty"`
 	ServiceNames   []string `json:"services,omitempty"`
+
+	// Quadlet-specific options (optional)
+	AutoUpdate   string `json:"auto_update,omitempty"`   // "registry" | "local" | "" (default: registry)
+	Notify       string `json:"notify,omitempty"`        // "true" | "healthy" | "" (wait for health check)
+	TimeoutStart string `json:"timeout_start,omitempty"` // Startup timeout (e.g., "300" for 5 min)
 }
 
 // BuildConfig defines container build settings.

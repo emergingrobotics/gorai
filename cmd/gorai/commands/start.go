@@ -4,18 +4,20 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 
-	"github.com/gorai/gorai/pkg/compose"
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/quadlet"
 )
 
 func cmdStart() error {
 	// Parse flags
 	var configPath string
-	var detach, build, forceRecreate bool
+	var build bool
+	var enable bool
 	var containers []string
 
 	// Simple flag parsing
@@ -28,12 +30,10 @@ func cmdStart() error {
 			}
 			i++
 			configPath = args[i]
-		case "-d", "--detach":
-			detach = true
 		case "--build":
 			build = true
-		case "--force-recreate":
-			forceRecreate = true
+		case "--enable":
+			enable = true
 		case "--containers":
 			if i+1 >= len(args) {
 				return fmt.Errorf("--containers requires a value")
@@ -76,25 +76,81 @@ func cmdStart() error {
 		return fmt.Errorf("no containers defined in %s. Add a 'containers' section to use gorai start", configPath)
 	}
 
-	// Generate compose file
-	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
-	composeDir := filepath.Dir(composePath)
-	if err := os.MkdirAll(composeDir, 0755); err != nil {
-		return fmt.Errorf("failed to create compose directory: %w", err)
+	// Generate Quadlet files
+	workspaceDir := filepath.Dir(configPath)
+	if !filepath.IsAbs(workspaceDir) {
+		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
 
-	fmt.Printf("Generating compose file: %s\n", composePath)
-	gen := compose.NewGenerator(cfg)
-	// Set workspace directory for resolving relative paths in build contexts
-	workspaceDir := compose.GetProjectDir(configPath)
-	gen.SetWorkspaceDir(workspaceDir)
-	if err := gen.WriteJSON(composePath); err != nil {
-		return fmt.Errorf("failed to generate compose file: %w", err)
+	gen := quadlet.NewGenerator(cfg,
+		quadlet.WithWorkspaceDir(workspaceDir),
+		quadlet.WithUserMode(true),
+	)
+
+	quadletDir := gen.GetLocalDir()
+	fmt.Printf("Generating Quadlet files in: %s\n", quadletDir)
+
+	if err := gen.WriteFiles(); err != nil {
+		return fmt.Errorf("failed to generate Quadlet files: %w", err)
+	}
+
+	// Build containers if requested
+	if build {
+		fmt.Println("Building container images...")
+		for name, container := range cfg.Containers {
+			if container.Build == nil {
+				continue
+			}
+
+			fmt.Printf("Building %s...\n", name)
+
+			buildArgs := []string{"build"}
+
+			tag := container.Image
+			if tag == "" {
+				tag = fmt.Sprintf("%s-%s:latest", cfg.Robot.Name, name)
+			}
+			buildArgs = append(buildArgs, "-t", tag)
+
+			dockerfile := container.Build.Dockerfile
+			if dockerfile == "" {
+				dockerfile = "Containerfile"
+			}
+			buildArgs = append(buildArgs, "-f", dockerfile)
+
+			buildContext := container.Build.Context
+			if buildContext == "" {
+				buildContext = "."
+			}
+			if !filepath.IsAbs(buildContext) {
+				buildContext = filepath.Join(workspaceDir, buildContext)
+			}
+			buildArgs = append(buildArgs, buildContext)
+
+			cmd := exec.CommandContext(context.Background(), "podman", buildArgs...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("failed to build %s: %w", name, err)
+			}
+		}
+	}
+
+	// Install Quadlet files to systemd
+	fmt.Println("Installing Quadlet files to systemd...")
+	if err := gen.InstallFiles(); err != nil {
+		return fmt.Errorf("failed to install Quadlet files: %w", err)
 	}
 
 	// Create runner
-	projectDir := compose.GetProjectDir(configPath)
-	runner := compose.NewRunner(composePath, cfg.Robot.Name, projectDir)
+	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
+
+	// Reload systemd
+	fmt.Println("Reloading systemd daemon...")
+	if err := runner.DaemonReload(context.Background()); err != nil {
+		return fmt.Errorf("failed to reload systemd: %w", err)
+	}
 
 	// Setup context with signal handling
 	ctx, cancel := context.WithCancel(context.Background())
@@ -105,50 +161,51 @@ func cmdStart() error {
 	go func() {
 		<-sigCh
 		fmt.Println("\nReceived interrupt, stopping containers...")
+		stopCtx := context.Background()
+		_ = runner.Stop(stopCtx, containers...)
 		cancel()
 	}()
 
-	// Run podman-compose up
-	fmt.Printf("Starting containers for robot %q...\n", cfg.Robot.Name)
-
-	opts := compose.UpOptions{
-		Detach:        detach,
-		Build:         build,
-		ForceRecreate: forceRecreate,
-		Services:      containers,
+	// Enable services for auto-start at boot if requested
+	if enable {
+		fmt.Println("Enabling services for auto-start at boot...")
+		if err := runner.Enable(ctx, containers...); err != nil {
+			fmt.Printf("Warning: failed to enable services: %v\n", err)
+		}
 	}
 
-	if err := runner.Up(ctx, opts); err != nil {
+	// Start containers
+	fmt.Printf("Starting containers for robot %q...\n", cfg.Robot.Name)
+
+	if err := runner.Start(ctx, containers...); err != nil {
 		return fmt.Errorf("failed to start containers: %w", err)
 	}
 
-	if detach {
-		fmt.Printf("\nContainers started in background.\n")
-		fmt.Printf("Use 'gorai status --config %s' to check status.\n", configPath)
-		fmt.Printf("Use 'gorai logs --config %s' to view logs.\n", configPath)
-		fmt.Printf("Use 'gorai stop --config %s' to stop.\n", configPath)
-	}
+	fmt.Printf("\nContainers started successfully.\n")
+	fmt.Printf("Use 'gorai status --config %s' to check status.\n", configPath)
+	fmt.Printf("Use 'gorai logs --config %s -f' to view logs.\n", configPath)
+	fmt.Printf("Use 'gorai stop --config %s' to stop.\n", configPath)
 
 	return nil
 }
 
 func printStartUsage() error {
-	fmt.Println(`gorai start - Start robot containers
+	fmt.Println(`gorai start - Start robot containers using systemd/Quadlet
 
 Usage:
   gorai start [--config robot.json] [flags]
 
 Flags:
   -c, --config <file>     Path to robot configuration file
-  -d, --detach            Run containers in background
   --build                 Build images before starting
-  --force-recreate        Force recreate containers
+  --enable                Enable services for auto-start at boot
   --containers <list>     Start only specific containers (comma-separated)
   -h, --help              Show this help message
 
 Examples:
-  gorai start --config robot.json --detach
-  gorai start -c robot.json --build -d
+  gorai start --config robot.json
+  gorai start -c robot.json --build
+  gorai start --config robot.json --enable
   gorai start --config robot.json --containers nats,gorai-core`)
 	return nil
 }

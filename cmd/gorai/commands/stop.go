@@ -4,17 +4,18 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
+	"path/filepath"
 
-	"github.com/gorai/gorai/pkg/compose"
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/quadlet"
 )
 
 func cmdStop() error {
 	// Parse flags
 	var configPath string
-	var removeVolumes bool
-	var timeout int
+	var uninstall bool
+	var disable bool
+	var containers []string
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -25,18 +26,16 @@ func cmdStop() error {
 			}
 			i++
 			configPath = args[i]
-		case "-v", "--volumes":
-			removeVolumes = true
-		case "-t", "--timeout":
+		case "--uninstall":
+			uninstall = true
+		case "--disable":
+			disable = true
+		case "--containers":
 			if i+1 >= len(args) {
-				return fmt.Errorf("--timeout requires a value")
+				return fmt.Errorf("--containers requires a value")
 			}
 			i++
-			t, err := strconv.Atoi(args[i])
-			if err != nil {
-				return fmt.Errorf("invalid timeout value: %s", args[i])
-			}
-			timeout = t
+			containers = splitComma(args[i])
 		case "-h", "--help":
 			return printStopUsage()
 		default:
@@ -67,30 +66,44 @@ func cmdStop() error {
 		return fmt.Errorf("no containers defined in %s", configPath)
 	}
 
-	// Get compose file path
-	composePath := compose.GetComposePath(configPath, cfg.Robot.Name)
-	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		return fmt.Errorf("compose file not found: %s\nRun 'gorai start' first to generate it", composePath)
+	// Get quadlet directory
+	workspaceDir := filepath.Dir(configPath)
+	if !filepath.IsAbs(workspaceDir) {
+		workspaceDir, _ = filepath.Abs(workspaceDir)
 	}
+	quadletDir := filepath.Join(workspaceDir, ".gorai")
 
 	// Create runner
-	projectDir := compose.GetProjectDir(configPath)
-	runner := compose.NewRunner(composePath, cfg.Robot.Name, projectDir)
+	runner := quadlet.NewRunner(cfg.Robot.Name, quadletDir, true)
 
-	// Run podman-compose down
+	// Disable services if requested
+	if disable {
+		fmt.Println("Disabling services from auto-start...")
+		if err := runner.Disable(context.Background(), containers...); err != nil {
+			fmt.Printf("Warning: failed to disable services: %v\n", err)
+		}
+	}
+
+	// Stop containers
 	fmt.Printf("Stopping containers for robot %q...\n", cfg.Robot.Name)
 
 	ctx := context.Background()
-	opts := compose.DownOptions{
-		Volumes: removeVolumes,
-		Timeout: timeout,
-	}
-
-	if err := runner.Down(ctx, opts); err != nil {
-		return fmt.Errorf("failed to stop containers: %w", err)
+	if err := runner.Stop(ctx, containers...); err != nil {
+		// Don't fail if services aren't running
+		fmt.Printf("Note: %v\n", err)
 	}
 
 	fmt.Println("Containers stopped.")
+
+	// Uninstall Quadlet files if requested
+	if uninstall {
+		fmt.Println("Uninstalling Quadlet files from systemd...")
+		if err := runner.Uninstall(ctx); err != nil {
+			return fmt.Errorf("failed to uninstall Quadlet files: %w", err)
+		}
+		fmt.Println("Quadlet files removed.")
+	}
+
 	return nil
 }
 
@@ -102,13 +115,15 @@ Usage:
 
 Flags:
   -c, --config <file>     Path to robot configuration file
-  -v, --volumes           Remove named volumes
-  -t, --timeout <secs>    Timeout in seconds for container shutdown
+  --disable               Disable services from auto-start at boot
+  --uninstall             Remove Quadlet files from systemd
+  --containers <list>     Stop only specific containers (comma-separated)
   -h, --help              Show this help message
 
 Examples:
   gorai stop --config robot.json
-  gorai stop -c robot.json --volumes
-  gorai stop --config robot.json --timeout 30`)
+  gorai stop -c robot.json --uninstall
+  gorai stop --config robot.json --disable
+  gorai stop --config robot.json --containers nats,gorai-core`)
 	return nil
 }
