@@ -60,6 +60,15 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 
 // writeCamerasHTML writes the cameras page HTML.
 func (h *Handler) writeCamerasHTML(w http.ResponseWriter, cameras []CameraInfo) {
+	// Check if there are any external services (AI/ML models)
+	hasModels := false
+	for _, svc := range h.robotCfg.Services {
+		if svc.IsExternal() && !svc.Disabled {
+			hasModels = true
+			break
+		}
+	}
+
 	w.Write([]byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,8 +82,12 @@ func (h *Handler) writeCamerasHTML(w http.ResponseWriter, cameras []CameraInfo) 
         <div class="nav-brand">Gorai</div>
         <ul class="nav-tabs">
             <li><a href="/">Status</a></li>
-            <li><a href="/cameras" class="active">Cameras</a></li>
-            <li><a href="/models">AI / Models</a></li>
+            <li><a href="/cameras" class="active">Cameras</a></li>`))
+	if hasModels {
+		w.Write([]byte(`
+            <li><a href="/models">AI / Models</a></li>`))
+	}
+	w.Write([]byte(`
         </ul>
     </nav>
     <main>

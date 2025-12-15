@@ -10,6 +10,15 @@ import (
 func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 	cameras := d.cameraMonitor.GetCameras()
 
+	// Check if there are any external services (AI/ML models)
+	hasModels := false
+	for _, svc := range d.robotCfg.Services {
+		if svc.IsExternal() && !svc.Disabled {
+			hasModels = true
+			break
+		}
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!DOCTYPE html>
 <html lang="en">
@@ -24,8 +33,12 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
         <div class="nav-brand">Gorai</div>
         <ul class="nav-tabs">
             <li><a href="/" class="active">Status</a></li>
-            <li><a href="/cameras">Cameras</a></li>
-            <li><a href="/models">AI / Models</a></li>
+            <li><a href="/cameras">Cameras</a></li>`))
+	if hasModels {
+		w.Write([]byte(`
+            <li><a href="/models">AI / Models</a></li>`))
+	}
+	w.Write([]byte(`
         </ul>
     </nav>
     <main>
