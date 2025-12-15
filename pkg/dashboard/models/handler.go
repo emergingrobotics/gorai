@@ -83,19 +83,13 @@ func (h *Handler) writeModelsHTML(w http.ResponseWriter, models []ModelStatus) {
         </div>
 `))
 	} else {
-		w.Write([]byte(`        <div class="models-grid">
+		// Show annotated video feeds for each model
+		w.Write([]byte(`        <div class="camera-grid grid-2x2">
 `))
 		for _, model := range models {
-			h.writeModelCard(w, model)
+			h.writeModelFeedCard(w, model)
 		}
 		w.Write([]byte(`        </div>
-
-        <div style="margin-top: 2rem;">
-            <h3>Recent Detections</h3>
-            <div id="detections-container" class="detections-container">
-                <p class="loading">Loading detections...</p>
-            </div>
-        </div>
 `))
 	}
 
@@ -159,6 +153,61 @@ func (h *Handler) writeModelCard(w http.ResponseWriter, model ModelStatus) {
                     Uptime: `))
 	w.Write([]byte(formatUptime(model.UptimeSeconds)))
 	w.Write([]byte(`
+                </div>
+            </div>
+`))
+}
+
+// writeModelFeedCard writes a card with the annotated video feed.
+func (h *Handler) writeModelFeedCard(w http.ResponseWriter, model ModelStatus) {
+	statusClass := "offline"
+	statusText := "offline"
+	if model.Status == "running" {
+		statusClass = "online"
+		statusText = fmt.Sprintf("%.1f fps", model.FPS)
+	}
+
+	w.Write([]byte(`            <div class="camera-card" data-model="`))
+	w.Write([]byte(model.Name))
+	w.Write([]byte(`">
+                <div class="camera-header">
+                    <span class="camera-name">`))
+	w.Write([]byte(model.Name))
+	w.Write([]byte(`</span>
+                    <span class="camera-status `))
+	w.Write([]byte(statusClass))
+	w.Write([]byte(`">`))
+	w.Write([]byte(statusText))
+	w.Write([]byte(`</span>
+                </div>
+`))
+
+	if model.Status == "running" {
+		w.Write([]byte(`                <img src="/models/`))
+		w.Write([]byte(model.Name))
+		w.Write([]byte(`/stream" alt="`))
+		w.Write([]byte(model.Name))
+		w.Write([]byte(`" class="camera-feed" loading="lazy">
+`))
+	} else {
+		w.Write([]byte(`                <div class="camera-offline">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M8 21h8"/>
+                        <path d="M12 17v4"/>
+                        <line x1="2" y1="2" x2="22" y2="22"/>
+                    </svg>
+                    <p>Model Offline</p>
+                </div>
+`))
+	}
+
+	w.Write([]byte(`                <div class="camera-controls">
+                    <a class="btn" href="/models/`))
+	w.Write([]byte(model.Name))
+	w.Write([]byte(`/snapshot" download="`))
+	w.Write([]byte(model.Name))
+	w.Write([]byte(`-annotated.jpg">Snapshot</a>
                 </div>
             </div>
 `))

@@ -96,6 +96,7 @@ run-background:
 .PHONY: stop
 stop:
 	@echo "==> Stopping $(ROBOT_NAME)..."
+	-podman stop person_detector 2>/dev/null || true
 	gorai stop --config $(RDL_FILE)
 
 .PHONY: status
@@ -118,8 +119,6 @@ validate:
 .PHONY: clean
 clean:
 	@echo "==> Cleaning up..."
-	-gorai stop --config $(RDL_FILE) 2>/dev/null || true
-	-podman stop person_detector 2>/dev/null || true
 	-podman rm person_detector 2>/dev/null || true
 	rm -rf .gorai/
 	@echo "==> Done"
