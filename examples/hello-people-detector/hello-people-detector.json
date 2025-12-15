@@ -67,7 +67,7 @@
   ],
 
   "log": {
-    "level": "info",
+    "level": "debug",
     "format": "json",
     "output": "stdout"
   },
