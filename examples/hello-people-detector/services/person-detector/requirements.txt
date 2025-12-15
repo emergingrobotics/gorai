@@ -1,0 +1,17 @@
+# Gorai Person Detector Service Dependencies
+
+# NATS client for pub/sub messaging
+nats-py>=2.6.0
+
+# Image processing
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# ONNX Runtime (fallback when Hailo not available)
+onnxruntime>=1.16.0
+
+# Note: HailoRT Python bindings must be installed separately based on your
+# Hailo SDK version and target platform. See Hailo documentation.
+# The hailo_platform package is typically installed via:
+#   pip install /path/to/hailort-X.Y.Z-py3-none-linux_aarch64.whl

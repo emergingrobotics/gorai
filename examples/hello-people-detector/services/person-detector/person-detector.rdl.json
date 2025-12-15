@@ -1,0 +1,97 @@
+{
+  "$schema": "https://gorai.dev/schemas/service-rdl-v1.json",
+  "version": "1",
+  "kind": "service",
+
+  "service": {
+    "type": "object_detection",
+    "model": "yolox",
+    "description": "YOLOX-based person detection with bounding box annotation. Subscribes to camera frames, runs inference, draws bounding boxes, and publishes annotated images plus detection results."
+  },
+
+  "topics": {
+    "subscribe": [
+      {
+        "name": "input",
+        "pattern": "gorai.{namespace}.{input_component}.data",
+        "description": "JPEG image frames from camera component",
+        "format": "image/jpeg"
+      }
+    ],
+    "publish": [
+      {
+        "name": "annotated",
+        "pattern": "gorai.{namespace}.{service}.annotated",
+        "description": "Annotated images with bounding boxes drawn around detected persons",
+        "format": "image/jpeg"
+      },
+      {
+        "name": "detections",
+        "pattern": "gorai.{namespace}.{service}.detections",
+        "description": "Detection results as JSON array with class, confidence, and bbox",
+        "format": "application/json"
+      }
+    ]
+  },
+
+  "attributes": {
+    "input_component": {
+      "type": "string",
+      "required": true,
+      "description": "Name of the camera component to subscribe to"
+    },
+    "model_path": {
+      "type": "string",
+      "required": true,
+      "description": "Path to YOLOX model file (.hef for Hailo, .onnx for ONNX Runtime)"
+    },
+    "confidence_threshold": {
+      "type": "float",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "description": "Minimum confidence score for detections (0.0-1.0)"
+    },
+    "classes": {
+      "type": "array",
+      "default": ["person"],
+      "description": "Object classes to detect and report"
+    },
+    "draw_boxes": {
+      "type": "bool",
+      "default": true,
+      "description": "Draw bounding boxes on annotated output"
+    },
+    "draw_labels": {
+      "type": "bool",
+      "default": true,
+      "description": "Draw class labels and confidence on bounding boxes"
+    },
+    "box_color": {
+      "type": "string",
+      "default": "#00FF00",
+      "description": "Bounding box color in hex format"
+    },
+    "box_thickness": {
+      "type": "int",
+      "default": 2,
+      "min": 1,
+      "max": 10,
+      "description": "Bounding box line thickness in pixels"
+    }
+  },
+
+  "runtime": {
+    "container": {
+      "image": "localhost/person-detector:latest",
+      "build": {
+        "context": "."
+      },
+      "network": "host",
+      "environment": {
+        "PYTHONUNBUFFERED": "1",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}

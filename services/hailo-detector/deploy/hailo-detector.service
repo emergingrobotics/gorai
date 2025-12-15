@@ -1,0 +1,37 @@
+[Unit]
+Description=Hailo NPU Person Detector Service
+Documentation=https://gorai.dev/docs/services/hailo-detector
+After=network-online.target nats-server.service
+Wants=network-online.target nats-server.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+TimeoutStartSec=60
+
+# Run as container with Hailo device access
+ExecStartPre=-/usr/bin/podman stop -t 10 hailo-detector
+ExecStartPre=-/usr/bin/podman rm -f hailo-detector
+
+ExecStart=/usr/bin/podman run --rm \
+    --name hailo-detector \
+    --network host \
+    --device /dev/hailo0 \
+    -e NATS_URL=nats://localhost:4222 \
+    -e GORAI_ROBOT_NAME=hello-camera \
+    -e GORAI_SERVICE_NAME=person_detector \
+    -e MODEL_PATH=/models/yolox_s_leaky.hef \
+    -e CONFIDENCE_THRESHOLD=0.5 \
+    -v /opt/gorai/models:/models:ro \
+    localhost/hailo-detector:latest
+
+ExecStop=/usr/bin/podman stop -t 10 hailo-detector
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hailo-detector
+
+[Install]
+WantedBy=multi-user.target

@@ -5,7 +5,7 @@
   "robot": {
     "name": "hello-camera",
     "namespace": "hello-camera",
-    "description": "A camera robot with person detection using Hailo NPU"
+    "description": "A simple camera robot demonstrating V4L2 capture and web dashboard"
   },
 
   "nats": {
@@ -34,30 +34,6 @@
       "model": "web",
       "attributes": {
         "listen": ":8080"
-      }
-    },
-    {
-      "name": "person_detector",
-      "type": "object_detection",
-      "model": "hailo_yolox",
-      "attributes": {
-        "model_path": "/models/yolox_s_leaky.hef",
-        "input_topic": "gorai.hello-camera.main_camera.data",
-        "output_topic_annotated": "gorai.hello-camera.person_detector.annotated",
-        "output_topic_detections": "gorai.hello-camera.person_detector.detections",
-        "confidence_threshold": 0.5,
-        "classes": ["person"]
-      },
-      "external": {
-        "enabled": true,
-        "command": "/opt/gorai/services/hailo-detector",
-        "args": ["--model", "/models/yolox_s_leaky.hef"],
-        "managed": true,
-        "restart": "always",
-        "env": {
-          "MODEL_PATH": "/models/yolox_s_leaky.hef",
-          "CONFIDENCE_THRESHOLD": "0.5"
-        }
       }
     }
   ],

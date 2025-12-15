@@ -1,0 +1,78 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
+
+  "robot": {
+    "name": "hello-people-detector",
+    "namespace": "hello-people-detector",
+    "description": "Camera robot with AI-based person detection using an external service"
+  },
+
+  "nats": {
+    "url": "nats://localhost:4222"
+  },
+
+  "components": [
+    {
+      "name": "main_camera",
+      "type": "camera",
+      "model": "v4l2",
+      "attributes": {
+        "device": "/dev/video0",
+        "width": 640,
+        "height": 480,
+        "frame_rate": 30,
+        "jpeg_quality": 80
+      }
+    }
+  ],
+
+  "services": [
+    {
+      "name": "dashboard",
+      "type": "dashboard",
+      "model": "web",
+      "attributes": {
+        "listen": ":8080"
+      }
+    },
+    {
+      "name": "person_detector",
+      "rdl": "./services/person-detector/person-detector.rdl.json",
+      "attributes": {
+        "input_component": "main_camera",
+        "model_path": "/models/yolox_s_leaky.hef",
+        "confidence_threshold": 0.5,
+        "classes": ["person"]
+      },
+      "external": {
+        "enabled": true,
+        "container": {
+          "image": "localhost/person-detector:latest",
+          "build": {
+            "context": "./services/person-detector"
+          },
+          "devices": ["/dev/hailo0"],
+          "network": "host",
+          "volumes": [
+            "/opt/gorai/models:/models:ro"
+          ]
+        },
+        "managed": true,
+        "restart": "always"
+      },
+      "depends_on": ["main_camera"]
+    }
+  ],
+
+  "log": {
+    "level": "info",
+    "format": "json",
+    "output": "stdout"
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080"
+  }
+}

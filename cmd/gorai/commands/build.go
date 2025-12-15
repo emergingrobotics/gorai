@@ -1,23 +1,33 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/systemd"
 )
+
+// BuildableService represents a service that can be built as a container.
+type BuildableService struct {
+	Name          string
+	Image         string
+	Context       string
+	Containerfile string
+	Args          map[string]string
+	Target        string
+	NoCache       bool
+}
 
 func cmdBuild() error {
 	// Parse flags
 	var configPath string
 	var noCache bool
 	var pull bool
-	var install bool
-	var containers []string
+	var servicesOnly bool
+	var serviceNames []string
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -32,14 +42,14 @@ func cmdBuild() error {
 			noCache = true
 		case "--pull":
 			pull = true
-		case "--install":
-			install = true
-		case "--container":
+		case "--services":
+			servicesOnly = true
+		case "--service":
 			if i+1 >= len(args) {
-				return fmt.Errorf("--container requires a value")
+				return fmt.Errorf("--service requires a value")
 			}
 			i++
-			containers = append(containers, args[i])
+			serviceNames = append(serviceNames, args[i])
 		case "-h", "--help":
 			return printBuildUsage()
 		default:
@@ -47,7 +57,7 @@ func cmdBuild() error {
 				if configPath == "" {
 					configPath = args[i]
 				} else {
-					containers = append(containers, args[i])
+					serviceNames = append(serviceNames, args[i])
 				}
 			} else {
 				return fmt.Errorf("unknown flag: %s", args[i])
@@ -63,6 +73,10 @@ func cmdBuild() error {
 		}
 	}
 
+	// Make config path absolute
+	configPath, _ = filepath.Abs(configPath)
+	configDir := filepath.Dir(configPath)
+
 	// Load configuration
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -74,155 +88,245 @@ func cmdBuild() error {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Check if containers are defined
-	if cfg.Containers == nil || len(cfg.Containers) == 0 {
-		return fmt.Errorf("no containers defined in %s", configPath)
+	// Check for deprecation warnings
+	warnings := cfg.DeprecationWarnings()
+	for _, w := range warnings {
+		fmt.Fprintf(os.Stderr, "WARNING: %s\n", w)
 	}
 
-	// Check which containers have build configs
-	buildableContainers := make([]string, 0)
-	for name, container := range cfg.Containers {
-		if container.Build != nil {
-			buildableContainers = append(buildableContainers, name)
+	fmt.Printf("Building robot %q...\n", cfg.Robot.Name)
+	fmt.Printf("Config: %s\n\n", configPath)
+
+	// Find buildable container services
+	buildables := getBuildableServices(cfg, configDir, serviceNames)
+
+	if len(buildables) == 0 {
+		fmt.Println("No buildable container services found.")
+		if !servicesOnly {
+			fmt.Println("\nTip: To add a buildable service, add 'build' config to external.container:")
+			fmt.Println(`  "external": {`)
+			fmt.Println(`    "container": {`)
+			fmt.Println(`      "image": "localhost/my-service:latest",`)
+			fmt.Println(`      "build": {`)
+			fmt.Println(`        "context": "./services/my-service"`)
+			fmt.Println(`      }`)
+			fmt.Println(`    }`)
+			fmt.Println(`  }`)
 		}
+		return nil
 	}
 
-	// Generate systemd service files
-	workspaceDir := filepath.Dir(configPath)
-	if !filepath.IsAbs(workspaceDir) {
-		workspaceDir, _ = filepath.Abs(workspaceDir)
+	// Build each container
+	fmt.Printf("Found %d buildable service(s):\n", len(buildables))
+	for _, svc := range buildables {
+		fmt.Printf("  - %s → %s\n", svc.Name, svc.Image)
 	}
+	fmt.Println()
 
-	gen := systemd.NewGenerator(cfg,
-		systemd.WithWorkspaceDir(workspaceDir),
-		systemd.WithUserMode(true),
-	)
+	for i, svc := range buildables {
+		fmt.Printf("[%d/%d] Building %s...\n", i+1, len(buildables), svc.Name)
 
-	serviceDir := gen.GetLocalDir()
-	fmt.Printf("Generating systemd service files in: %s\n", serviceDir)
-
-	if err := gen.WriteFiles(); err != nil {
-		return fmt.Errorf("failed to generate systemd files: %w", err)
-	}
-
-	// Build container images if any have build configs
-	if len(buildableContainers) > 0 {
-		containersToBuild := containers
-		if len(containersToBuild) == 0 {
-			containersToBuild = buildableContainers
-		}
-
-		fmt.Printf("Building containers for robot %q...\n", cfg.Robot.Name)
-		fmt.Printf("Building: %v\n", containersToBuild)
-
-		for _, containerName := range containersToBuild {
-			container, exists := cfg.Containers[containerName]
-			if !exists {
-				return fmt.Errorf("container %q not found in configuration", containerName)
-			}
-			if container.Build == nil {
-				fmt.Printf("Skipping %s (no build configuration)\n", containerName)
-				continue
-			}
-
-			fmt.Printf("Building %s...\n", containerName)
-
-			// Build using podman build
-			buildArgs := []string{"build"}
-
-			if noCache {
-				buildArgs = append(buildArgs, "--no-cache")
-			}
-			if pull {
-				buildArgs = append(buildArgs, "--pull=always")
-			}
-
-			// Tag
-			tag := container.Image
-			if tag == "" {
-				tag = fmt.Sprintf("%s-%s:latest", cfg.Robot.Name, containerName)
-			}
-			buildArgs = append(buildArgs, "-t", tag)
-
-			// Dockerfile
-			dockerfile := container.Build.Dockerfile
-			if dockerfile == "" {
-				dockerfile = "Containerfile"
-			}
-			buildArgs = append(buildArgs, "-f", dockerfile)
-
-			// Build args
-			for key, value := range container.Build.Args {
-				buildArgs = append(buildArgs, "--build-arg", fmt.Sprintf("%s=%s", key, value))
-			}
-
-			// Target
-			if container.Build.Target != "" {
-				buildArgs = append(buildArgs, "--target", container.Build.Target)
-			}
-
-			// Context
-			buildContext := container.Build.Context
-			if buildContext == "" {
-				buildContext = "."
-			}
-			if !filepath.IsAbs(buildContext) {
-				buildContext = filepath.Join(workspaceDir, buildContext)
-			}
-			buildArgs = append(buildArgs, buildContext)
-
-			cmd := exec.CommandContext(context.Background(), "podman", buildArgs...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("failed to build %s: %w", containerName, err)
-			}
+		if err := buildContainer(svc, noCache, pull); err != nil {
+			return fmt.Errorf("failed to build %s: %w", svc.Name, err)
 		}
 
-		fmt.Println("Build completed successfully.")
-	} else {
-		fmt.Println("No containers with build configuration found.")
+		fmt.Printf("  ✓ Built %s\n\n", svc.Image)
 	}
 
-	// Install service files to systemd if requested
-	if install {
-		fmt.Println("\nInstalling systemd service files...")
-		if err := gen.InstallFiles(); err != nil {
-			return fmt.Errorf("failed to install systemd files: %w", err)
-		}
-
-		// Reload systemd
-		runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
-		if err := runner.DaemonReload(context.Background()); err != nil {
-			return fmt.Errorf("failed to reload systemd: %w", err)
-		}
-
-		fmt.Println("Service files installed. Services are now available.")
-		fmt.Printf("Use 'gorai start --config %s' to start the robot.\n", configPath)
-	}
+	fmt.Println("Build completed successfully.")
+	fmt.Println("\nNext steps:")
+	fmt.Printf("  gorai run --config %s     # Run robot (foreground)\n", configPath)
+	fmt.Printf("  gorai start --config %s   # Start as systemd service\n", configPath)
 
 	return nil
 }
 
+// getBuildableServices finds all services that can be built as containers.
+func getBuildableServices(cfg *config.RDL, configDir string, filterNames []string) []BuildableService {
+	var result []BuildableService
+
+	for _, svc := range cfg.Services {
+		// Skip if not external or not a container
+		if !svc.IsExternal() || svc.External.Container == nil {
+			continue
+		}
+
+		container := svc.External.Container
+
+		// Check if we should filter by name
+		if len(filterNames) > 0 {
+			found := false
+			for _, name := range filterNames {
+				if name == svc.Name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		// Skip non-local images (they're pulled, not built)
+		if !strings.HasPrefix(container.Image, "localhost/") {
+			continue
+		}
+
+		bs := BuildableService{
+			Name:  svc.Name,
+			Image: container.Image,
+		}
+
+		// Use explicit build config if provided
+		if container.Build != nil && container.Build.Context != "" {
+			bs.Context = container.GetBuildContext(configDir)
+			bs.Containerfile = container.GetContainerfile()
+			bs.Args = container.Build.Args
+			bs.Target = container.Build.Target
+			bs.NoCache = container.Build.NoCache
+		} else {
+			// Convention-based discovery
+			bs.Context, bs.Containerfile = discoverBuildContext(configDir, svc.Name)
+		}
+
+		// Skip if no build context found
+		if bs.Context == "" {
+			fmt.Printf("  Note: Skipping %s - no build context found\n", svc.Name)
+			fmt.Printf("        Add 'build.context' to config or create services/%s/Containerfile\n", svc.Name)
+			continue
+		}
+
+		// Verify context exists
+		if _, err := os.Stat(bs.Context); os.IsNotExist(err) {
+			fmt.Printf("  Note: Skipping %s - build context not found: %s\n", svc.Name, bs.Context)
+			continue
+		}
+
+		// Verify Containerfile exists
+		containerfilePath := filepath.Join(bs.Context, bs.Containerfile)
+		if _, err := os.Stat(containerfilePath); os.IsNotExist(err) {
+			// Try Dockerfile as fallback
+			dockerfilePath := filepath.Join(bs.Context, "Dockerfile")
+			if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) {
+				fmt.Printf("  Note: Skipping %s - no Containerfile found in %s\n", svc.Name, bs.Context)
+				continue
+			}
+			bs.Containerfile = "Dockerfile"
+		}
+
+		result = append(result, bs)
+	}
+
+	return result
+}
+
+// discoverBuildContext tries to find a build context using conventions.
+func discoverBuildContext(configDir, serviceName string) (context, containerfile string) {
+	// Try common locations
+	candidates := []string{
+		filepath.Join(configDir, "services", serviceName),
+		filepath.Join(configDir, serviceName),
+		filepath.Join(configDir, "..", "services", serviceName),
+		filepath.Join(configDir, "..", "..", "services", serviceName),
+	}
+
+	for _, candidate := range candidates {
+		// Check for Containerfile
+		if _, err := os.Stat(filepath.Join(candidate, "Containerfile")); err == nil {
+			return candidate, "Containerfile"
+		}
+		// Check for Dockerfile
+		if _, err := os.Stat(filepath.Join(candidate, "Dockerfile")); err == nil {
+			return candidate, "Dockerfile"
+		}
+	}
+
+	return "", ""
+}
+
+// buildContainer builds a container image using podman.
+func buildContainer(svc BuildableService, noCache, pull bool) error {
+	buildArgs := []string{"build"}
+
+	// Cache options
+	if noCache || svc.NoCache {
+		buildArgs = append(buildArgs, "--no-cache")
+	}
+	if pull {
+		buildArgs = append(buildArgs, "--pull=always")
+	}
+
+	// Tag
+	buildArgs = append(buildArgs, "-t", svc.Image)
+
+	// Containerfile
+	buildArgs = append(buildArgs, "-f", filepath.Join(svc.Context, svc.Containerfile))
+
+	// Build args
+	for key, value := range svc.Args {
+		buildArgs = append(buildArgs, "--build-arg", fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Target (multi-stage builds)
+	if svc.Target != "" {
+		buildArgs = append(buildArgs, "--target", svc.Target)
+	}
+
+	// Context
+	buildArgs = append(buildArgs, svc.Context)
+
+	// Run podman build
+	cmd := exec.Command("podman", buildArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
 func printBuildUsage() error {
-	fmt.Println(`gorai build - Build container images and generate systemd service files
+	fmt.Println(`gorai build - Build container images for external services
 
 Usage:
-  gorai build [--config robot.json] [flags] [container...]
+  gorai build [--config robot.json] [flags] [service...]
+
+This command builds container images for services that have 'external.container'
+configuration with a 'build' section, or that can be auto-discovered using
+convention-based paths.
 
 Flags:
   -c, --config <file>     Path to robot configuration file
   --no-cache              Do not use cache when building
   --pull                  Always attempt to pull newer base images
-  --install               Install service files to systemd
-  --container <name>      Build specific container
+  --services              Build container services only (default behavior)
+  --service <name>        Build specific service by name
   -h, --help              Show this help message
 
+Convention-based discovery:
+  If a service has image "localhost/<name>:latest" without explicit build config,
+  gorai will look for Containerfile in these locations:
+    - ./services/<service-name>/Containerfile
+    - ./<service-name>/Containerfile
+
 Examples:
-  gorai build --config robot.json
-  gorai build -c robot.json --no-cache
-  gorai build --config robot.json --install
-  gorai build --config robot.json --container gorai-hailo`)
+  gorai build --config robot.json              # Build all container services
+  gorai build -c robot.json --no-cache         # Build without cache
+  gorai build --config robot.json person_detector  # Build specific service
+
+RDL configuration example:
+  {
+    "services": [{
+      "name": "person_detector",
+      "external": {
+        "enabled": true,
+        "container": {
+          "image": "localhost/hailo-detector:latest",
+          "build": {
+            "context": "./services/hailo-detector",
+            "args": {"VERSION": "1.0"}
+          }
+        }
+      }
+    }]
+  }`)
 	return nil
 }

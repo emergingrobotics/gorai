@@ -369,7 +369,152 @@ Services can optionally run as separate processes, connected to the main robot v
 - ML inference requiring specialized hardware (TPU, NPU)
 - Services with different resource requirements
 - Services written in different languages (e.g., Python for ML)
+- Reusable service modules shared across robots
 
+#### Service RDL Files
+
+External services can have their own **Service RDL** file that defines their behavior independently. This enables:
+- **Modularity**: Services are self-contained and reusable
+- **Separation of concerns**: Service authors define behavior, robot integrators configure deployment
+- **Sharing**: Services can be distributed as standalone packages
+- **Independent development**: Services can be developed/tested without a full robot
+
+A Service RDL file (conventionally named `<service>.rdl.json`) defines:
+- Service metadata (name pattern, type, model)
+- Input/output topic patterns (with variable substitution)
+- Default attributes and configuration
+- Optional container/process defaults
+
+**Service RDL Example (`services/person-detector/person-detector.rdl.json`):**
+```json
+{
+  "$schema": "https://gorai.dev/schemas/service-rdl-v1.json",
+  "version": "1",
+  "kind": "service",
+
+  "service": {
+    "type": "object_detection",
+    "model": "yolox",
+    "description": "YOLOX-based person detection with bounding box annotation"
+  },
+
+  "topics": {
+    "subscribe": [
+      {
+        "name": "input",
+        "pattern": "gorai.{namespace}.{input_component}.data",
+        "description": "JPEG image frames to process",
+        "format": "image/jpeg"
+      }
+    ],
+    "publish": [
+      {
+        "name": "annotated",
+        "pattern": "gorai.{namespace}.{service}.annotated",
+        "description": "Annotated images with bounding boxes",
+        "format": "image/jpeg"
+      },
+      {
+        "name": "detections",
+        "pattern": "gorai.{namespace}.{service}.detections",
+        "description": "Detection results as JSON",
+        "format": "application/json"
+      }
+    ]
+  },
+
+  "attributes": {
+    "confidence_threshold": {
+      "type": "float",
+      "default": 0.5,
+      "description": "Minimum confidence for detections"
+    },
+    "classes": {
+      "type": "array",
+      "default": ["person"],
+      "description": "Object classes to detect"
+    },
+    "model_path": {
+      "type": "string",
+      "required": true,
+      "description": "Path to the model file"
+    },
+    "input_component": {
+      "type": "string",
+      "required": true,
+      "description": "Name of the camera component to subscribe to"
+    }
+  },
+
+  "runtime": {
+    "container": {
+      "image": "localhost/{service}:latest",
+      "build": {
+        "context": "."
+      }
+    }
+  }
+}
+```
+
+#### Referencing Service RDL from Robot RDL
+
+The robot RDL references external services using the `rdl` field:
+
+**Example: Robot referencing a Service RDL**
+```json
+{
+  "services": [
+    {
+      "name": "person_detector",
+      "rdl": "./services/person-detector/person-detector.rdl.json",
+      "attributes": {
+        "input_component": "main_camera",
+        "model_path": "/opt/models/yolox_s.hef",
+        "confidence_threshold": 0.6
+      },
+      "external": {
+        "enabled": true,
+        "container": {
+          "devices": ["/dev/hailo0"],
+          "volumes": ["/opt/models:/models:ro"]
+        },
+        "managed": true
+      }
+    }
+  ]
+}
+```
+
+When `rdl` is specified:
+1. The Service RDL file is loaded and merged with the robot's service definition
+2. Topic patterns are resolved using variables from robot context
+3. Attributes in robot RDL override Service RDL defaults
+4. Runtime configuration in robot RDL overrides Service RDL defaults
+
+#### Topic Pattern Variables
+
+Service RDL uses pattern variables that are resolved at runtime:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{namespace}` | Robot namespace | `hello-camera` |
+| `{service}` | Service name (from robot RDL) | `person_detector` |
+| `{robot}` | Robot name | `hello-camera` |
+| `{input_component}` | Custom variable from attributes | `main_camera` |
+
+**Resolution example:**
+```
+Pattern:  gorai.{namespace}.{input_component}.data
+Context:  namespace=hello-camera, input_component=main_camera
+Result:   gorai.hello-camera.main_camera.data
+```
+
+#### Inline External Services (without Service RDL)
+
+For simpler cases or one-off services, external services can still be defined inline:
+
+**Example: Native External Service**
 ```json
 {
   "services": [
@@ -396,22 +541,136 @@ Services can optionally run as separate processes, connected to the main robot v
 }
 ```
 
+**Example: Containerized External Service**
+```json
+{
+  "services": [
+    {
+      "name": "person_detector",
+      "type": "object_detection",
+      "model": "hailo_yolox",
+      "external": {
+        "enabled": true,
+        "container": {
+          "image": "localhost/hailo-detector:latest",
+          "devices": ["/dev/hailo0"],
+          "environment": {
+            "MODEL_PATH": "/models/yolox_s.hef",
+            "CONFIDENCE_THRESHOLD": "0.5"
+          },
+          "volumes": [
+            "/opt/models:/models:ro"
+          ]
+        },
+        "managed": true,
+        "restart": "always"
+      },
+      "attributes": {
+        "input_topic": "gorai.myrobot.camera.data",
+        "output_topic": "gorai.myrobot.person_detector.detections"
+      }
+    }
+  ]
+}
+```
+
+#### Service Object Fields (Updated)
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | string | Yes | - | Unique service name |
+| `rdl` | string | No | - | Path to Service RDL file (relative to robot config) |
+| `type` | string | Yes* | - | Service type (*not required if using `rdl`) |
+| `model` | string | Yes* | - | Implementation model (*not required if using `rdl`) |
+| `disabled` | bool | No | false | Skip loading this service |
+| `external` | object | No | - | External process configuration (see below) |
+| `attributes` | object | No | {} | Service-specific configuration |
+| `depends_on` | array | No | [] | Component/service dependencies |
+
 #### External Object Fields
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `enabled` | bool | No | false | Enable external process mode |
-| `command` | string | Yes* | - | Path to executable (*required if managed) |
+| `command` | string | No* | - | Path to executable (*required if not using container) |
 | `args` | array | No | [] | Command line arguments |
+| `container` | object | No | - | Container configuration (see below) |
 | `managed` | bool | No | true | If true, robot spawns/monitors the process |
 | `restart` | string | No | "always" | Restart policy: "always", "on-failure", "never" |
 | `env` | object | No | {} | Environment variables for the process |
 
+#### Container Object Fields
+
+When using a containerized external service:
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `image` | string | Yes | - | Container image name |
+| `build` | object | No | - | Build configuration (see below) |
+| `devices` | array | No | [] | Device mappings (e.g., "/dev/hailo0") |
+| `environment` | object | No | {} | Environment variables |
+| `volumes` | array | No | [] | Volume mounts (format: "host:container[:opts]") |
+| `network` | string | No | "host" | Network mode |
+| `privileged` | bool | No | false | Run in privileged mode |
+
+#### Container Build Configuration
+
+The `build` object configures how to build the container image. When present, `gorai build` will automatically build this container.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `context` | string | Yes | - | Build context directory (relative to config) |
+| `containerfile` | string | No | "Containerfile" | Containerfile/Dockerfile name |
+| `args` | object | No | {} | Build arguments |
+| `target` | string | No | - | Multi-stage build target |
+| `no_cache` | bool | No | false | Disable build cache |
+
+**Example with build configuration:**
+```json
+{
+  "external": {
+    "enabled": true,
+    "container": {
+      "image": "localhost/hailo-detector:latest",
+      "build": {
+        "context": "./services/hailo-detector",
+        "args": {
+          "MODEL_VERSION": "v2.10.0"
+        }
+      },
+      "devices": ["/dev/hailo0"]
+    }
+  }
+}
+```
+
+**Convention-based discovery:**
+
+If no `build` config is provided but the image starts with `localhost/`, `gorai build` will look for:
+- `./services/<service-name>/Containerfile`
+- `./<service-name>/Containerfile`
+
 #### External Service Behavior
 
-- **Managed services** (`managed: true`): The robot process spawns the external service as a child process, monitors it, and restarts it according to the restart policy.
+- **Managed services** (`managed: true`): The robot process spawns the external service as a child process (or container), monitors it, and restarts it according to the restart policy.
 - **Unmanaged services** (`managed: false`): The robot expects the service to be running independently (e.g., started by systemd). The robot verifies connectivity via NATS.
-- External services receive the robot config path via `--config` argument and service name via `--service` argument.
+- Native external services receive the robot config path via `--config` argument and service name via `--service` argument.
+- Container services receive environment variables `GORAI_ROBOT_NAME`, `GORAI_SERVICE_NAME`, and `NATS_URL`.
+- When using Service RDL, resolved topic names are passed via `GORAI_INPUT_TOPICS` and `GORAI_OUTPUT_TOPICS` environment variables.
+
+#### Components vs Services
+
+> **Important Architectural Distinction:**
+>
+> **Components** represent hardware abstractions and MUST be native Go code compiled into the robot monolith. Components have direct access to hardware devices and run in the same process as the robot.
+>
+> **Services** represent software capabilities and MAY be:
+> - **Internal** - Native Go code in the monolith (default)
+> - **External Native** - Separate process on same or different host
+> - **External Container** - Container on same or different host
+> - **External with Service RDL** - Modular service with self-contained definition
+>
+> This distinction allows compute-intensive or specialized services (ML inference, SLAM) to run separately while keeping hardware access simple and direct.
 
 ---
 
@@ -1081,15 +1340,254 @@ robot.json:15: components[0].type: unknown component type "imu2"
 
 ---
 
-## 14. Schema Evolution
+## 14. Service RDL Schema
 
-### 14.1 Versioning
+Service RDL files define external services independently of any specific robot. This section describes the Service RDL schema.
+
+### 14.1 Service RDL Top-Level Structure
+
+```json
+{
+  "$schema": "https://gorai.dev/schemas/service-rdl-v1.json",
+  "version": "1",
+  "kind": "service",
+  "service": { },
+  "topics": { },
+  "attributes": { },
+  "runtime": { }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `$schema` | string | No | JSON Schema URL for validation |
+| `version` | string | Yes | Service RDL version ("1") |
+| `kind` | string | Yes | Must be "service" |
+| `service` | object | Yes | Service metadata |
+| `topics` | object | Yes | Topic subscriptions and publications |
+| `attributes` | object | No | Configurable attributes with defaults |
+| `runtime` | object | No | Default runtime configuration |
+
+### 14.2 Service Object
+
+```json
+{
+  "service": {
+    "type": "object_detection",
+    "model": "yolox",
+    "description": "YOLOX-based object detection service"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Service type (vision, slam, etc.) |
+| `model` | string | Yes | Implementation model |
+| `description` | string | No | Human-readable description |
+
+### 14.3 Topics Object
+
+```json
+{
+  "topics": {
+    "subscribe": [
+      {
+        "name": "input",
+        "pattern": "gorai.{namespace}.{input_component}.data",
+        "description": "Input data stream",
+        "format": "image/jpeg"
+      }
+    ],
+    "publish": [
+      {
+        "name": "output",
+        "pattern": "gorai.{namespace}.{service}.result",
+        "description": "Output data stream",
+        "format": "application/json"
+      }
+    ]
+  }
+}
+```
+
+#### Topic Entry Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Logical name for this topic |
+| `pattern` | string | Yes | NATS topic pattern with variables |
+| `description` | string | No | Human-readable description |
+| `format` | string | No | Data format (MIME type) |
+
+#### Pattern Variables
+
+Patterns can include variables in `{variable}` format:
+- `{namespace}` - Robot namespace (from robot RDL)
+- `{robot}` - Robot name (from robot RDL)
+- `{service}` - Service name (from robot RDL service entry)
+- Custom variables from service attributes
+
+### 14.4 Attributes Object
+
+```json
+{
+  "attributes": {
+    "confidence_threshold": {
+      "type": "float",
+      "default": 0.5,
+      "description": "Minimum confidence",
+      "min": 0.0,
+      "max": 1.0
+    },
+    "model_path": {
+      "type": "string",
+      "required": true,
+      "description": "Path to model file"
+    },
+    "classes": {
+      "type": "array",
+      "default": ["person"],
+      "description": "Object classes to detect"
+    }
+  }
+}
+```
+
+#### Attribute Definition Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Data type: string, int, float, bool, array, object |
+| `default` | any | No | Default value if not specified |
+| `required` | bool | No | If true, must be provided in robot RDL |
+| `description` | string | No | Human-readable description |
+| `min` | number | No | Minimum value (for numeric types) |
+| `max` | number | No | Maximum value (for numeric types) |
+| `enum` | array | No | Allowed values (for string type) |
+
+### 14.5 Runtime Object
+
+```json
+{
+  "runtime": {
+    "container": {
+      "image": "localhost/{service}:latest",
+      "build": {
+        "context": "."
+      },
+      "environment": {
+        "LOG_LEVEL": "info"
+      }
+    },
+    "command": "/usr/local/bin/service",
+    "env": {
+      "LOG_LEVEL": "info"
+    }
+  }
+}
+```
+
+The `runtime` object provides default configuration that can be overridden in the robot RDL. It follows the same structure as the `external` object in robot RDL services.
+
+### 14.6 Complete Service RDL Example
+
+```json
+{
+  "$schema": "https://gorai.dev/schemas/service-rdl-v1.json",
+  "version": "1",
+  "kind": "service",
+
+  "service": {
+    "type": "object_detection",
+    "model": "yolox",
+    "description": "YOLOX person detector with bounding box annotation"
+  },
+
+  "topics": {
+    "subscribe": [
+      {
+        "name": "input",
+        "pattern": "gorai.{namespace}.{input_component}.data",
+        "description": "JPEG image frames from camera",
+        "format": "image/jpeg"
+      }
+    ],
+    "publish": [
+      {
+        "name": "annotated",
+        "pattern": "gorai.{namespace}.{service}.annotated",
+        "description": "Images with bounding boxes drawn",
+        "format": "image/jpeg"
+      },
+      {
+        "name": "detections",
+        "pattern": "gorai.{namespace}.{service}.detections",
+        "description": "Detection results as JSON array",
+        "format": "application/json"
+      }
+    ]
+  },
+
+  "attributes": {
+    "input_component": {
+      "type": "string",
+      "required": true,
+      "description": "Camera component name to subscribe to"
+    },
+    "model_path": {
+      "type": "string",
+      "required": true,
+      "description": "Path to YOLOX model file (.hef, .onnx, etc.)"
+    },
+    "confidence_threshold": {
+      "type": "float",
+      "default": 0.5,
+      "min": 0.0,
+      "max": 1.0,
+      "description": "Minimum detection confidence"
+    },
+    "classes": {
+      "type": "array",
+      "default": ["person"],
+      "description": "Object classes to detect and report"
+    },
+    "draw_boxes": {
+      "type": "bool",
+      "default": true,
+      "description": "Draw bounding boxes on annotated output"
+    },
+    "draw_labels": {
+      "type": "bool",
+      "default": true,
+      "description": "Draw class labels on bounding boxes"
+    }
+  },
+
+  "runtime": {
+    "container": {
+      "image": "localhost/person-detector:latest",
+      "build": {
+        "context": "."
+      },
+      "network": "host"
+    }
+  }
+}
+```
+
+---
+
+## 15. Schema Evolution
+
+### 15.1 Versioning
 
 - The `version` field indicates schema version
 - Major version changes may break compatibility
 - Minor changes are backward compatible
+- Robot RDL and Service RDL have independent versioning
 
-### 14.2 Future Extensions
+### 15.2 Future Extensions
 
 Reserved for future versions:
 - `modules` - Plugin/module loading

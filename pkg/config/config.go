@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -82,14 +83,76 @@ type ServiceConfig struct {
 	Container string `json:"container,omitempty"`
 }
 
-// ExternalConfig configures a service to run as an external process.
+// ExternalConfig configures a service to run as an external process or container.
 type ExternalConfig struct {
-	Enabled bool              `json:"enabled,omitempty"`
-	Command string            `json:"command,omitempty"`
-	Args    []string          `json:"args,omitempty"`
-	Managed bool              `json:"managed,omitempty"`
-	Restart string            `json:"restart,omitempty"` // "always", "on-failure", "never"
-	Env     map[string]string `json:"env,omitempty"`
+	Enabled   bool                    `json:"enabled,omitempty"`
+	Command   string                  `json:"command,omitempty"`
+	Args      []string                `json:"args,omitempty"`
+	Container *ContainerServiceConfig `json:"container,omitempty"`
+	Managed   bool                    `json:"managed,omitempty"`
+	Restart   string                  `json:"restart,omitempty"` // "always", "on-failure", "never"
+	Env       map[string]string       `json:"env,omitempty"`
+}
+
+// ContainerServiceConfig configures an external service to run as a container.
+type ContainerServiceConfig struct {
+	Image       string                `json:"image"`
+	Build       *ContainerBuildConfig `json:"build,omitempty"`
+	Devices     []string              `json:"devices,omitempty"`
+	Environment map[string]string     `json:"environment,omitempty"`
+	Volumes     []string              `json:"volumes,omitempty"`
+	Network     string                `json:"network,omitempty"`
+	Privileged  bool                  `json:"privileged,omitempty"`
+}
+
+// ContainerBuildConfig configures how to build a container image.
+type ContainerBuildConfig struct {
+	Context       string            `json:"context"`
+	Containerfile string            `json:"containerfile,omitempty"`
+	Args          map[string]string `json:"args,omitempty"`
+	Target        string            `json:"target,omitempty"`
+	NoCache       bool              `json:"no_cache,omitempty"`
+}
+
+// IsContainer returns true if this external service runs as a container.
+func (e *ExternalConfig) IsContainer() bool {
+	return e != nil && e.Container != nil && e.Container.Image != ""
+}
+
+// IsBuildable returns true if this container has build configuration or can be auto-discovered.
+func (c *ContainerServiceConfig) IsBuildable() bool {
+	if c == nil {
+		return false
+	}
+	// Has explicit build config
+	if c.Build != nil && c.Build.Context != "" {
+		return true
+	}
+	// Is a local image (can potentially be auto-discovered)
+	return strings.HasPrefix(c.Image, "localhost/")
+}
+
+// GetBuildContext returns the build context path, or empty string if not buildable.
+func (c *ContainerServiceConfig) GetBuildContext(configDir string) string {
+	if c == nil {
+		return ""
+	}
+	if c.Build != nil && c.Build.Context != "" {
+		// Resolve relative to config directory
+		if filepath.IsAbs(c.Build.Context) {
+			return c.Build.Context
+		}
+		return filepath.Join(configDir, c.Build.Context)
+	}
+	return ""
+}
+
+// GetContainerfile returns the Containerfile name (default: "Containerfile").
+func (c *ContainerServiceConfig) GetContainerfile() string {
+	if c == nil || c.Build == nil || c.Build.Containerfile == "" {
+		return "Containerfile"
+	}
+	return c.Build.Containerfile
 }
 
 // IsExternal returns true if this service should run as an external process.

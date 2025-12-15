@@ -87,7 +87,7 @@ Runtime Commands (Recommended):
   logs              View robot logs
 
 Build Commands:
-  build             Build robot binary or container images
+  build             Build container images for external services
   migrate           Migrate RDL v1 config to v2 format
 
 Topic/Service Commands:

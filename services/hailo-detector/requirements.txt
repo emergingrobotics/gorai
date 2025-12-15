@@ -1,0 +1,14 @@
+# Hailo Person Detector Dependencies
+#
+# Core dependencies for NATS messaging and image processing.
+# HailoRT/hailo_platform is installed separately (system package or mounted).
+
+# NATS client for Python
+nats-py>=2.6.0
+
+# Image processing (usually installed via system package, but listed for completeness)
+# opencv-python-headless>=4.8.0
+numpy>=1.24.0
+
+# Note: hailo_platform is provided by HailoRT installation
+# It cannot be installed via pip - it comes with the Hailo SDK

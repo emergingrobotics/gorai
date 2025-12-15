@@ -1,0 +1,75 @@
+# Containerfile for Gorai Person Detector Service
+#
+# External service for person detection using YOLOX on Hailo NPU.
+# This service is defined by its own Service RDL and referenced from the robot RDL.
+#
+# Build:
+#   podman build -t localhost/person-detector:latest .
+#
+# Run (standalone for testing):
+#   podman run --rm -it \
+#     --device /dev/hailo0 \
+#     -e NATS_URL=nats://host.docker.internal:4222 \
+#     -e INPUT_COMPONENT=main_camera \
+#     -e GORAI_ROBOT_NAME=hello-people-detector \
+#     -e GORAI_SERVICE_NAME=person_detector \
+#     -v /opt/gorai/models:/models:ro \
+#     localhost/person-detector:latest
+
+FROM docker.io/python:3.11-slim-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # OpenCV dependencies
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    # Fonts for annotations
+    fonts-dejavu-core \
+    # Networking tools
+    wget \
+    curl \
+    # Clean up
+    && rm -rf /var/lib/apt/lists/*
+
+# Note: Hailo runtime is installed on the host. The container accesses
+# it via device passthrough (/dev/hailo0) and host network.
+# If you need HailoRT Python bindings in the container, install from
+# Hailo's repository based on your system.
+
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create non-root user
+RUN useradd -m -u 1000 gorai && \
+    usermod -a -G video gorai && \
+    chown -R gorai:gorai /app
+
+# Switch to non-root user
+USER gorai
+
+# Environment defaults
+ENV PYTHONUNBUFFERED=1
+ENV LOG_LEVEL=info
+ENV NATS_URL=nats://localhost:4222
+ENV MODEL_PATH=/models/yolox_s_leaky.hef
+ENV CONFIDENCE_THRESHOLD=0.5
+
+# Labels
+LABEL org.opencontainers.image.title="Gorai Person Detector Service"
+LABEL org.opencontainers.image.description="YOLOX person detection service with bounding box annotation"
+LABEL org.opencontainers.image.source="https://github.com/gorai/gorai"
+LABEL gorai.service.type="object_detection"
+LABEL gorai.service.model="yolox"
+
+ENTRYPOINT ["python", "main.py"]

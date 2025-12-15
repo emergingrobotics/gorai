@@ -1,0 +1,76 @@
+# Hailo NPU Person Detector Service
+#
+# This container runs YOLOX object detection on the Hailo NPU.
+# It subscribes to camera frames from NATS and publishes annotated frames.
+#
+# Build:
+#   podman build -t localhost/hailo-detector:latest .
+#
+# Run:
+#   podman run --rm -it \
+#     --device /dev/hailo0 \
+#     -e NATS_URL=nats://localhost:4222 \
+#     -e GORAI_ROBOT_NAME=hello-camera \
+#     -v /path/to/models:/models:ro \
+#     localhost/hailo-detector:latest
+
+# Use Hailo's official runtime image if available, otherwise Debian
+# For Raspberry Pi, use arm64 base
+FROM debian:bookworm-slim
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-opencv \
+    python3-numpy \
+    libopencv-dev \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install HailoRT
+# Note: For production, download the actual HailoRT package from Hailo
+# This is a placeholder - the actual installation depends on your Hailo setup
+#
+# Option 1: If HailoRT is pre-installed on host, mount the libraries
+# Option 2: Install from Hailo's package repository
+# Option 3: Copy pre-built wheels
+#
+# For Raspberry Pi 5 with Hailo M.2:
+# RUN wget -qO- https://hailo.ai/... | bash
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+
+# Copy application
+COPY detector.py .
+
+# Create models directory
+RUN mkdir -p /models
+
+# Set environment defaults
+ENV NATS_URL=nats://localhost:4222 \
+    GORAI_ROBOT_NAME=robot \
+    GORAI_SERVICE_NAME=person_detector \
+    MODEL_PATH=/models/yolox_s_leaky.hef \
+    CONFIDENCE_THRESHOLD=0.5 \
+    NMS_THRESHOLD=0.45 \
+    INPUT_SIZE=640 \
+    PYTHONUNBUFFERED=1
+
+# Health check - verify Python and dependencies
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python3 -c "import cv2; import numpy; import nats; print('OK')" || exit 1
+
+# Run the detector
+ENTRYPOINT ["python3", "detector.py"]

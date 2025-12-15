@@ -47,8 +47,11 @@ func cmdValidate() error {
 		return fmt.Errorf("robot name required\n\nUsage: gorai validate <robot-name> [flags]\n\nOr set GORAI_ROBOT_NAME environment variable")
 	}
 
-	// Derive config file from robot name
-	configPath := robotName + ".json"
+	// Derive config file from robot name or use directly if it's a path
+	configPath := robotName
+	if !strings.HasSuffix(configPath, ".json") {
+		configPath = robotName + ".json"
+	}
 
 	fmt.Printf("Validating %s...\n", configPath)
 
