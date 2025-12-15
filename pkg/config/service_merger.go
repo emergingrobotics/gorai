@@ -189,6 +189,9 @@ func GetResolvedEnvironment(cfg *RDL, svc *ServiceConfig) map[string]string {
 	env["GORAI_SERVICE_NAME"] = svc.Name
 	env["GORAI_NAMESPACE"] = cfg.GetEffectiveNamespace()
 
+	// Add per-service log level (defaults to "error" if not specified)
+	env["LOG_LEVEL"] = strings.ToUpper(svc.GetLogLevel())
+
 	// Add NATS URL
 	if cfg.NATS != nil {
 		if cfg.NATS.URL != "" {

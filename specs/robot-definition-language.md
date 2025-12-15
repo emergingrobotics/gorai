@@ -225,6 +225,7 @@ Components are hardware abstractions (sensors, actuators, infrastructure).
 | `type` | string | Yes | - | Component type (see 5.2) |
 | `model` | string | Yes | - | Implementation model |
 | `disabled` | bool | No | false | Skip loading this component |
+| `log_level` | string | No | "error" | Per-component log level (trace, debug, info, warn, error, fatal) |
 | `attributes` | object | No | {} | Model-specific configuration |
 | `depends_on` | array | No | [] | Names of dependencies |
 
@@ -307,6 +308,36 @@ Example:
 
 Load order: `imu`, `left_motor`, `right_motor`, `base`
 
+### 5.5 Per-Component Log Levels
+
+Components can specify their own log level using the `log_level` field. This allows fine-grained control over logging verbosity without changing the global log level.
+
+**Available log levels:** `trace`, `debug`, `info`, `warn`, `error`, `fatal`
+
+**Default:** `error` (production-friendly, minimal logging)
+
+Example:
+```json
+{
+  "components": [
+    {
+      "name": "front_camera",
+      "type": "camera",
+      "model": "v4l2",
+      "log_level": "debug",
+      "attributes": {
+        "device": "/dev/video0"
+      }
+    }
+  ]
+}
+```
+
+The log level affects:
+- Internal component logging
+- Driver-level logging for the component
+- Any diagnostics or performance metrics
+
 ---
 
 ## 6. Services Array
@@ -321,6 +352,7 @@ Services are software capabilities that process data or make decisions.
       "type": "vision",
       "model": "yolox",
       "disabled": false,
+      "log_level": "info",
       "attributes": {
         "model_path": "/opt/models/yolox_s.onnx",
         "confidence_threshold": 0.5
@@ -339,6 +371,7 @@ Services are software capabilities that process data or make decisions.
 | `type` | string | Yes | - | Service type (see 6.2) |
 | `model` | string | Yes | - | Implementation model |
 | `disabled` | bool | No | false | Skip loading this service |
+| `log_level` | string | No | "error" | Per-service log level (trace, debug, info, warn, error, fatal) |
 | `external` | object | No | - | External process configuration (see 6.4) |
 | `attributes` | object | No | {} | Model-specific configuration |
 | `depends_on` | array | No | [] | Component/service dependencies |
@@ -363,7 +396,46 @@ Services can depend on:
 
 Dependencies are resolved after all components are loaded.
 
-### 6.4 External Services
+### 6.4 Per-Service Log Levels
+
+Services can specify their own log level using the `log_level` field. This is especially useful for debugging external services without changing global logging.
+
+**Available log levels:** `trace`, `debug`, `info`, `warn`, `error`, `fatal`
+
+**Default:** `error` (production-friendly, minimal logging)
+
+For **external services**, the log level is passed as the `LOG_LEVEL` environment variable. This allows service implementations (in any language) to respect the configured level.
+
+Example:
+```json
+{
+  "services": [
+    {
+      "name": "person_detector",
+      "type": "vision",
+      "model": "yolox",
+      "log_level": "info",
+      "external": {
+        "enabled": true,
+        "container": {
+          "image": "localhost/person-detector:latest"
+        }
+      }
+    }
+  ]
+}
+```
+
+The container will receive `LOG_LEVEL=INFO` in its environment. Service implementations should:
+1. Read `LOG_LEVEL` from environment (e.g., `os.environ.get("LOG_LEVEL", "ERROR")`)
+2. Configure their logging framework accordingly
+3. Default to `ERROR` if not specified
+
+This enables per-service debugging in production:
+- Set most services to `error` for minimal noise
+- Set specific services to `info` or `debug` when troubleshooting
+
+### 6.5 External Services
 
 Services can optionally run as separate processes, connected to the main robot via NATS. This is useful for:
 - ML inference requiring specialized hardware (TPU, NPU)
@@ -583,6 +655,7 @@ For simpler cases or one-off services, external services can still be defined in
 | `type` | string | Yes* | - | Service type (*not required if using `rdl`) |
 | `model` | string | Yes* | - | Implementation model (*not required if using `rdl`) |
 | `disabled` | bool | No | false | Skip loading this service |
+| `log_level` | string | No | "error" | Per-service log level (trace, debug, info, warn, error, fatal) |
 | `external` | object | No | - | External process configuration (see below) |
 | `attributes` | object | No | {} | Service-specific configuration |
 | `depends_on` | array | No | [] | Component/service dependencies |

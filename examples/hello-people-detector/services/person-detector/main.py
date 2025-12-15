@@ -29,12 +29,17 @@ from processing.postprocess import postprocess_detections
 from annotate.draw_boxes import draw_bounding_boxes
 
 
-# Configure logging
+# Configure logging - get level from environment (defaults to ERROR for production)
+log_level = os.environ.get("LOG_LEVEL", "ERROR").upper()
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    level=getattr(logging, log_level, logging.ERROR),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger("person-detector")
+
+# Also set level for submodules
+logging.getLogger("inference").setLevel(getattr(logging, log_level, logging.ERROR))
+logging.getLogger("inference.hailo_backend").setLevel(getattr(logging, log_level, logging.ERROR))
 
 
 @dataclass
@@ -153,10 +158,16 @@ class PersonDetectorService:
         # Skip frame if already processing to prevent queue buildup
         if self._processing:
             self._frames_skipped += 1
+            # Log every skip at DEBUG, and every 30 skips at INFO for visibility
+            if self._frames_skipped % 30 == 0:
+                logger.info(f"Frame skip count: {self._frames_skipped} (still processing previous frame)")
+            else:
+                logger.debug(f"Skipping frame - currently processing (total skipped: {self._frames_skipped})")
             return
 
         self._processing = True
         frame_start = time.time()
+        logger.debug(f"Processing frame {self.frame_count + 1}, skipped so far: {self._frames_skipped}")
         try:
             self.frame_count += 1
 
@@ -243,20 +254,34 @@ class PersonDetectorService:
             # Total frame time
             total_ms = (time.time() - frame_start) * 1000
 
-            # Log timing every 10 frames
-            if self.frame_count % 10 == 0:
-                logger.info(
-                    f"Frame {self.frame_count}: "
-                    f"total={total_ms:.1f}ms "
-                    f"(infer={inference_ms:.1f}ms, "
-                    f"post={postprocess_ms:.1f}ms, "
-                    f"draw={draw_ms:.1f}ms, "
-                    f"pub={publish_ms:.1f}ms) "
-                    f"| {len(results)} detections "
-                    f"| input={jpeg_size_kb:.1f}KB "
-                    f"| fps={self.fps:.1f} "
-                    f"| skipped={self._frames_skipped}"
+            # Log every frame at DEBUG level
+            logger.debug(
+                f"Frame {self.frame_count}: "
+                f"total={total_ms:.1f}ms "
+                f"(infer={inference_ms:.1f}ms, "
+                f"post={postprocess_ms:.1f}ms, "
+                f"draw={draw_ms:.1f}ms, "
+                f"pub={publish_ms:.1f}ms) "
+                f"| {len(results)} detections "
+                f"| input={jpeg_size_kb:.1f}KB"
+            )
+
+            # Log timing summary at INFO level every frame (more frequent for debugging)
+            # Also log warning if inference is slow (>100ms suggests ONNX fallback)
+            if inference_ms > 100:
+                logger.warning(
+                    f"SLOW INFERENCE Frame {self.frame_count}: {inference_ms:.1f}ms "
+                    f"(likely using ONNX CPU fallback instead of Hailo NPU)"
                 )
+
+            logger.info(
+                f"Frame {self.frame_count}: "
+                f"total={total_ms:.1f}ms "
+                f"(infer={inference_ms:.1f}ms) "
+                f"| {len(results)} detections "
+                f"| fps={self.fps:.1f} "
+                f"| skipped={self._frames_skipped}"
+            )
 
         except Exception as e:
             logger.error(f"Error processing frame: {e}", exc_info=True)
@@ -272,11 +297,25 @@ async def main():
     logger.info("=" * 60)
     logger.info("Gorai Person Detector Service")
     logger.info("=" * 60)
+    logger.info(f"Log level: {log_level}")
     logger.info(f"Robot: {settings.robot_name}")
     logger.info(f"Service: {settings.service_name}")
-    logger.info(f"Model: {settings.model_path}")
+    logger.info(f"NATS URL: {settings.nats_url}")
+    logger.info(f"Input topic: {settings.input_topic}")
+    logger.info(f"Output topics: {settings.output_topic_annotated}, {settings.output_topic_detections}")
+    logger.info(f"Model path: {settings.model_path}")
     logger.info(f"Confidence threshold: {settings.confidence_threshold}")
     logger.info(f"Classes: {settings.classes}")
+    logger.info(f"Draw boxes: {settings.draw_boxes}")
+
+    # Log whether Hailo is expected
+    if settings.model_path.endswith(".hef"):
+        logger.info("Model type: Hailo HEF (expecting Hailo NPU)")
+    elif settings.model_path.endswith(".onnx"):
+        logger.warning("Model type: ONNX (will use CPU - expect ~2 fps!)")
+        logger.warning("For better performance, use a .hef model with Hailo NPU")
+    else:
+        logger.warning(f"Unknown model type: {settings.model_path}")
     logger.info("=" * 60)
 
     # Create service

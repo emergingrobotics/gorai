@@ -39,6 +39,7 @@
     {
       "name": "person_detector",
       "rdl": "./services/person-detector/person-detector.rdl.json",
+      "log_level": "debug",
       "attributes": {
         "input_component": "main_camera",
         "model_path": "/models/yolox_s.onnx",

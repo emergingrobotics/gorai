@@ -62,11 +62,21 @@ type ComponentConfig struct {
 	Type       string         `json:"type"`
 	Model      string         `json:"model"`
 	Disabled   bool           `json:"disabled,omitempty"`
+	LogLevel   string         `json:"log_level,omitempty"` // Per-component log level (trace, debug, info, warn, error, fatal). Default: error
 	Attributes map[string]any `json:"attributes,omitempty"`
 	DependsOn  []string       `json:"depends_on,omitempty"`
 
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
+}
+
+// GetLogLevel returns the effective log level for this component.
+// Returns "error" if not specified.
+func (c *ComponentConfig) GetLogLevel() string {
+	if c.LogLevel == "" {
+		return "error"
+	}
+	return c.LogLevel
 }
 
 // ServiceConfig represents a service configuration.
@@ -76,6 +86,7 @@ type ServiceConfig struct {
 	Type       string          `json:"type,omitempty"`
 	Model      string          `json:"model,omitempty"`
 	Disabled   bool            `json:"disabled,omitempty"`
+	LogLevel   string          `json:"log_level,omitempty"` // Per-service log level (trace, debug, info, warn, error, fatal). Default: error
 	External   *ExternalConfig `json:"external,omitempty"`
 	Attributes map[string]any  `json:"attributes,omitempty"`
 	DependsOn  []string        `json:"depends_on,omitempty"`
@@ -86,6 +97,15 @@ type ServiceConfig struct {
 
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
+}
+
+// GetLogLevel returns the effective log level for this service.
+// Returns "error" if not specified.
+func (s *ServiceConfig) GetLogLevel() string {
+	if s.LogLevel == "" {
+		return "error"
+	}
+	return s.LogLevel
 }
 
 // HasServiceRDL returns true if this service references a Service RDL file.

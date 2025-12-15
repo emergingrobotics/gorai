@@ -23,18 +23,24 @@ try:
     from hailo_platform.pyhailort import InputVStreamParams, OutputVStreamParams
     from hailo_platform.pyhailort import HailoStreamInterface
     HAILO_AVAILABLE = True
-    logger.info("Hailo runtime available")
+    logger.info("Hailo runtime AVAILABLE - HailoRT imported successfully")
 except ImportError as e:
-    logger.warning(f"Hailo runtime not available: {e}")
-    logger.warning("Using ONNX fallback (slower)")
+    logger.warning("=" * 50)
+    logger.warning("HAILO RUNTIME NOT AVAILABLE")
+    logger.warning(f"Import error: {e}")
+    logger.warning("This means we will fall back to ONNX CPU inference")
+    logger.warning("Expected performance: ~2 fps (vs ~50 fps with Hailo)")
+    logger.warning("To fix: ensure HailoRT is installed and /dev/hailo0 is accessible")
+    logger.warning("=" * 50)
 
 # Fallback to ONNX Runtime
 ONNX_AVAILABLE = False
 try:
     import onnxruntime as ort
     ONNX_AVAILABLE = True
+    logger.info("ONNX Runtime available as fallback")
 except ImportError:
-    pass
+    logger.warning("ONNX Runtime not available - no fallback inference possible")
 
 
 class HailoBackend:
@@ -66,25 +72,47 @@ class HailoBackend:
 
     def _initialize_sync(self) -> None:
         """Synchronous initialization."""
+        logger.info("=" * 50)
+        logger.info("INITIALIZING INFERENCE BACKEND")
+        logger.info(f"Model path: {self.model_path}")
+        logger.info(f"Model exists: {os.path.exists(self.model_path)}")
+        logger.info(f"Hailo available: {HAILO_AVAILABLE}")
+        logger.info(f"ONNX available: {ONNX_AVAILABLE}")
+        logger.info("=" * 50)
+
         if self.model_path.endswith(".hef") and HAILO_AVAILABLE:
             try:
+                logger.info("Attempting Hailo NPU initialization...")
                 self._initialize_hailo()
+                logger.info("SUCCESS: Using Hailo NPU backend (~50 fps expected)")
             except Exception as e:
                 logger.error(f"Failed to initialize Hailo: {e}")
                 logger.warning("Falling back to mock backend")
+                logger.warning("NO INFERENCE WILL BE PERFORMED")
         elif self.model_path.endswith(".onnx") and ONNX_AVAILABLE:
+            logger.warning("=" * 50)
+            logger.warning("USING ONNX CPU BACKEND - SLOW PERFORMANCE EXPECTED!")
+            logger.warning("Expected: ~2 fps (model file is .onnx)")
+            logger.warning("For better performance, use a .hef model with Hailo NPU")
+            logger.warning("=" * 50)
             self._initialize_onnx()
         elif ONNX_AVAILABLE:
             # Try ONNX fallback with .onnx extension
             onnx_path = self.model_path.replace(".hef", ".onnx")
             if os.path.exists(onnx_path):
+                logger.warning("=" * 50)
+                logger.warning("FALLING BACK TO ONNX CPU BACKEND")
+                logger.warning(f"HEF model requested but using ONNX: {onnx_path}")
+                logger.warning("Expected: ~2 fps")
+                logger.warning("=" * 50)
                 self.model_path = onnx_path
                 self._initialize_onnx()
             else:
-                logger.warning(f"No inference backend available for {self.model_path}")
+                logger.error(f"No inference backend available for {self.model_path}")
+                logger.error(f"Tried ONNX fallback at: {onnx_path} - not found")
                 logger.warning("Using mock backend - will return empty detections")
         else:
-            logger.warning(f"No inference backend available for {self.model_path}")
+            logger.error(f"No inference backend available for {self.model_path}")
             logger.warning("Using mock backend - will return empty detections")
 
     def _initialize_hailo(self) -> None:
