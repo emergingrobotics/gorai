@@ -21,7 +21,7 @@ Robot Deployment
 ## Prerequisites
 
 - Linux (Raspberry Pi OS, Ubuntu, Fedora)
-- Go 1.22+ (for building)
+- Go 1.22+ (for building gorai)
 - NATS server (`sudo apt install nats-server`)
 - Camera at `/dev/video0`
 
@@ -38,13 +38,11 @@ sudo systemctl enable --now nats-server
 
 ```bash
 # Run in foreground (development)
-gorai run --config hello-camera.json
+make run
 
-# Or deploy as systemd service (production)
-gorai start --config hello-camera.json --enable
+# Or run as systemd service (production)
+make run-background
 ```
-
-Note: This simple example has no external services to build. Just run it directly.
 
 ### 3. Access the Dashboard
 
@@ -53,19 +51,19 @@ Open http://localhost:8080 in your browser to view the camera feed.
 ### 4. Check Status
 
 ```bash
-gorai status --config hello-camera.json
+make status
 ```
 
 ### 5. View Logs
 
 ```bash
-gorai logs --config hello-camera.json -f
+make logs
 ```
 
 ### 6. Stop
 
 ```bash
-gorai stop --config hello-camera.json
+make stop
 ```
 
 ## Configuration
