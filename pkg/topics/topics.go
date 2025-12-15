@@ -3,16 +3,16 @@
 // Topic Structure:
 //
 //	gorai.<robot_id>.<component>.<message_type>
-//	gorai.<robot_id>._system.<category>
+//	gorai.<robot_id>.system.<category>
 //
 // Examples:
 //
 //	gorai.my-robot.main_camera.data         - Camera image data
 //	gorai.my-robot.left_motor.command       - Motor command
 //	gorai.my-robot.imu.state                - IMU state
-//	gorai.my-robot._system.startup          - System startup events
-//	gorai.my-robot._system.logs             - System logs
-//	gorai.my-robot._system.diagnostics      - System diagnostics
+//	gorai.my-robot.system.startup          - System startup events
+//	gorai.my-robot.system.logs             - System logs
+//	gorai.my-robot.system.diagnostics      - System diagnostics
 package topics
 
 import "fmt"
@@ -29,10 +29,10 @@ const (
 	Status = "status"
 )
 
-// System categories (component name is _system)
+// System categories (component name is system)
 const (
 	// SystemComponent is the special component name for system-level messages
-	SystemComponent = "_system"
+	SystemComponent = "system"
 
 	// Startup is for system startup events (component detection, initialization)
 	Startup = "startup"
@@ -83,7 +83,7 @@ func (b *Builder) ComponentStatus(component string) string {
 }
 
 // System returns a system topic for the given category.
-// Example: System("startup") -> "gorai.my-robot._system.startup"
+// Example: System("startup") -> "gorai.my-robot.system.startup"
 func (b *Builder) System(category string) string {
 	return fmt.Sprintf("gorai.%s.%s.%s", b.robotID, SystemComponent, category)
 }

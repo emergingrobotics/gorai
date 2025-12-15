@@ -71,7 +71,7 @@ class Settings:
         )
         settings.heartbeat_topic = os.environ.get(
             "HEARTBEAT_TOPIC",
-            f"gorai.{settings.namespace}._system.heartbeat"
+            f"gorai.{settings.namespace}.system.heartbeat"
         )
 
         # Parse resolved topics from Gorai runtime (JSON format)
