@@ -27,8 +27,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Build Targets:"
-	@echo "  build         Build the robot and external service container"
-	@echo "  build-service Build only the person-detector container"
+	@echo "  build         Build the robot and person-detector container"
 	@echo ""
 	@echo "Run Targets:"
 	@echo "  run           Run the robot (foreground, Ctrl+C to stop)"
@@ -63,9 +62,6 @@ help:
 build:
 	@echo "==> Building $(ROBOT_NAME)..."
 	gorai build --config $(RDL_FILE) --no-cache
-
-.PHONY: build-service
-build-service:
 	@echo "==> Building person-detector container..."
 	podman build --no-cache -t localhost/person-detector:latest ./services/person-detector
 
@@ -117,7 +113,7 @@ validate:
 	gorai validate $(ROBOT_NAME)
 
 .PHONY: clean
-clean:
+clean: stop
 	@echo "==> Cleaning up..."
 	-podman rm person_detector 2>/dev/null || true
 	rm -rf .gorai/
