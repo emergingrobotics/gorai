@@ -60,6 +60,8 @@ class PersonDetectorService:
         self.fps: float = 0.0
         self._fps_frame_count = 0
         self._fps_last_time: Optional[float] = None
+        self._processing = False  # Guard against queue buildup
+        self._frames_skipped = 0
 
     async def start(self) -> None:
         """Start the service."""
@@ -75,6 +77,7 @@ class PersonDetectorService:
         self.backend = HailoBackend(
             model_path=self.settings.model_path,
             confidence_threshold=self.settings.confidence_threshold,
+            input_size=(self.settings.input_size, self.settings.input_size),
         )
         await self.backend.initialize()
         logger.info(f"Initialized Hailo backend with model: {self.settings.model_path}")
@@ -147,8 +150,14 @@ class PersonDetectorService:
 
     async def _handle_frame(self, msg) -> None:
         """Handle incoming camera frame."""
+        # Skip frame if already processing to prevent queue buildup
+        if self._processing:
+            self._frames_skipped += 1
+            return
+
+        self._processing = True
+        frame_start = time.time()
         try:
-            frame_start = time.time()
             self.frame_count += 1
 
             # Update FPS calculation
@@ -164,20 +173,24 @@ class PersonDetectorService:
                     self._fps_frame_count = 0
                     self._fps_last_time = now
 
-            # Decode JPEG image
+            # Get JPEG image data
             jpeg_data = msg.data
+            jpeg_size_kb = len(jpeg_data) / 1024
 
-            # Run inference
+            # Run inference - returns (detections, decoded_image) to avoid double decode
             inference_start = time.time()
-            raw_detections = await self.backend.infer(jpeg_data)
-            self.last_inference_ms = (time.time() - inference_start) * 1000
+            raw_detections, decoded_image = await self.backend.infer(jpeg_data)
+            inference_ms = (time.time() - inference_start) * 1000
+            self.last_inference_ms = inference_ms
 
             # Post-process detections
+            postprocess_start = time.time()
             detections = postprocess_detections(
                 raw_detections,
                 classes=self.settings.classes,
                 confidence_threshold=self.settings.confidence_threshold,
             )
+            postprocess_ms = (time.time() - postprocess_start) * 1000
 
             # Create detection results
             results = []
@@ -194,19 +207,22 @@ class PersonDetectorService:
                 })
                 self.detection_count += 1
 
-            # Draw bounding boxes on image
-            if self.settings.draw_boxes and detections:
+            # Draw bounding boxes on image - use decoded image to avoid re-decode
+            draw_start = time.time()
+            if decoded_image is not None:
                 annotated_jpeg = draw_bounding_boxes(
-                    jpeg_data,
-                    detections,
+                    decoded_image,  # Pass numpy array instead of JPEG bytes
+                    detections if self.settings.draw_boxes else [],
                     color=self.settings.box_color,
                     thickness=self.settings.box_thickness,
                     draw_labels=self.settings.draw_labels,
                 )
             else:
                 annotated_jpeg = jpeg_data
+            draw_ms = (time.time() - draw_start) * 1000
 
             # Publish annotated image
+            publish_start = time.time()
             await self.nc.publish(
                 self.settings.output_topic_annotated,
                 annotated_jpeg,
@@ -222,12 +238,30 @@ class PersonDetectorService:
                 self.settings.output_topic_detections,
                 json.dumps(detection_msg).encode(),
             )
+            publish_ms = (time.time() - publish_start) * 1000
 
-            if self.frame_count % 100 == 0:
-                logger.debug(f"Processed {self.frame_count} frames, {len(results)} detections in this frame")
+            # Total frame time
+            total_ms = (time.time() - frame_start) * 1000
+
+            # Log timing every 10 frames
+            if self.frame_count % 10 == 0:
+                logger.info(
+                    f"Frame {self.frame_count}: "
+                    f"total={total_ms:.1f}ms "
+                    f"(infer={inference_ms:.1f}ms, "
+                    f"post={postprocess_ms:.1f}ms, "
+                    f"draw={draw_ms:.1f}ms, "
+                    f"pub={publish_ms:.1f}ms) "
+                    f"| {len(results)} detections "
+                    f"| input={jpeg_size_kb:.1f}KB "
+                    f"| fps={self.fps:.1f} "
+                    f"| skipped={self._frames_skipped}"
+                )
 
         except Exception as e:
             logger.error(f"Error processing frame: {e}", exc_info=True)
+        finally:
+            self._processing = False
 
 
 async def main():

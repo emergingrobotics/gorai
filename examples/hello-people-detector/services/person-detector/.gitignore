@@ -1,0 +1,11 @@
+# Hailo runtime files (copied from host, not checked in)
+hailo_runtime/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/

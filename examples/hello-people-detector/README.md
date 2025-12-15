@@ -50,26 +50,196 @@ The robot RDL references the Service RDL and provides:
 
 ## Prerequisites
 
-- Linux (Raspberry Pi OS, Ubuntu, Fedora)
+- Raspberry Pi 5 with Raspberry Pi OS (Bookworm)
 - Go 1.22+ (for building gorai)
-- NATS server (`sudo apt install nats-server`)
+- NATS server
 - Podman (for running external service container)
 - Camera at `/dev/video0`
-- Hailo-8L NPU at `/dev/hailo0` (optional, falls back to ONNX)
+- Hailo-8 NPU at `/dev/hailo0` (for real-time inference)
 
-### Install Dependencies
+## Host Setup (Raspberry Pi 5)
+
+This section covers everything needed on the Raspberry Pi before building the container.
+
+### 1. Base System Dependencies
 
 ```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
 # NATS server
-sudo apt install nats-server
+sudo apt install -y nats-server
 sudo systemctl enable --now nats-server
 
-# Podman
-sudo apt install podman
+# Podman for container runtime
+sudo apt install -y podman
 
 # Enable podman socket for managed containers
 systemctl --user enable --now podman.socket
 ```
+
+### 2. Hailo-8 NPU Setup
+
+The Hailo-8 AI accelerator provides 26 TOPS for real-time inference (~50 fps for YOLOv8s).
+
+#### Install Hailo Software Stack
+
+Raspberry Pi OS includes Hailo packages in the official repository:
+
+```bash
+# Install Hailo meta-package (includes everything)
+sudo apt install -y hailo-all
+
+# This installs:
+# - hailort          : HailoRT runtime library
+# - hailofw          : Hailo firmware
+# - hailo-dkms       : PCIe kernel driver
+# - python3-hailort  : Python bindings
+# - hailo-tappas-core: Pre-compiled models and tools
+```
+
+#### Verify Installation
+
+```bash
+# Check device is detected
+ls -la /dev/hailo0
+# Expected: crw-rw-rw- 1 root plugdev 238, 0 ... /dev/hailo0
+
+# Check HailoRT version
+hailortcli --version
+# Expected: HailoRT-CLI version 4.20.0 (or similar)
+
+# Verify NPU communication
+hailortcli fw-control identify
+# Expected output:
+# Executing on device: 0001:04:00.0
+# Identifying board
+# Control Protocol Version: 2
+# Firmware Version: 4.20.0
+# Board Name: Hailo-8
+# Device Architecture: HAILO8
+# Serial Number: HLLWM2B...
+```
+
+#### Device Permissions
+
+The device should be accessible to all users by default. If not:
+
+```bash
+# Check current permissions
+ls -la /dev/hailo0
+
+# If permissions are restrictive, add udev rule
+echo 'SUBSYSTEM=="hailo", MODE="0666"' | sudo tee /etc/udev/rules.d/99-hailo.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+# Or add user to plugdev group
+sudo usermod -aG plugdev $USER
+# Log out and back in
+```
+
+### 3. Prepare Container Build Dependencies
+
+The container needs Hailo Python bindings and the native library. These must be copied from the host into the container build context.
+
+#### Locate Required Files
+
+```bash
+# Python bindings location
+ls /usr/lib/python3/dist-packages/hailo_platform/
+# Key file: pyhailort/_pyhailort.cpython-311-aarch64-linux-gnu.so
+
+# Native library location
+ls /usr/lib/libhailort*
+# Files: libhailort.so -> libhailort.so.4.20.0
+
+# Pre-compiled HEF models
+ls /usr/share/hailo-models/*.hef
+# Models available:
+# - yolov8s_h8.hef      : YOLOv8 small for Hailo-8 (~50 fps)
+# - yolov8s_h8l.hef     : YOLOv8 small for Hailo-8L
+# - yolov6n_h8.hef      : YOLOv6 nano for Hailo-8
+# - yolox_s_leaky_h8l_rpi.hef : YOLOX small for Hailo-8L
+```
+
+#### Copy Files to Build Context
+
+Run this script to copy all required files for container build:
+
+```bash
+cd /path/to/gorai/examples/hello-people-detector/services/person-detector
+
+# Create directories for Hailo runtime files
+mkdir -p hailo_runtime/lib
+mkdir -p hailo_runtime/python
+
+# Copy Python bindings (entire hailo_platform package)
+cp -r /usr/lib/python3/dist-packages/hailo_platform hailo_runtime/python/
+cp -r /usr/lib/python3/dist-packages/hailort-*.egg-info hailo_runtime/python/
+
+# Copy native library
+cp /usr/lib/libhailort.so.4.20.0 hailo_runtime/lib/
+ln -sf libhailort.so.4.20.0 hailo_runtime/lib/libhailort.so
+
+# Verify
+ls -la hailo_runtime/lib/
+ls -la hailo_runtime/python/hailo_platform/
+```
+
+#### Copy Model File
+
+```bash
+# Create models directory if needed
+sudo mkdir -p /opt/gorai/models
+
+# Copy the YOLOv8s model for Hailo-8
+sudo cp /usr/share/hailo-models/yolov8s_h8.hef /opt/gorai/models/
+
+# Verify
+ls -la /opt/gorai/models/
+```
+
+### 4. Verify Host Python Bindings Work
+
+Before building the container, verify the host installation works:
+
+```bash
+# Test Python can import hailo_platform
+python3 -c "
+from hailo_platform import HEF, VDevice
+print('HailoRT Python bindings loaded successfully')
+print(f'Creating VDevice...')
+vd = VDevice()
+print('VDevice created - Hailo NPU is accessible')
+"
+```
+
+### 5. Version Compatibility Matrix
+
+| Component | Version | Location |
+|-----------|---------|----------|
+| Raspberry Pi OS | Bookworm (Debian 12) | - |
+| Python | 3.11.x | System |
+| HailoRT | 4.20.0 | `/usr/lib/libhailort.so.4.20.0` |
+| Python bindings | 4.20.0 | `/usr/lib/python3/dist-packages/hailo_platform/` |
+| Container Python | 3.11.x | Must match host Python version |
+
+**Important**: The container's Python version must match the host's Python version (3.11) because the native extension (`_pyhailort.cpython-311-aarch64-linux-gnu.so`) is compiled for a specific Python version.
+
+### Summary Checklist
+
+Before building the container, ensure:
+
+- [ ] `hailortcli fw-control identify` shows Hailo-8 NPU
+- [ ] `/dev/hailo0` exists with appropriate permissions
+- [ ] `python3-hailort` package installed (`dpkg -l | grep python3-hailort`)
+- [ ] Python can import hailo_platform
+- [ ] Files copied to `services/person-detector/hailo_runtime/`:
+  - [ ] `lib/libhailort.so.4.20.0`
+  - [ ] `lib/libhailort.so` (symlink)
+  - [ ] `python/hailo_platform/` (directory)
+- [ ] Model file at `/opt/gorai/models/yolov8s_h8.hef`
 
 ## Quick Start
 
@@ -124,12 +294,61 @@ person_detector  object_detection  yolox   running   external (container)
 ### 5. View Logs
 
 ```bash
-# All logs
+# All logs from gorai
 gorai logs --config hello-people-detector.json -f
 
-# Just the external service
+# Person detector container logs (recommended for debugging)
 podman logs -f person_detector
 ```
+
+## Viewing Container Logs
+
+The person detector runs in a Podman container. Use these commands to view logs:
+
+```bash
+# Follow logs in real-time (like tail -f)
+podman logs -f person_detector
+
+# Show last 100 lines
+podman logs --tail 100 person_detector
+
+# Show logs with timestamps
+podman logs -t person_detector
+
+# Show logs since a specific time
+podman logs --since 5m person_detector   # Last 5 minutes
+podman logs --since 1h person_detector   # Last hour
+
+# Combine options: last 50 lines with timestamps, follow
+podman logs -t --tail 50 -f person_detector
+```
+
+### Understanding the Log Output
+
+The person detector logs timing information every 10 frames:
+
+```
+Frame 100: total=523.4ms (infer=498.2ms, post=0.3ms, draw=18.1ms, pub=6.8ms) | 2 detections | input=45.2KB | fps=1.9 | skipped=127
+```
+
+| Field | Description |
+|-------|-------------|
+| `total` | Total frame processing time |
+| `infer` | Inference time (decode + preprocess + model + parse) |
+| `post` | Post-processing time (NMS, filtering) |
+| `draw` | Bounding box drawing + JPEG encoding |
+| `pub` | NATS publish time |
+| `detections` | Number of persons detected |
+| `input` | Input JPEG size |
+| `fps` | Current processing FPS |
+| `skipped` | Frames skipped (when processing can't keep up) |
+
+### Performance Analysis
+
+- **If `infer` is high (>100ms)**: Using ONNX CPU fallback, not Hailo NPU
+- **If `draw` is high (>50ms)**: Image encoding bottleneck
+- **If `skipped` is growing**: Camera FPS exceeds processing FPS
+- **Expected with Hailo-8**: `infer` ~20ms, `total` ~40ms, fps ~25-50
 
 ## Configuration
 
@@ -266,38 +485,128 @@ podman logs person_detector
 ls -la /dev/hailo0
 ```
 
-### No Detections
-
-1. Check confidence threshold (default 0.5 might be too high)
-2. Verify model file exists at MODEL_PATH
-3. Check NATS connectivity: `nats sub "gorai.hello-people-detector.>"`
-
-### Permission Denied
+### Hailo NPU Not Detected in Container
 
 ```bash
-# Add user to required groups
-sudo usermod -aG video,hailo $USER
+# Verify device passthrough
+podman run --rm --device /dev/hailo0 alpine ls -la /dev/hailo0
 
+# Check if another process is using the NPU
+lsof /dev/hailo0
+
+# Verify HailoRT library is in container
+podman run --rm localhost/person-detector:latest ls -la /usr/lib/libhailort*
+
+# Test Hailo import in container
+podman run --rm localhost/person-detector:latest python3 -c "from hailo_platform import VDevice; print('OK')"
+```
+
+### "Failed to create VDevice" Error
+
+This usually means another process has the NPU open:
+
+```bash
+# Stop all containers that might be using Hailo
+podman stop $(podman ps -q)
+
+# Check what's using the device
+sudo lsof /dev/hailo0
+
+# If rpicam-apps is running, stop it
+pkill -f rpicam
+```
+
+### No Detections / No Bounding Boxes
+
+1. **Check model format**: Ensure using `.hef` file for Hailo, `.onnx` for CPU fallback
+2. **Check model architecture**: `yolov8s_h8.hef` for Hailo-8, `yolov8s_h8l.hef` for Hailo-8L
+3. **Lower confidence threshold**: Default 0.5 might be too high for your scene
+4. **Check NATS connectivity**: `nats sub "gorai.hello-people-detector.>"`
+5. **View container logs**: `podman logs -f person_detector`
+
+### Slow Performance (< 10 fps)
+
+If running slower than expected:
+
+```bash
+# Check which backend is being used
+podman logs person_detector 2>&1 | grep -i "backend\|hailo\|onnx"
+
+# If "ONNX backend" appears, Hailo isn't being used
+# Verify Hailo files are in container:
+podman run --rm localhost/person-detector:latest ls -la /usr/lib/libhailort*
+podman run --rm localhost/person-detector:latest ls -la /app/hailo_runtime/
+```
+
+Expected performance:
+| Backend | Model | FPS |
+|---------|-------|-----|
+| Hailo-8 NPU | yolov8s_h8.hef | ~50 fps |
+| Hailo-8L NPU | yolov8s_h8l.hef | ~25 fps |
+| ONNX CPU | yolov8s.onnx | ~2 fps |
+
+### Permission Denied on /dev/hailo0
+
+```bash
+# Check current permissions
+ls -la /dev/hailo0
+
+# Add udev rule for persistent permissions
+echo 'SUBSYSTEM=="hailo", MODE="0666"' | sudo tee /etc/udev/rules.d/99-hailo.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+# Or add user to plugdev group
+sudo usermod -aG video,plugdev $USER
 # Log out and back in
+```
+
+### HailoRT Version Mismatch
+
+The container's HailoRT version must match the host:
+
+```bash
+# Check host version
+hailortcli --version
+
+# Check container version
+podman run --rm localhost/person-detector:latest python3 -c "import hailo_platform; print('OK')"
+
+# If mismatch, rebuild container with updated hailo_runtime/ files
 ```
 
 ## Files
 
 ```
 hello-people-detector/
-+-- hello-people-detector.json      # Robot RDL
-+-- README.md                        # This file
-+-- services/
-    +-- person-detector/
-        +-- person-detector.rdl.json  # Service RDL
-        +-- main.py                   # Python service entry point
-        +-- Containerfile             # Container build definition
-        +-- requirements.txt          # Python dependencies
-        +-- config/                   # Configuration module
-        +-- inference/                # Hailo/ONNX backend
-        +-- processing/               # Post-processing (NMS, etc.)
-        +-- annotate/                 # Bounding box drawing
+├── hello-people-detector.json      # Robot RDL
+├── README.md                        # This file
+├── Makefile                         # Build and run targets
+├── plans/
+│   └── hailo.md                     # Hailo NPU integration plan
+└── services/
+    └── person-detector/
+        ├── person-detector.rdl.json  # Service RDL
+        ├── main.py                   # Python service entry point
+        ├── Containerfile             # Container build definition
+        ├── requirements.txt          # Python dependencies
+        ├── config/                   # Configuration module
+        │   └── settings.py
+        ├── inference/                # Hailo/ONNX backend
+        │   └── hailo_backend.py
+        ├── processing/               # Post-processing (NMS, etc.)
+        │   └── postprocess.py
+        ├── annotate/                 # Bounding box drawing
+        │   └── draw_boxes.py
+        └── hailo_runtime/            # Copied from host (not in git)
+            ├── lib/
+            │   ├── libhailort.so.4.20.0
+            │   └── libhailort.so -> libhailort.so.4.20.0
+            └── python/
+                └── hailo_platform/   # Python bindings
 ```
+
+**Note**: The `hailo_runtime/` directory is not checked into git. It must be populated from the host system before building. See [Host Setup](#3-prepare-container-build-dependencies).
 
 ## See Also
 

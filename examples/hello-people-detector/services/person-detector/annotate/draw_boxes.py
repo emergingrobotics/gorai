@@ -16,7 +16,7 @@ def hex_to_bgr(hex_color: str) -> Tuple[int, int, int]:
 
 
 def draw_bounding_boxes(
-    jpeg_data: bytes,
+    image_input,  # Can be bytes (JPEG) or np.ndarray (decoded image)
     detections: List[Dict[str, Any]],
     color: str = "#00FF00",
     thickness: int = 2,
@@ -24,10 +24,10 @@ def draw_bounding_boxes(
     font_scale: float = 0.6,
     jpeg_quality: int = 80,
 ) -> bytes:
-    """Draw bounding boxes on JPEG image.
+    """Draw bounding boxes on image.
 
     Args:
-        jpeg_data: Input JPEG image as bytes
+        image_input: Input image - either JPEG bytes or decoded numpy array
         detections: List of detection dicts with class, confidence, bbox
         color: Box color in hex format
         thickness: Line thickness in pixels
@@ -38,12 +38,16 @@ def draw_bounding_boxes(
     Returns:
         Annotated JPEG image as bytes
     """
-    # Decode JPEG
-    nparr = np.frombuffer(jpeg_data, np.uint8)
-    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    # Handle both JPEG bytes and numpy array input
+    if isinstance(image_input, np.ndarray):
+        image = image_input
+    else:
+        # Decode JPEG
+        nparr = np.frombuffer(image_input, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     if image is None:
-        return jpeg_data
+        return image_input if isinstance(image_input, bytes) else b''
 
     h, w = image.shape[:2]
     box_color = hex_to_bgr(color)

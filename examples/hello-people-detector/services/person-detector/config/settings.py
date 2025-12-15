@@ -33,6 +33,7 @@ class Settings:
     model_path: str = "/models/yolox_s_leaky.hef"
     confidence_threshold: float = 0.5
     classes: List[str] = field(default_factory=lambda: ["person"])
+    input_size: int = 640  # Model input size (320, 416, 640) - smaller = faster
 
     # Annotation settings
     draw_boxes: bool = True
@@ -97,6 +98,9 @@ class Settings:
         settings.model_path = os.environ.get("MODEL_PATH", settings.model_path)
         settings.confidence_threshold = float(
             os.environ.get("CONFIDENCE_THRESHOLD", settings.confidence_threshold)
+        )
+        settings.input_size = int(
+            os.environ.get("INPUT_SIZE", settings.input_size)
         )
 
         # Classes can be comma-separated or JSON array
