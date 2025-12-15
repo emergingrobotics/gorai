@@ -27,6 +27,7 @@ class Settings:
     input_topic: str = ""
     output_topic_annotated: str = ""
     output_topic_detections: str = ""
+    heartbeat_topic: str = ""
 
     # Model configuration
     model_path: str = "/models/yolox_s_leaky.hef"
@@ -67,6 +68,10 @@ class Settings:
         settings.output_topic_detections = os.environ.get(
             "OUTPUT_TOPIC_DETECTIONS",
             f"gorai.{settings.namespace}.{settings.service_name}.detections"
+        )
+        settings.heartbeat_topic = os.environ.get(
+            "HEARTBEAT_TOPIC",
+            f"gorai.{settings.namespace}._system.heartbeat"
         )
 
         # Parse resolved topics from Gorai runtime (JSON format)

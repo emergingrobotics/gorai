@@ -41,7 +41,7 @@
       "rdl": "./services/person-detector/person-detector.rdl.json",
       "attributes": {
         "input_component": "main_camera",
-        "model_path": "/models/yolox_s_leaky.hef",
+        "model_path": "/models/yolox_s.onnx",
         "confidence_threshold": 0.5,
         "classes": ["person"]
       },

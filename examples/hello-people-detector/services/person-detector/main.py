@@ -16,6 +16,7 @@ import logging
 import os
 import signal
 import sys
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -54,6 +55,11 @@ class PersonDetectorService:
         self.running = False
         self.frame_count = 0
         self.detection_count = 0
+        self.start_time: Optional[float] = None
+        self.last_inference_ms: float = 0.0
+        self.fps: float = 0.0
+        self._fps_frame_count = 0
+        self._fps_last_time: Optional[float] = None
 
     async def start(self) -> None:
         """Start the service."""
@@ -75,15 +81,27 @@ class PersonDetectorService:
 
         # Subscribe to input topic
         self.running = True
+        self.start_time = time.time()
         await self.nc.subscribe(
             self.settings.input_topic,
             cb=self._handle_frame,
         )
         logger.info(f"Subscribed to {self.settings.input_topic}")
 
+        # Start heartbeat task
+        logger.info(f"Starting heartbeat publisher on topic: {self.settings.heartbeat_topic}")
+        heartbeat_task = asyncio.create_task(self._publish_heartbeats())
+
         # Keep running
         while self.running:
             await asyncio.sleep(1)
+
+        # Cancel heartbeat task
+        heartbeat_task.cancel()
+        try:
+            await heartbeat_task
+        except asyncio.CancelledError:
+            pass
 
     async def stop(self) -> None:
         """Stop the service gracefully."""
@@ -99,16 +117,60 @@ class PersonDetectorService:
 
         logger.info(f"Service stopped. Processed {self.frame_count} frames, {self.detection_count} detections")
 
+    async def _publish_heartbeats(self) -> None:
+        """Publish periodic heartbeat messages for dashboard monitoring."""
+        while self.running:
+            try:
+                uptime = time.time() - self.start_time if self.start_time else 0.0
+                heartbeat = {
+                    "name": self.settings.service_name,
+                    "type": "service",
+                    "subtype": "object_detection",
+                    "status": "running",
+                    "metrics": {
+                        "frames_processed": self.frame_count,
+                        "total_detections": self.detection_count,
+                        "fps": round(self.fps, 1),
+                        "inference_ms": round(self.last_inference_ms, 1),
+                        "uptime_seconds": round(uptime, 1),
+                    }
+                }
+                await self.nc.publish(
+                    self.settings.heartbeat_topic,
+                    json.dumps(heartbeat).encode(),
+                )
+                logger.info(f"Published heartbeat: fps={self.fps:.1f}, frames={self.frame_count}")
+            except Exception as e:
+                logger.warning(f"Failed to publish heartbeat: {e}")
+
+            await asyncio.sleep(5)  # Publish every 5 seconds
+
     async def _handle_frame(self, msg) -> None:
         """Handle incoming camera frame."""
         try:
+            frame_start = time.time()
             self.frame_count += 1
+
+            # Update FPS calculation
+            now = time.time()
+            if self._fps_last_time is None:
+                self._fps_last_time = now
+                self._fps_frame_count = 0
+            else:
+                self._fps_frame_count += 1
+                elapsed = now - self._fps_last_time
+                if elapsed >= 1.0:  # Update FPS every second
+                    self.fps = self._fps_frame_count / elapsed
+                    self._fps_frame_count = 0
+                    self._fps_last_time = now
 
             # Decode JPEG image
             jpeg_data = msg.data
 
             # Run inference
+            inference_start = time.time()
             raw_detections = await self.backend.infer(jpeg_data)
+            self.last_inference_ms = (time.time() - inference_start) * 1000
 
             # Post-process detections
             detections = postprocess_detections(
