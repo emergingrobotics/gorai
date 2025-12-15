@@ -77,8 +77,8 @@ func cmdBuild() error {
 	configPath, _ = filepath.Abs(configPath)
 	configDir := filepath.Dir(configPath)
 
-	// Load configuration
-	cfg, err := config.Load(configPath)
+	// Load configuration with Service RDL support
+	cfg, err := config.LoadWithServiceRDL(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -146,13 +146,6 @@ func getBuildableServices(cfg *config.RDL, configDir string, filterNames []strin
 	var result []BuildableService
 
 	for _, svc := range cfg.Services {
-		// Skip if not external or not a container
-		if !svc.IsExternal() || svc.External.Container == nil {
-			continue
-		}
-
-		container := svc.External.Container
-
 		// Check if we should filter by name
 		if len(filterNames) > 0 {
 			found := false
@@ -166,6 +159,13 @@ func getBuildableServices(cfg *config.RDL, configDir string, filterNames []strin
 				continue
 			}
 		}
+
+		// Skip if not external or not a container
+		if !svc.IsExternal() || svc.External.Container == nil {
+			continue
+		}
+
+		container := svc.External.Container
 
 		// Skip non-local images (they're pulled, not built)
 		if !strings.HasPrefix(container.Image, "localhost/") {
@@ -185,14 +185,33 @@ func getBuildableServices(cfg *config.RDL, configDir string, filterNames []strin
 			bs.Target = container.Build.Target
 			bs.NoCache = container.Build.NoCache
 		} else {
-			// Convention-based discovery
-			bs.Context, bs.Containerfile = discoverBuildContext(configDir, svc.Name)
+			// Check if Service RDL has build context
+			if svc.HasServiceRDL() && svc.RDL != "" {
+				// The build context might be relative to the Service RDL file
+				rdlDir := filepath.Dir(filepath.Join(configDir, svc.RDL))
+				bs.Context, bs.Containerfile = discoverBuildContext(rdlDir, svc.Name)
+				if bs.Context == "" {
+					// Also try with service name from image
+					imageName := strings.TrimPrefix(container.Image, "localhost/")
+					imageName = strings.Split(imageName, ":")[0]
+					bs.Context, bs.Containerfile = discoverBuildContext(rdlDir, imageName)
+				}
+			}
+
+			// Convention-based discovery relative to robot config
+			if bs.Context == "" {
+				bs.Context, bs.Containerfile = discoverBuildContext(configDir, svc.Name)
+			}
 		}
 
 		// Skip if no build context found
 		if bs.Context == "" {
 			fmt.Printf("  Note: Skipping %s - no build context found\n", svc.Name)
-			fmt.Printf("        Add 'build.context' to config or create services/%s/Containerfile\n", svc.Name)
+			if svc.HasServiceRDL() {
+				fmt.Printf("        Add 'build.context' to Service RDL or robot config\n")
+			} else {
+				fmt.Printf("        Add 'build.context' to config or create services/%s/Containerfile\n", svc.Name)
+			}
 			continue
 		}
 

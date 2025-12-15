@@ -67,7 +67,7 @@ func cmdValidate() error {
 	if err != nil {
 		return fmt.Errorf("  ! Schema error: %w", err)
 	}
-	fmt.Println("  + Schema valid (RDL v1)")
+	fmt.Println("  + Schema valid (RDL v2)")
 
 	// Stage 3: Semantic Validation
 	if err := cfg.Validate(); err != nil {
@@ -78,6 +78,30 @@ func cmdValidate() error {
 	fmt.Printf("  + %d services defined\n", len(cfg.Services))
 	fmt.Println("  + Dependencies resolvable")
 	fmt.Println("  + No circular dependencies")
+
+	// Stage 3.5: Service RDL Validation
+	serviceRDLCount := 0
+	for _, svc := range cfg.Services {
+		if svc.RDL != "" {
+			serviceRDLCount++
+		}
+	}
+	if serviceRDLCount > 0 {
+		fmt.Printf("  + %d services with Service RDL\n", serviceRDLCount)
+
+		// Try to load with Service RDL resolution
+		configDir := "."
+		if strings.Contains(configPath, "/") {
+			configDir = configPath[:strings.LastIndex(configPath, "/")]
+		}
+		merger := config.NewServiceMerger(cfg, configDir)
+		if err := merger.LoadAndMergeServices(); err != nil {
+			return fmt.Errorf("  ! Service RDL error: %w", err)
+		}
+		fmt.Println("  + All Service RDL files valid")
+		fmt.Println("  + All topic patterns resolved")
+		fmt.Println("  + All required attributes provided")
+	}
 
 	// Stage 4: Registry Validation (check if types/models exist)
 	if strict {

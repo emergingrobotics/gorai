@@ -3,23 +3,23 @@ package commands
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"syscall"
 
 	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/systemd"
+	"github.com/gorai/gorai/pkg/runtime"
 )
 
 func cmdLogs() error {
 	// Parse flags
 	var configPath string
 	var follow bool
-	var tail int
-	var timestamps bool
-	var containers []string
+	var serviceName string
+	var userMode bool = true
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -32,33 +32,22 @@ func cmdLogs() error {
 			configPath = args[i]
 		case "-f", "--follow":
 			follow = true
-		case "-n", "--tail":
+		case "-s", "--service":
 			if i+1 >= len(args) {
-				return fmt.Errorf("--tail requires a value")
+				return fmt.Errorf("--service requires a value")
 			}
 			i++
-			n, err := strconv.Atoi(args[i])
-			if err != nil {
-				return fmt.Errorf("invalid tail value: %s", args[i])
-			}
-			tail = n
-		case "-t", "--timestamps":
-			timestamps = true
-		case "--container":
-			if i+1 >= len(args) {
-				return fmt.Errorf("--container requires a value")
-			}
-			i++
-			containers = append(containers, args[i])
+			serviceName = args[i]
+		case "--system":
+			userMode = false
 		case "-h", "--help":
 			return printLogsUsage()
 		default:
 			if args[i][0] != '-' {
 				if configPath == "" {
 					configPath = args[i]
-				} else {
-					// Treat additional args as container names
-					containers = append(containers, args[i])
+				} else if serviceName == "" {
+					serviceName = args[i]
 				}
 			} else {
 				return fmt.Errorf("unknown flag: %s", args[i])
@@ -74,26 +63,16 @@ func cmdLogs() error {
 		}
 	}
 
-	// Load configuration
-	cfg, err := config.Load(configPath)
+	// Make config path absolute
+	if !filepath.IsAbs(configPath) {
+		configPath, _ = filepath.Abs(configPath)
+	}
+
+	// Load configuration with Service RDL support
+	cfg, err := config.LoadWithServiceRDL(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-
-	// Check if containers are defined
-	if cfg.Containers == nil || len(cfg.Containers) == 0 {
-		return fmt.Errorf("no containers defined in %s", configPath)
-	}
-
-	// Get service directory
-	workspaceDir := filepath.Dir(configPath)
-	if !filepath.IsAbs(workspaceDir) {
-		workspaceDir, _ = filepath.Abs(workspaceDir)
-	}
-	serviceDir := filepath.Join(workspaceDir, ".gorai")
-
-	// Create runner
-	runner := systemd.NewRunner(cfg.Robot.Name, serviceDir, true)
 
 	// Setup context with signal handling
 	ctx, cancel := context.WithCancel(context.Background())
@@ -106,43 +85,90 @@ func cmdLogs() error {
 		cancel()
 	}()
 
-	// Get logs using journalctl
-	opts := systemd.LogsOptions{
-		Containers: containers,
-		Follow:     follow,
-		Tail:       tail,
-		Timestamps: timestamps,
+	// If no service specified, show main robot logs via journalctl
+	if serviceName == "" {
+		return showJournalLogs(ctx, cfg.Robot.Name, follow, userMode)
 	}
 
-	if err := runner.Logs(ctx, opts); err != nil {
-		// Ignore context canceled errors (user pressed Ctrl+C)
-		if ctx.Err() != nil {
-			return nil
+	// Check if this is an external service
+	var targetService *config.ServiceConfig
+	for i := range cfg.Services {
+		if cfg.Services[i].Name == serviceName {
+			targetService = &cfg.Services[i]
+			break
 		}
-		return fmt.Errorf("failed to get logs: %w", err)
+	}
+
+	if targetService == nil {
+		return fmt.Errorf("service %q not found", serviceName)
+	}
+
+	// If it's an internal service, use journalctl
+	if !targetService.IsExternal() || !targetService.IsManaged() {
+		return showJournalLogs(ctx, cfg.Robot.Name, follow, userMode)
+	}
+
+	// Use appropriate method for external services
+	var reader io.ReadCloser
+	if targetService.External.Container != nil {
+		reader, err = runtime.GetContainerLogs(targetService.Name, follow)
+	} else {
+		reader, err = runtime.GetProcessLogs(targetService.Name, follow)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get logs for %s: %w", serviceName, err)
+	}
+	defer reader.Close()
+
+	// Stream logs to stdout
+	_, err = io.Copy(os.Stdout, reader)
+	if err != nil && ctx.Err() == nil {
+		return fmt.Errorf("error reading logs: %w", err)
 	}
 
 	return nil
 }
 
+func showJournalLogs(ctx context.Context, robotName string, follow, userMode bool) error {
+	args := []string{"-u", robotName + ".service", "--no-pager"}
+	if follow {
+		args = append(args, "-f")
+	}
+	if userMode {
+		args = append([]string{"--user"}, args...)
+	}
+
+	cmd := exec.CommandContext(ctx, "journalctl", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if ctx.Err() != nil {
+		return nil // Ignore if context was cancelled (user pressed Ctrl+C)
+	}
+	return err
+}
+
 func printLogsUsage() error {
-	fmt.Println(`gorai logs - View container logs (via journalctl)
+	fmt.Println(`gorai logs - View robot and service logs
 
 Usage:
-  gorai logs [--config robot.json] [flags] [container...]
+  gorai logs [--config robot.json] [flags] [service-name]
 
 Flags:
   -c, --config <file>     Path to robot configuration file
-  -f, --follow            Follow log output
-  -n, --tail <lines>      Number of lines to show from end of logs
-  -t, --timestamps        Show timestamps in ISO format
-  --container <name>      Show logs for specific container
+  -f, --follow            Follow log output (like tail -f)
+  -s, --service <name>    Show logs for specific service
+  --system                Use system mode for journalctl (default: user mode)
   -h, --help              Show this help message
 
+Without a service name, shows the main robot logs via journalctl.
+For external services (containers/processes), shows their specific logs.
+
 Examples:
-  gorai logs --config robot.json
-  gorai logs -c robot.json --follow
-  gorai logs --config robot.json --tail 100 --container gorai-hailo
-  gorai logs -c robot.json -f gorai-core`)
+  gorai logs --config robot.json              # Show main robot logs
+  gorai logs -c robot.json -f                 # Follow main robot logs
+  gorai logs --config robot.json person_detector  # Show service logs
+  gorai logs -c robot.json -s person_detector -f  # Follow service logs`)
 	return nil
 }

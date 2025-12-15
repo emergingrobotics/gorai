@@ -51,8 +51,8 @@ func cmdStart() error {
 	// Make paths absolute
 	configPath, _ = filepath.Abs(configPath)
 
-	// Load configuration
-	cfg, err := config.Load(configPath)
+	// Load configuration with Service RDL support
+	cfg, err := config.LoadWithServiceRDL(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}

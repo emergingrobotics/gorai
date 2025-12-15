@@ -34,18 +34,17 @@ sudo apt install nats-server
 sudo systemctl enable --now nats-server
 ```
 
-### 2. Build and Run
+### 2. Run
 
 ```bash
-# Build the robot
-gorai build --config hello-camera.json
-
 # Run in foreground (development)
 gorai run --config hello-camera.json
 
 # Or deploy as systemd service (production)
 gorai start --config hello-camera.json --enable
 ```
+
+Note: This simple example has no external services to build. Just run it directly.
 
 ### 3. Access the Dashboard
 

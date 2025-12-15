@@ -72,15 +72,45 @@ type ComponentConfig struct {
 // ServiceConfig represents a service configuration.
 type ServiceConfig struct {
 	Name       string          `json:"name"`
-	Type       string          `json:"type"`
-	Model      string          `json:"model"`
+	RDL        string          `json:"rdl,omitempty"` // Path to Service RDL file
+	Type       string          `json:"type,omitempty"`
+	Model      string          `json:"model,omitempty"`
 	Disabled   bool            `json:"disabled,omitempty"`
 	External   *ExternalConfig `json:"external,omitempty"`
 	Attributes map[string]any  `json:"attributes,omitempty"`
 	DependsOn  []string        `json:"depends_on,omitempty"`
 
+	// Internal fields populated after loading Service RDL
+	serviceRDL     *ServiceRDL    `json:"-"` // Loaded Service RDL (not serialized)
+	resolvedTopics *ResolvedTopics `json:"-"` // Resolved topic names (not serialized)
+
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
+}
+
+// HasServiceRDL returns true if this service references a Service RDL file.
+func (s *ServiceConfig) HasServiceRDL() bool {
+	return s.RDL != ""
+}
+
+// GetServiceRDL returns the loaded Service RDL, or nil if not loaded.
+func (s *ServiceConfig) GetServiceRDL() *ServiceRDL {
+	return s.serviceRDL
+}
+
+// SetServiceRDL sets the loaded Service RDL.
+func (s *ServiceConfig) SetServiceRDL(rdl *ServiceRDL) {
+	s.serviceRDL = rdl
+}
+
+// GetResolvedTopics returns the resolved topic names.
+func (s *ServiceConfig) GetResolvedTopics() *ResolvedTopics {
+	return s.resolvedTopics
+}
+
+// SetResolvedTopics sets the resolved topic names.
+func (s *ServiceConfig) SetResolvedTopics(topics *ResolvedTopics) {
+	s.resolvedTopics = topics
 }
 
 // ExternalConfig configures a service to run as an external process or container.
@@ -454,11 +484,14 @@ func (cfg *RDL) Validate() error {
 		}
 		names[svc.Name] = true
 
-		if svc.Type == "" {
-			errs = append(errs, fmt.Sprintf("services[%d].type: required", i))
-		}
-		if svc.Model == "" {
-			errs = append(errs, fmt.Sprintf("services[%d].model: required", i))
+		// Type and Model are required unless RDL is specified
+		if svc.RDL == "" {
+			if svc.Type == "" {
+				errs = append(errs, fmt.Sprintf("services[%d].type: required (unless rdl is specified)", i))
+			}
+			if svc.Model == "" {
+				errs = append(errs, fmt.Sprintf("services[%d].model: required (unless rdl is specified)", i))
+			}
 		}
 	}
 

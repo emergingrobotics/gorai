@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/runtime"
 )
 
 func cmdStatus() error {
@@ -43,8 +45,13 @@ func cmdStatus() error {
 		}
 	}
 
-	// Load configuration
-	cfg, err := config.Load(configPath)
+	// Make config path absolute
+	if !filepath.IsAbs(configPath) {
+		configPath, _ = filepath.Abs(configPath)
+	}
+
+	// Load configuration with Service RDL support
+	cfg, err := config.LoadWithServiceRDL(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -104,6 +111,58 @@ func cmdStatus() error {
 				status = " (disabled)"
 			}
 			fmt.Printf("%-20s %-15s %-10s %-10s%s\n", svc.Name, svc.Type, svc.Model, external, status)
+		}
+	}
+
+	// Show external service status
+	externalServices := cfg.GetExternalServices()
+	managedCount := 0
+	for _, svc := range externalServices {
+		if !svc.Disabled && svc.IsManaged() {
+			managedCount++
+		}
+	}
+
+	if managedCount > 0 {
+		fmt.Println("\nEXTERNAL SERVICE STATUS")
+		fmt.Printf("%-20s %-12s %-10s %-15s\n", "NAME", "RUNTIME", "STATUS", "DETAILS")
+		fmt.Println("─────────────────────────────────────────────────────────────")
+
+		for i := range externalServices {
+			svc := &externalServices[i]
+			if svc.Disabled || !svc.IsManaged() {
+				continue
+			}
+
+			runtimeType := "process"
+			if svc.External.Container != nil {
+				runtimeType = "container"
+			}
+
+			// Check status directly using runtime helpers
+			var status runtime.ServiceStatus
+			if svc.External.Container != nil {
+				status = runtime.CheckContainerStatus(svc.Name)
+			} else {
+				status = runtime.CheckProcessStatus(svc.Name)
+			}
+
+			statusStr := "stopped"
+			if status.Running {
+				statusStr = "running"
+			}
+
+			details := ""
+			if status.Container != "" {
+				details = status.Container
+			} else if status.PID > 0 {
+				details = fmt.Sprintf("pid=%d", status.PID)
+			}
+			if status.Error != "" {
+				details = status.Error
+			}
+
+			fmt.Printf("%-20s %-12s %-10s %-15s\n", svc.Name, runtimeType, statusStr, details)
 		}
 	}
 

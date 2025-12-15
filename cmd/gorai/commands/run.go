@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/robot"
+	"github.com/gorai/gorai/pkg/runtime"
 )
 
 func cmdRun() error {
@@ -61,8 +62,11 @@ func cmdRun() error {
 		}
 	}
 
-	// Load configuration
-	cfg, err := config.Load(configPath)
+	// Get config directory
+	configDir := filepath.Dir(configPath)
+
+	// Load configuration with Service RDL support
+	cfg, err := config.LoadWithServiceRDL(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -133,9 +137,47 @@ func cmdRun() error {
 
 	logger.Info("Robot started", "name", cfg.Robot.Name)
 
+	// Start external services
+	var extManager *runtime.Manager
+	externalServices := cfg.GetExternalServices()
+	managedCount := 0
+	for _, svc := range externalServices {
+		if !svc.Disabled && svc.IsManaged() {
+			managedCount++
+		}
+	}
+
+	if managedCount > 0 {
+		logger.Info("Starting external services", "count", managedCount)
+		extManager = runtime.NewManager(cfg, configDir)
+
+		for i := range externalServices {
+			svc := &externalServices[i]
+			if svc.Disabled || !svc.IsManaged() {
+				continue
+			}
+
+			logger.Info("Starting external service", "name", svc.Name)
+			if err := extManager.Start(ctx, svc); err != nil {
+				logger.Error("Failed to start external service", "name", svc.Name, "error", err)
+			} else {
+				logger.Info("External service started", "name", svc.Name)
+			}
+		}
+	}
+
 	// Run until context is cancelled
 	if err := r.Run(ctx); err != nil && err != context.Canceled {
 		logger.Error("Robot error", "error", err)
+	}
+
+	// Stop external services
+	if extManager != nil {
+		logger.Info("Stopping external services")
+		stopCtx := context.Background()
+		if err := extManager.StopAll(stopCtx); err != nil {
+			logger.Error("Error stopping external services", "error", err)
+		}
 	}
 
 	// Stop robot
