@@ -98,41 +98,193 @@ Drawing from [our analysis](docs/general-designs.md) of ROS 2, Viam, and YARP, p
 
 ## Deployment Model
 
-A Gorai robot runs as a **single native process** managed by systemd. Components (hardware drivers) are compiled into the binary, while services (AI, navigation) can run internally or as external processes/containers.
+Gorai embraces **distributed systems thinking** from the ground up. Robots can range from simple single-process deployments to complex multi-node clusters, with the deployment strategy matching the robot's complexity.
+
+### Deployment Tiers
+
+**Tier 1: Simple Robots (systemd-managed processes)**
+
+Simple robots run as one or a few processes managed by systemd. Processes can be native binaries or containers.
 
 ```
-Robot Deployment
+Simple Robot Deployment
 ┌─────────────────────────────────────────────────────────────────┐
-│  Host System (Raspberry Pi, etc.)                               │
+│  Host System (Raspberry Pi, Jetson Nano, etc.)                  │
 │                                                                  │
 │  /opt/my-robot/                                                 │
 │  └── robot.json                  (Configuration)                │
 │                                                                  │
-│  systemd                                                         │
-│  ├── my-robot.service            (Main robot process)           │
-│  └── nats-server.service         (NATS - installed natively)    │
-│                                                                  │
-│  Optional: External Services                                     │
-│  └── hailo-detector container    (AI inference on NPU)          │
+│  systemd Services                                                │
+│  ├── nats-server.service         (Message broker)               │
+│  ├── my-robot-core.service       (Core robot - native binary)   │
+│  └── vision-detector.service     (Podman container - optional)  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Deployment**: `scp + systemctl restart`
+
+**When to use**:
+- Single robot, simple needs
+- 1-5 processes total
+- Educational projects, hobby robots, single-purpose platforms
+- GPS trackers, sensor platforms, basic wheeled robots
+
+---
+
+**Tier 2: Complex Robots (K3s single-node)**
+
+Complex robots use K3s even on a single machine for orchestration capabilities. K3s is designed for edge computing and works great on Raspberry Pi.
+
+```
+Complex Robot Deployment (K3s single-node)
+┌─────────────────────────────────────────────────────────────────┐
+│  Host System (Raspberry Pi 4+, Jetson, RK3588)                  │
+│                                                                  │
+│  K3s (single-node Kubernetes)                                   │
+│  ├── nats-server pod           (Message broker)                 │
+│  ├── robot-core pod            (Go binary)                      │
+│  ├── vision-yolo pod           (Python + PyTorch)               │
+│  ├── slam-cartographer pod     (C++ + libraries)                │
+│  └── navigation pod            (Go binary)                      │
+│                                                                  │
+│  Features: health checks, rolling updates, resource limits      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Deployment**: `kubectl apply -f robot.yaml`
+
+**When to use**:
+- Multi-language services (Go + Python + C++)
+- Complex ML pipelines
+- Need orchestration features (health checks, restarts, updates)
+- Research platforms with many moving parts
+- University labs, advanced makers, sophisticated single robots
+
+**Why K3s for single robots:**
+- Automatic health monitoring and restart
+- Rolling updates without downtime
+- Resource limits prevent runaway processes
+- Service discovery and load balancing
+- Same tooling scales from 1 robot to 100
+- Only 70MB binary, 512MB RAM (designed for edge/IoT)
+
+---
+
+**Tier 3: Fleet Management (K3s multi-node)**
+
+Fleet deployments use K3s multi-node clusters for edge-cloud hybrid orchestration.
+
+```
+Fleet Deployment with K3s
+┌─────────────────────────────────────────────────────────────────┐
+│  Edge Nodes (robots in field)                                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ K3s Agent Node (Robot A)                                 │   │
+│  │ ├── robot-core pod                                       │   │
+│  │ ├── vision-lightweight pod                               │   │
+│  │ └── navigation pod                                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ K3s Agent Node (Robot B)                                 │   │
+│  │ ├── robot-core pod                                       │   │
+│  │ └── sensor-fusion pod                                    │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼ (NATS leaf nodes)
+┌─────────────────────────────────────────────────────────────────┐
+│  Cloud Infrastructure                                            │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ K3s Server Node                                          │   │
+│  │ ├── nats-server (supercluster)                           │   │
+│  │ ├── heavy-ml-inference pods (GPU instances)              │   │
+│  │ ├── fleet-management pod                                 │   │
+│  │ ├── data-warehouse pod                                   │   │
+│  │ └── monitoring (Prometheus, Grafana)                     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Deployment**: GitOps (ArgoCD, Flux) or `kubectl apply`
+
+**When to use**:
+- Fleet of multiple robots needing centralized management
+- Edge-cloud hybrid (heavy ML in cloud, real-time control on robots)
+- Multi-robot coordination and swarm behaviors
+- Commercial deployments (warehouses, delivery, agriculture)
+- Centralized monitoring, updates, and configuration
+
+### What is K3s?
+
+[K3s](https://k3s.io/) is a lightweight, certified Kubernetes distribution designed for resource-constrained environments and edge computing. It's perfect for robotics:
+
+| Feature | Kubernetes | K3s | Why for Robotics |
+|---------|-----------|-----|------------------|
+| **Binary size** | ~1GB | ~70MB | Fits on edge devices |
+| **Memory usage** | ~1GB | ~512MB | Raspberry Pi 4 compatible |
+| **Installation** | Complex | Single binary | `curl -sfL https://get.k3s.io \| sh -` |
+| **Storage** | etcd (external) | SQLite (embedded) | No external dependencies |
+| **Networking** | Calico/Flannel | Flannel (built-in) | Works out-of-box |
+| **Load balancer** | Requires cloud | ServiceLB (built-in) | Edge load balancing |
+
+**K3s removes**:
+- Cloud-provider specific code
+- In-tree storage plugins
+- Legacy features
+
+**K3s adds**:
+- Embedded SQLite (or MySQL, PostgreSQL)
+- Embedded Traefik ingress controller
+- Embedded ServiceLB
+- Helm controller
+
+**For robotics, K3s enables**:
+- Deploy same workload to edge and cloud
+- Centralized management of robot fleet
+- Automatic failover and restart
+- Rolling updates without downtime
+- Resource limits and scheduling
+
 ### Components vs Services
+
+Components and services are **logical concepts**, not deployment requirements. How they run depends on the tier:
 
 | Aspect | Components | Services |
 |--------|------------|----------|
 | **What** | Hardware abstractions | Software capabilities |
-| **Runtime** | Native Go in monolith | Internal, external process, or container |
-| **Location** | Same host as robot | Same host or remote |
+| **Typical runtime** | Native Go binary | Native, container, or remote |
+| **Location** | On-robot (direct hardware access) | On-robot, cloud, or distributed |
 | **Examples** | Camera, Motor, IMU, GPIO | AI inference, SLAM, Navigation |
 
-**Components** (sensors, actuators) MUST be native Go code compiled into the robot binary. They have direct hardware access.
+**Components** (sensors, actuators):
+- Usually run in native Go process for direct hardware access
+- Can be separate processes if needed (e.g., licensed SDK in container)
+- Communicate via NATS
 
-**Services** (AI, navigation, SLAM) CAN be:
-- Internal Go code in the monolith
-- External native processes
-- External containers (for Python ML, specialized hardware)
-- Running on different hosts
+**Services** (AI, navigation, SLAM):
+- Run wherever makes sense: native binary, container, cloud
+- Can be scaled independently (multiple vision service instances)
+- Can leverage specialized hardware (Hailo NPU, GPU in cloud)
+- NATS queue groups provide automatic load balancing
+
+### Choosing Your Deployment Tier
+
+```
+Start simple → Add complexity only when needed
+
+Tier 1 (systemd)
+↓ (if you need: orchestration, multi-language, health monitoring, complex ML)
+Tier 2 (K3s single-node)
+↓ (if you need: fleet management, edge-cloud, centralized control)
+Tier 3 (K3s multi-node)
+```
+
+**Decision guide:**
+- **Simple robot** (sensor platform, GPS tracker) → **Tier 1 (systemd)**
+- **Complex single robot** (research platform, multi-language services, heavy ML) → **Tier 2 (K3s single-node)**
+- **Robot fleet** (warehouse automation, delivery fleet, coordinated swarm) → **Tier 3 (K3s multi-node)**
+
+**Most robots should start at Tier 1.** Complexity is a liability—add it only when the benefits outweigh the costs. But when you need orchestration for a complex single robot, K3s is designed exactly for that use case.
 
 ## Quick Start
 

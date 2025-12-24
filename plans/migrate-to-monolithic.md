@@ -1,12 +1,23 @@
 # Migration Plan: Containerized Multi-Process to Monolithic Architecture
 
 **Date**: 2025-12-14
-**Status**: Proposed
+**Status**: ❌ **SUPERSEDED** - This plan is obsolete
 **Author**: AI-assisted
 
-## Executive Summary
+> **SUPERSEDED (2024-12-24)**: This plan has been superseded by the distributed systems tiered approach.
+>
+> **New Strategy**: Gorai now uses a tiered deployment model:
+> - **Tier 1**: Native binaries or few containers managed by systemd (simple robots)
+> - **Tier 2**: Podman pods for multi-language/multi-container systems (research platforms)
+> - **Tier 3**: K3s clusters for fleet management (10+ robots)
+>
+> See [STRATEGIC-SUMMARY.md](../docs/STRATEGIC-SUMMARY.md) and [deployment.md](../specs/deployment.md) for current approach.
 
-This plan describes the migration from the current containerized multi-process architecture back to a simpler monolithic single-binary approach. The primary motivations are:
+---
+
+## Original Executive Summary (Obsolete)
+
+This plan described the migration from the current containerized multi-process architecture back to a simpler monolithic single-binary approach. The primary motivations were:
 
 1. **Complexity**: Rootless Podman + systemd + device access has proven more complex than the value it provides
 2. **Device Access**: Hardware device permissions (cameras, GPIO, etc.) are problematic in containerized environments

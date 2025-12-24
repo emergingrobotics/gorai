@@ -1,12 +1,20 @@
 # Deployment Specification
 
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
-**Last Updated:** 2024
+**Last Updated:** 2024-12-24
 
 ## 1. Overview
 
 This specification defines how Gorai robot binaries and configurations are deployed from a development machine to target robot hardware.
+
+Gorai embraces **distributed systems thinking** from the ground up. Deployment strategies match robot complexity across three tiers:
+
+- **Tier 1: Simple Robots** (this spec) — Native binaries or few containers managed by systemd
+- **Tier 2: Complex Robots** — K3s single-node for orchestration features (health monitoring, rolling updates, resource limits)
+- **Tier 3: Fleet Management** — K3s multi-node clusters for edge-cloud hybrid deployments
+
+**This document focuses on Tier 1 deployment** — the recommended starting point for most robots. For complex single robots needing orchestration (multi-language services, sophisticated ML pipelines), see Tier 2 (K3s single-node). For containerized alternatives, see [systemd-container-orchestration.md](systemd-container-orchestration.md) (Podman pods).
 
 ### 1.1 Design Goals
 
@@ -15,8 +23,9 @@ This specification defines how Gorai robot binaries and configurations are deplo
 3. **Atomic**: Deployments succeed or fail completely
 4. **Reversible**: Easy rollback to previous version
 5. **Minimal downtime**: Hot-reload config when possible
+6. **Scalable**: Easy upgrade path to Tier 2/3 when needed
 
-### 1.2 Deployment Model
+### 1.2 Deployment Model (Tier 1)
 
 ```
 ┌─────────────────────┐                    ┌─────────────────────┐
@@ -389,9 +398,9 @@ disable:
 
 ## 7. NATS Deployment
 
-### 7.1 NATS on Robot
+### 7.1 NATS on Robot (Tier 1)
 
-For standalone robots, NATS runs locally:
+For Tier 1 deployments, NATS runs as a native systemd service:
 
 ```ini
 # /etc/systemd/system/nats.service
@@ -446,7 +455,11 @@ sudo systemctl start nats
 echo "NATS installed and running"
 ```
 
-### 7.3 NATS Cluster (Multi-Robot)
+### 7.3 NATS in Containers (Tier 2)
+
+For robots requiring containerized deployment (multi-language services, complex dependencies), NATS runs in a Podman container managed by systemd. See [systemd-container-orchestration.md](systemd-container-orchestration.md) for container-based deployment.
+
+### 7.4 NATS Cluster (Multi-Robot)
 
 For multi-robot systems, configure NATS cluster:
 

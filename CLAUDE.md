@@ -14,15 +14,16 @@ See [docs/vision-analysis.md](docs/vision-analysis.md) for comprehensive strateg
 
 ## Core Attributes
 
+- **Distributed systems thinking** — Multiple processes coordinated via NATS; scalable from single process to multi-node clusters
 - **Go core + pragmatic polyglot services** — Go for orchestration; Python/C++ via NATS for vision/SLAM
 - **Cloud-native patterns** — NATS (message broker), Prometheus (observability), JetStream (event sourcing)
+- **Tiered deployment** — systemd (simple) → Podman pods (research) → K3s (fleet); complexity matches needs
 - **AI-assisted development** — designed for modern AI-powered coding
 - **Low barrier to entry** — productive in days, not months
 - **Edge AI focus** — TPU/NPU acceleration built-in
 - **ROS 2 bridge planned** — Phase 3 for ecosystem compatibility
 - **Modular architecture** — unified Resource interface for all components/services
 - **Linux-first** — Raspberry Pi 5 reference platform
-- **Containerization when needed** — native binaries for simple robots, Podman/K3s for complex deployments
 - **HAVE FUN!**
 
 ## Target Audience

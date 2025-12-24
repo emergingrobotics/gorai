@@ -1,29 +1,56 @@
 # systemd Container Orchestration Specification
 
-> **DEPRECATED (v2)**: This document describes the v1 container-based approach which is no longer recommended. Gorai v2 uses a monolithic architecture where all components run in a single process.
->
-> For new projects, use:
-> - `gorai run --config robot.json` - Run robot directly in foreground
-> - `gorai start --config robot.json` - Deploy as native systemd service
->
-> To migrate from v1 configs: `gorai migrate --config old-robot.json`
->
-> See the updated [Robot Definition Language](robot-definition-language.md) for v2 configuration format.
+**Version:** 2.0
+**Status:** Active (Tier 2 Deployment)
+**Last Updated:** 2024-12-24
 
-## Overview (Legacy v1)
+## Overview
 
-Gorai v1 used **systemd service units** with `podman run` for container orchestration. This approach provided production-grade container management using native systemd capabilities, without requiring the Quadlet generator.
+This specification describes **containerized deployment using Podman pods** managed by systemd. This is an alternative approach for complex robots that prefer explicit container management over K3s orchestration.
+
+**Recommended deployment tiers:**
+- **Tier 1**: Simple robots — systemd with native binaries (see [deployment.md](deployment.md))
+- **Tier 2**: Complex robots — **K3s single-node** (preferred for orchestration features)
+- **Tier 2 Alternative**: Complex robots — Podman pods + systemd (this document)
+- **Tier 3**: Fleet management — K3s multi-node clusters
+
+**When to use Podman pods instead of K3s:**
+- You want explicit control over container commands
+- You prefer systemd service files over Kubernetes manifests
+- You don't need K3s orchestration features (health checks, rolling updates, etc.)
+- Your team is more familiar with Podman/Docker than Kubernetes
+
+**When to use K3s (Tier 2 preferred):**
+- You need health monitoring, rolling updates, resource limits
+- You want orchestration features on a single robot
+- You might scale to multi-node later
+- K3s is designed for edge/IoT (70MB, 512MB RAM, works on Raspberry Pi)
+
+This document describes **systemd service units** with `podman run` for container orchestration. This provides production-grade container management using native systemd capabilities.
+
+### Why Podman for Tier 2
+
+| Feature | Podman | Docker | Why for Robotics |
+|---------|--------|--------|------------------|
+| **Daemonless** | Yes | No | No root daemon, better security |
+| **Rootless** | Native | Limited | Run as regular user |
+| **systemd integration** | Excellent | Manual | Native service management |
+| **Compatibility** | OCI standard | Proprietary | Works with Docker images |
+| **Resource usage** | Lower | Higher | Better for edge devices |
 
 ### Why Traditional systemd Units
 
-| Feature | Traditional systemd | Quadlet |
-|---------|---------------------|---------|
-| Compatibility | Any Podman + systemd | Requires Quadlet generator |
-| Transparency | Explicit podman commands | Generated from .container |
-| Debugging | See exact commands in .service | Abstraction layer |
-| Availability | All Linux distros | Podman 4.4+ with generator |
+| Feature | Traditional systemd | Quadlet | Podman Compose |
+|---------|---------------------|---------|----------------|
+| Compatibility | Any Podman + systemd | Podman 4.4+ | Separate tool |
+| Transparency | Explicit podman commands | Generated | YAML abstraction |
+| Debugging | See exact commands | Abstraction layer | Docker Compose syntax |
+| Boot integration | Native | Native | Manual setup |
+| Dependency management | systemd units | systemd units | restart policies |
 
-## Architecture
+**Gorai uses traditional systemd units** for maximum transparency and control. You see exactly what runs.
+
+## Distributed Systems Architecture
 
 ### File Flow
 
@@ -57,6 +84,23 @@ For a robot named `hello-camera` with containers `nats`, `gorai-core`, and `gora
 ├── hello-camera-gorai-core.service
 └── hello-camera-gorai-hailo.service
 ```
+
+### Distributed Systems Thinking
+
+**Components and services are logical concepts**, not deployment constraints. A "service" in Gorai is any process that communicates via NATS. In Tier 2:
+
+- **NATS** runs in a container (message broker for all services)
+- **Go core** runs in a container (orchestration, simple sensors)
+- **Python vision** runs in a separate container (OpenCV, image preprocessing)
+- **C++ SLAM** runs in another container (mapping, localization)
+
+Each container:
+- Is a separate process with its own lifecycle
+- Communicates via NATS (not direct function calls)
+- Can fail and restart independently
+- Can be on the same machine or different machines (NATS handles routing)
+
+This is **distributed systems** even when containers are on one robot. The architecture scales from single-board computers to multi-robot fleets without code changes.
 
 ## Service Unit Format
 

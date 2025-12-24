@@ -65,31 +65,77 @@ This document summarizes the key strategic decisions that guide Gorai's developm
 3. **Migration path** — students can keep ROS 2 packages they know
 4. **Ecosystem perception** — avoid "vendor lock-in" perception
 
-### 3. Containerization: Tiered Approach
+### 3. Deployment: Distributed Systems Thinking
 
-**Decision**: Match complexity to use case
+**Decision**: Embrace distributed systems; multiple processes coordinated via NATS
+
+**Core Principle**: Components and services are logical concepts. Processes can be native binaries or containers. Deployment tier matches robot complexity.
 
 ```
-Tier 1 (Simple Robots):
-- Native Go binaries
-- Systemd lifecycle management
-- Optional Podman for vision/ML
-- Target: Surf, Drive, simple kits
+Tier 1 (Simple Robots - systemd):
+- One or a few processes (native or containerized)
+- systemd manages lifecycle
+- Podman for containers when needed
+- Target: GPS trackers, sensor platforms, basic robots
+- Deployment: scp + systemctl restart
 
-Tier 2 (Research Platforms):
-- Podman pods for complex dependencies
-- Multi-SBC coordination
-- Target: University labs, advanced makers
+Tier 2 (Complex Robots - K3s single-node):
+- K3s on single machine for orchestration features
+- Multi-language services (Go + Python + C++)
+- Health monitoring, rolling updates, resource limits
+- Complex ML pipelines, research platforms
+- Target: University labs, advanced makers, sophisticated single robots
+- Deployment: kubectl apply -f robot.yaml
 
-Tier 3 (Fleet Management):
-- K3s for edge-cloud hybrid
-- GitOps deployment
-- Target: Commercial deployments, >10 robots
+Tier 3 (Fleet Management - K3s multi-node):
+- K3s cluster for edge-cloud hybrid
+- Centralized orchestration of multiple robots
+- GitOps deployment (ArgoCD, Flux)
+- Heavy ML in cloud, real-time control on edge
+- Target: Commercial deployments, warehouse automation, robot fleets
+- Deployment: kubectl apply / GitOps
 ```
 
-**Why**: Complexity only when needed. Simple robots stay simple.
+**Why**:
+- NATS enables distributed coordination regardless of deployment tier
+- Complexity is a liability—add it only when benefits outweigh costs
+- Simple robots stay simple (most should be Tier 1)
 
-### 4. Cloud Patterns vs. ROS 2
+### 4. K3s for Complex Robots and Fleets
+
+**Decision**: Use K3s for complex single robots (Tier 2) and fleets (Tier 3)
+
+**What is K3s?**
+- Lightweight Kubernetes (~70MB binary vs. ~1GB)
+- 512MB RAM vs. 1GB for full Kubernetes
+- Single binary install: `curl -sfL https://get.k3s.io | sh -`
+- Embedded SQLite (no external etcd)
+- Built-in load balancer, ingress controller
+- Certified Kubernetes (full API compatibility)
+- **Designed specifically for edge computing, IoT, and resource-constrained devices**
+
+**Why K3s over full Kubernetes?**
+- Designed for edge computing and IoT (robotics use case!)
+- Raspberry Pi 4 compatible (full K8s is not)
+- Simpler installation and management
+- Lower resource overhead
+- Perfect for single-node or multi-node deployments
+
+**Why K3s for complex single robots?**
+- Automatic health monitoring and restart
+- Rolling updates without downtime
+- Resource limits prevent runaway processes
+- Service discovery and load balancing
+- Same tooling whether you have 1 robot or 100
+- Native multi-container orchestration
+
+**When to use K3s:**
+- **Tier 2**: Complex single robot needing orchestration (K3s single-node)
+- **Tier 3**: Fleet of robots (K3s multi-node cluster)
+
+**When NOT to use K3s:** Simple robots with 1-5 processes—use systemd (Tier 1) instead.
+
+### 5. Cloud Patterns vs. ROS 2
 
 **Decision**: Embrace cloud-native patterns as competitive advantage
 

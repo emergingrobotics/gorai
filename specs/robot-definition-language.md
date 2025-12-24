@@ -2,13 +2,13 @@
 
 **Version:** 2.0
 **Status:** Draft
-**Last Updated:** 2024-12
+**Last Updated:** 2024-12-24
 
 ## 1. Overview
 
 The Robot Definition Language (RDL) is a JSON-based configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
 
-> **Note:** Version 2.0 removes containerization support in favor of a simpler monolithic architecture. Robots run as a single binary with optional external services for specialized workloads (e.g., ML inference).
+> **Note:** Version 2.0 uses **distributed systems thinking** where components and services are logical concepts that communicate via NATS. Simple robots (Tier 1) can run as a single process or few processes managed by systemd. Complex robots (Tier 2) use containerized services in Podman pods. Fleet deployments (Tier 3) use K3s. See [deployment.md](deployment.md) for deployment strategies.
 
 ### 1.1 Scope
 
