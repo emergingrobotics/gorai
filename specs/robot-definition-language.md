@@ -1,14 +1,14 @@
 # Robot Definition Language (RDL) Specification
 
-**Version:** 2.0
+**Version:** 3.1
 **Status:** Draft
-**Last Updated:** 2024-12-24
+**Last Updated:** 2024-12-25
 
 ## 1. Overview
 
-The Robot Definition Language (RDL) is a JSON-based configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
+The Robot Definition Language (RDL) is a JSON/YAML configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
 
-> **Note:** Version 2.0 uses **distributed systems thinking** where components and services are logical concepts that communicate via NATS. Simple robots (Tier 1) can run as a single process or few processes managed by systemd. Complex robots (Tier 2) use containerized services in Podman pods. Fleet deployments (Tier 3) use K3s. See [deployment.md](deployment.md) for deployment strategies.
+> **Architecture:** Gorai uses a **Podman-everywhere architecture** where all robots run as Podman pods managed by systemd. RDL abstracts away container complexity — users define robots in YAML/JSON, and `gorai deploy` generates pod definitions and systemd units automatically. Users never need to know Podman CLI or systemd syntax unless they choose to. See [deployment-podman.md](deployment-podman.md) for deployment details.
 
 ### 1.1 Scope
 
@@ -53,14 +53,16 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 
 ```json
 {
-  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
-  "version": "2",
+  "$schema": "https://gorai.dev/schemas/rdl-v3.json",
+  "version": "3",
   "robot": { },
+  "platform": { },
   "nats": { },
   "prometheus": { },
   "components": [ ],
   "services": [ ],
   "remotes": [ ],
+  "resources": { },
   "log": { },
   "dashboard": { },
   "alerting": { }
@@ -70,18 +72,20 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `$schema` | string | No | JSON Schema URL for validation |
-| `version` | string | Yes | RDL version ("2") |
+| `version` | string | Yes | RDL version ("3") |
 | `robot` | object | Yes | Robot identity |
+| `platform` | object | No | Hardware platform requirements |
 | `nats` | object | No | NATS connection config |
-| `prometheus` | object | No | Prometheus time-series database config (required dependency) |
+| `prometheus` | object | No | Prometheus metrics config |
 | `components` | array | No | Component definitions |
 | `services` | array | No | Service definitions |
 | `remotes` | array | No | Remote robot connections |
+| `resources` | object | No | Default resource limits for containers |
 | `log` | object | No | Logging configuration |
 | `dashboard` | object | No | Web dashboard configuration (enabled by default) |
 | `alerting` | object | No | Alert Manager configuration |
 
-> **Deprecated:** The `containers` field from RDL v1 is no longer supported. Use `external` on services for processes that need to run separately.
+> **Migration from v3.0:** K3s deployment replaced by Podman pods + systemd. Same RDL format; only deployment mechanism changed. Services with `container.image` become separate containers in the pod.
 
 ---
 
@@ -128,7 +132,64 @@ gorai.mybot.motors.left.command
 
 ---
 
-## 4. NATS Object
+## 4. Platform Object
+
+The `platform` object declares hardware requirements for the robot. This enables validation and helps users understand minimum specifications.
+
+```json
+{
+  "platform": {
+    "minimum": "pi4-4gb",
+    "recommended": "pi5-8gb",
+    "storage": "ssd-required",
+    "accelerators": ["hailo8", "coral-tpu"]
+  }
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `minimum` | string | No | "pi4-4gb" | Minimum compute platform |
+| `recommended` | string | No | "pi5-8gb" | Recommended compute platform |
+| `storage` | string | No | "ssd-required" | Storage requirements |
+| `accelerators` | array | No | [] | Required AI accelerators |
+
+### 4.1 Platform Identifiers
+
+| Identifier | Description | RAM | Notes |
+|------------|-------------|-----|-------|
+| `pi4-4gb` | Raspberry Pi 4 Model B 4GB | 4 GB | Minimum supported |
+| `pi4-8gb` | Raspberry Pi 4 Model B 8GB | 8 GB | Good for ML workloads |
+| `pi5-4gb` | Raspberry Pi 5 4GB | 4 GB | Faster than Pi 4 |
+| `pi5-8gb` | Raspberry Pi 5 8GB | 8 GB | Primary platform |
+| `jetson-orin-super` | Jetson Orin Nano Super | 8 GB | 67 TOPS, CUDA, performance tier |
+| `jetson-orin-nano` | NVIDIA Jetson Orin Nano | 4-8 GB | 40 TOPS, CUDA support |
+| `orangepi-5b-8gb` | Orange Pi 5B 8GB | 8 GB | 6 TOPS NPU, budget AI |
+| `rock5b` | Radxa Rock 5B | 4-16 GB | RK3588, 6 TOPS NPU |
+| `x86-4gb` | Any x86_64 with 4GB+ | 4+ GB | Generic x86 |
+
+### 4.2 Storage Requirements
+
+| Value | Description |
+|-------|-------------|
+| `ssd-required` | External SSD mandatory |
+| `ssd-recommended` | SSD recommended but SD card acceptable for testing |
+
+> **Note:** SSD recommended for development (faster image pulls). SD cards (A2 class) acceptable for deployed robots with stable container images.
+
+### 4.3 Accelerator Identifiers
+
+| Identifier | Description | Performance |
+|------------|-------------|-------------|
+| `hailo8` | Hailo-8 NPU | 26 TOPS |
+| `hailo8l` | Hailo-8L NPU | 13 TOPS |
+| `coral-tpu` | Google Coral Edge TPU | 4 TOPS |
+| `cuda` | NVIDIA CUDA GPU | Varies |
+| `rk3588-npu` | Rockchip RK3588 NPU | 6 TOPS |
+
+---
+
+## 5. NATS Object
 
 The `nats` object configures the NATS connection.
 
@@ -194,7 +255,7 @@ Syntax:
 
 ---
 
-## 5. Components Array
+## 6. Components Array
 
 Components are hardware abstractions (sensors, actuators, infrastructure).
 
@@ -340,7 +401,7 @@ The log level affects:
 
 ---
 
-## 6. Services Array
+## 7. Services Array
 
 Services are software capabilities that process data or make decisions.
 
@@ -747,7 +808,7 @@ If no `build` config is provided but the image starts with `localhost/`, `gorai 
 
 ---
 
-## 7. Remotes Array
+## 8. Remotes Array
 
 Remotes connect to components/services on other robots or nodes.
 
@@ -786,7 +847,7 @@ Example: `mcu_bridge.wheel_encoders`
 
 ---
 
-## 8. Log Object
+## 9. Log Object
 
 Configures logging behavior.
 
@@ -844,7 +905,7 @@ Configures logging behavior.
 
 ---
 
-## 9. Prometheus Object
+## 10. Prometheus Object
 
 Prometheus is a **required dependency** for Gorai, running locally on the robot alongside NATS. It provides time-series storage, powerful queries via PromQL, and integrates with Alert Manager for alerting.
 
@@ -963,7 +1024,7 @@ scrape_configs:
 
 ---
 
-## 10. Alerting Object
+## 11. Alerting Object
 
 The `alerting` object configures integration with Prometheus Alert Manager for robot alerts.
 
@@ -1074,7 +1135,7 @@ receivers:
 
 ---
 
-## 11. Dashboard Object
+## 12. Dashboard Object
 
 The `dashboard` object configures the embedded web dashboard. The dashboard queries **local Prometheus** for both real-time gauges and historical data, providing a unified monitoring interface.
 
@@ -1209,7 +1270,7 @@ Future versions may add optional authentication.
 
 ---
 
-## 12. Validation Rules
+## 13. Validation Rules
 
 ### 12.1 Structural Validation
 
@@ -1244,12 +1305,12 @@ robot.json:15: components[0].type: unknown component type "imu2"
 
 ---
 
-## 13. Complete Example
+## 14. Complete Example
 
 ```json
 {
-  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
-  "version": "2",
+  "$schema": "https://gorai.dev/schemas/rdl-v3.json",
+  "version": "3",
 
   "robot": {
     "name": "wheeled-robot",
@@ -1413,7 +1474,7 @@ robot.json:15: components[0].type: unknown component type "imu2"
 
 ---
 
-## 14. Service RDL Schema
+## 15. Service RDL Schema
 
 Service RDL files define external services independently of any specific robot. This section describes the Service RDL schema.
 
@@ -1651,7 +1712,7 @@ The `runtime` object provides default configuration that can be overridden in th
 
 ---
 
-## 15. Schema Evolution
+## 16. Schema Evolution
 
 ### 15.1 Versioning
 
