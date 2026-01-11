@@ -10,13 +10,13 @@ Gorai requires capable hardware to support containerized robotics workloads and 
 
 ### 1.1 Design Philosophy
 
-**"Containers without complexity."**
+**"Consistent deployment from edge to fleet."**
 
-Gorai uses Podman pods managed by systemd, providing:
+Gorai uses K3s (Lightweight Kubernetes), providing:
 - Container isolation and reproducibility
-- Low overhead (~150 MB vs ~1.8 GB for K3s)
-- Universal hardware compatibility (including Jetson)
-- SD card acceptable for deployed robots (no control plane database)
+- Consistent deployment model (~512 MB overhead)
+- Fleet-ready from day one (single-node or multi-node)
+- Production-grade orchestration without complexity
 
 ### 1.2 Platform Strategy
 
@@ -28,7 +28,9 @@ Gorai supports three platform tiers:
 | **Performance** | Jetson Orin Nano Super | 67 TOPS (CUDA) | Multi-model AI, VLMs |
 | **Budget AI** | Orange Pi 5B | 6 TOPS (built-in) | Lower cost AI builds |
 
-All platforms use identical Podman deployment. Choose based on AI requirements and budget.
+All platforms use identical K3s deployment. Choose based on AI requirements and budget.
+
+**See [K3s Installation Guide](k3s-installation.md) for platform-specific installation instructions.**
 
 ---
 
@@ -56,11 +58,11 @@ All platforms use identical Podman deployment. Choose based on AI requirements a
 | Use Case | Storage Type | Notes |
 |----------|--------------|-------|
 | Development | SSD or NVMe | Fast image pulls, frequent updates |
-| Deployed robot | SD card (A2) | Acceptable for stable images |
+| Deployed robot | SSD or NVMe | Required for K3s SQLite database |
 | AI workloads | SSD or NVMe | Model loading performance |
-| Orange Pi 5B | Built-in eMMC | No external storage needed |
+| Orange Pi 5B | Built-in eMMC | Built-in eMMC sufficient for K3s |
 
-Unlike K3s, Podman has no control plane database requiring high IOPS. SD cards are viable for deployed robots with stable container images.
+**CRITICAL:** K3s uses SQLite for the control plane database, which requires sustained random I/O. SD cards provide only 10-30 IOPS and will cause database corruption and instability. **SSD, NVMe, or eMMC required.**
 
 ### 2.3 Network
 
@@ -164,21 +166,21 @@ The Jetson Orin Nano Super is Gorai's **performance platform** for AI-intensive 
 ```
 Total RAM:        8,192 MB
 ├── Linux OS:       300 MB
-├── Podman:         100 MB
+├── K3s:            512 MB
 ├── NATS:           512 MB
-└── Available:    7,280 MB  ← For robot workloads
+└── Available:    6,868 MB  ← For robot workloads
 
 Total CPU:        4 cores @ 2.4 GHz
-├── Podman:       ~5% overhead
-└── Available:    ~95% (~3.8 cores)  ← For robot workloads
+├── K3s:          ~3% overhead (idle)
+└── Available:    ~97% (~3.9 cores)  ← For robot workloads
 ```
 
-**Comparison with K3s overhead:**
-| Resource | K3s | Podman | Savings |
-|----------|-----|--------|---------|
-| RAM overhead | ~1.8 GB | ~150 MB | 1.65 GB |
-| CPU overhead | ~25% | ~5% | 20% |
-| Available RAM (8GB) | 5.9 GB | 7.3 GB | +24% |
+**K3s overhead is acceptable for edge AI:**
+| Resource | K3s Overhead | Available (8GB) | Notes |
+|----------|--------------|-----------------|-------|
+| RAM | ~512 MB | ~6.9 GB | AI workloads need 4GB+ anyway |
+| CPU | ~3% idle | ~97% | Minimal impact on inference |
+| Disk | ~1.5 GB | Varies | SQLite database + images |
 
 ### 3.5 Performance Expectations
 

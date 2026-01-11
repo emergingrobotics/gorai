@@ -14,12 +14,12 @@ See [docs/vision-analysis.md](docs/vision-analysis.md) for comprehensive strateg
 
 ## Core Attributes
 
-- **Podman-everywhere architecture** — All robots run as Podman pods managed by systemd; RDL abstracts complexity
-- **Containers without complexity** — ~150 MB overhead (vs ~1.8 GB for K3s); works on all platforms including Jetson
+- **K3s-everywhere architecture** — All robots deploy on Kubernetes (K3s); RDL abstracts complexity
+- **Consistent deployment model** — ~512 MB overhead; single-node to multi-robot fleets with same patterns
 - **Edge AI focus** — From 6 TOPS (Orange Pi 5B) to 67 TOPS (Jetson Orin Super); choose your performance tier
 - **Go core + pragmatic polyglot services** — Go for orchestration; Python/C++ via containers for vision/SLAM
-- **Cloud-native patterns** — NATS (message broker), Prometheus (observability), Podman (containers)
-- **RDL abstracts deployment** — Users write YAML configs; `gorai deploy` generates pod definitions + systemd units
+- **Cloud-native patterns** — NATS (message broker), Prometheus (observability), Kubernetes (orchestration)
+- **RDL abstracts deployment** — Users write YAML configs; `gorai deploy` generates K3s manifests + deploys
 - **AI-assisted development** — designed for modern AI-powered coding
 - **Low barrier to entry** — productive in days, not months
 - **Modular architecture** — unified Resource interface for all components/services

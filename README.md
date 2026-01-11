@@ -61,6 +61,430 @@ Gorai applies proven **distributed systems patterns from cloud infrastructure** 
 | **ROS 2 Bridge** | Planned (Phase 3) | Native | None | Yes |
 | **License** | Apache 2.0 | Apache 2.0 | AGPL | BSD-3 |
 
+---
+
+## Getting Started
+
+This guide walks you through setting up Gorai on a **Raspberry Pi 5** and deploying your first robot from a development machine.
+
+> **💻 Want to test locally first?** See [Quick Testing (Local Development)](#quick-testing-local-development) and the [Setup Guide](examples/hello-robot/SETUP.md).
+
+### Prerequisites
+
+**Hardware:**
+- Raspberry Pi 5 (8GB recommended)
+- NVMe SSD via HAT or USB 3.0 SSD (128GB minimum)
+- SD card for initial OS installation
+- Development machine (Linux or macOS)
+- Network connection (Ethernet recommended for RPi)
+
+**Software on Development Machine:**
+- Go 1.22+ ([download](https://go.dev/dl/))
+- Podman (for building container images)
+- kubectl ([install](https://kubernetes.io/docs/tasks/tools/))
+- ssh client
+
+### Step 1: Prepare Raspberry Pi 5
+
+**1.1 Install Raspberry Pi OS (64-bit)**
+
+```bash
+# On your development machine:
+# Download Raspberry Pi Imager
+# https://www.raspberrypi.com/software/
+
+# Flash Raspberry Pi OS (64-bit, Bookworm) to SD card
+# Enable SSH and configure WiFi/user in Imager before flashing
+```
+
+**1.2 Boot and Update**
+
+```bash
+# SSH into Pi (default: pi@raspberrypi.local or use IP address)
+ssh pi@raspberrypi.local
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Set hostname
+sudo hostnamectl set-hostname robot1
+
+# Reboot
+sudo reboot
+```
+
+**1.3 Set Up NVMe/USB SSD**
+
+```bash
+# SSH back in
+ssh pi@robot1.local
+
+# Check if SSD is detected
+lsblk
+
+# Format SSD (assuming /dev/nvme0n1 for NVMe or /dev/sda for USB)
+sudo mkfs.ext4 /dev/nvme0n1  # OR: sudo mkfs.ext4 /dev/sda
+
+# Create mount point
+sudo mkdir -p /mnt/storage
+
+# Mount SSD
+sudo mount /dev/nvme0n1 /mnt/storage  # OR: sudo mount /dev/sda /mnt/storage
+
+# Get UUID for persistent mounting
+sudo blkid /dev/nvme0n1  # Note the UUID
+
+# Add to /etc/fstab for automatic mounting
+echo "UUID=<your-uuid-here> /mnt/storage ext4 defaults 0 2" | sudo tee -a /etc/fstab
+
+# Test fstab
+sudo umount /mnt/storage
+sudo mount -a
+df -h | grep storage  # Should show mounted
+```
+
+### Step 2: Install K3s on Raspberry Pi
+
+```bash
+# On the Raspberry Pi
+curl -sfL https://get.k3s.io | sh -s - \
+  --disable traefik \
+  --write-kubeconfig-mode 644 \
+  --data-dir /mnt/storage/k3s
+
+# Verify K3s is running
+sudo systemctl status k3s
+
+# Check node is ready
+sudo k3s kubectl get nodes
+# Should show: robot1   Ready   control-plane,master
+
+# Copy kubeconfig for non-root access
+mkdir -p ~/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $USER:$USER ~/.kube/config
+chmod 600 ~/.kube/config
+```
+
+### Step 3: Configure Development Machine
+
+**3.1 Install Prerequisites**
+
+**Linux:**
+```bash
+# Install Go (if not installed)
+wget https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+
+# Install Podman
+sudo apt update
+sudo apt install -y podman
+
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+**macOS:**
+```bash
+# Install Homebrew (if not installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install prerequisites
+brew install go
+brew install podman
+brew install kubectl
+
+# Initialize and start Podman machine
+podman machine init
+podman machine start
+
+# CRITICAL: Set DOCKER_HOST for k3d/Podman compatibility
+# This tells k3d to use Podman instead of Docker
+export DOCKER_HOST=unix:///Users/$(whoami)/.local/share/containers/podman/machine/podman.sock
+echo "export DOCKER_HOST=unix:///Users/$(whoami)/.local/share/containers/podman/machine/podman.sock" >> ~/.zshrc
+source ~/.zshrc
+
+# Verify DOCKER_HOST is set
+echo $DOCKER_HOST
+```
+
+> **⚠️ macOS Users:** The `DOCKER_HOST` variable is **required** for k3d to work with Podman. Without it, you'll see "Cannot connect to the Docker daemon" errors.
+
+**3.2 Access Remote K3s Cluster**
+
+```bash
+# On development machine: Copy kubeconfig from Raspberry Pi
+scp pi@robot1.local:~/.kube/config ~/.kube/robot1-config
+
+# Edit the config to use robot's IP instead of localhost
+sed -i 's/127.0.0.1/robot1.local/g' ~/.kube/robot1-config
+
+# Use this kubeconfig
+export KUBECONFIG=~/.kube/robot1-config
+
+# Test connection
+kubectl get nodes
+# Should show: robot1   Ready   control-plane,master
+```
+
+### Step 4: Build and Deploy Hello Robot Example
+
+**4.1 Clone Gorai Repository**
+
+```bash
+# On development machine
+git clone https://github.com/gorai/gorai.git
+cd gorai/examples/hello-robot
+```
+
+**4.2 Build Container Images**
+
+```bash
+# Build for ARM64 (Raspberry Pi architecture)
+make build-arm64
+
+# This builds:
+# - hello-robot-publisher:latest
+# - hello-robot-subscriber:latest
+```
+
+**4.3 Push Images to Raspberry Pi**
+
+```bash
+# Option 1: Save and load images
+podman save hello-robot-publisher:latest | ssh pi@robot1.local sudo k3s ctr images import -
+
+podman save hello-robot-subscriber:latest | ssh pi@robot1.local sudo k3s ctr images import -
+
+# Option 2: Use a registry (for production)
+# Set up a local registry or use a container registry
+```
+
+**4.4 Deploy to K3s**
+
+```bash
+# Deploy hello-robot
+kubectl apply -f deploy/
+
+# Watch deployment
+kubectl get pods -n hello-robot -w
+
+# Expected output:
+# NAME                          READY   STATUS    RESTARTS   AGE
+# nats-0                        1/1     Running   0          30s
+# publisher-xxxxxxxxx-xxxxx     1/1     Running   0          30s
+# subscriber-xxxxxxxxx-xxxxx    1/1     Running   0          30s
+```
+
+**4.5 View Logs**
+
+```bash
+# View subscriber logs (should show received messages)
+kubectl logs -n hello-robot -l app=subscriber -f
+
+# Expected output:
+# 2025-01-11T22:00:00Z Received: Hello #1
+# 2025-01-11T22:00:01Z Received: Hello #2
+# 2025-01-11T22:00:02Z Received: Hello #3
+# ...
+```
+
+**4.6 Clean Up**
+
+```bash
+# Remove deployment
+kubectl delete namespace hello-robot
+```
+
+### Troubleshooting
+
+**Can't connect to K3s on Raspberry Pi:**
+- Check firewall: `sudo ufw allow 6443/tcp`
+- Verify K3s is running: `ssh pi@robot1.local sudo systemctl status k3s`
+- Check kubeconfig has correct IP address
+
+**Images won't pull on Raspberry Pi:**
+- Verify images are ARM64 architecture
+- Check images are imported: `ssh pi@robot1.local sudo k3s ctr images ls | grep hello-robot`
+
+**Pods stuck in Pending:**
+- Check resources: `kubectl describe node robot1`
+- View pod events: `kubectl describe pod -n hello-robot <pod-name>`
+
+---
+
+## Quick Testing (Local Development)
+
+For rapid development and testing, you can run Gorai components locally on your Linux or macOS machine.
+
+> **📋 For detailed installation instructions, see [Setup Guide: Local Testing Environment](examples/hello-robot/SETUP.md)**
+
+### Prerequisites
+
+**Both Linux and macOS:**
+- Go 1.22+ installed
+- Podman installed
+- kubectl installed (for K3s/K3d testing)
+- NATS server installed (for native testing)
+
+If you don't have these installed, follow the [setup guide](examples/hello-robot/SETUP.md) for step-by-step installation instructions for your platform.
+
+### Option 1: K3s Locally (Recommended)
+
+**Linux:**
+
+```bash
+# Install K3s locally
+curl -sfL https://get.k3s.io | sh -s - \
+  --disable traefik \
+  --write-kubeconfig-mode 644
+
+# Use local K3s
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+# Verify
+kubectl get nodes
+```
+
+**macOS:**
+
+```bash
+# Install K3d (K3s in Podman)
+brew install k3d
+
+# Verify DOCKER_HOST is set (required for Podman)
+echo $DOCKER_HOST
+# Should output: unix:///Users/<username>/.local/share/containers/podman/machine/podman.sock
+
+# Create local cluster
+k3d cluster create gorai-dev
+
+# Verify
+kubectl get nodes
+```
+
+> **Note:** If you get "Cannot connect to the Docker daemon" errors, ensure `DOCKER_HOST` is set. See the [Setup Guide](examples/hello-robot/SETUP.md) for details.
+
+### Option 2: Native NATS (Simpler, No K3s)
+
+**Linux:**
+
+```bash
+# Install NATS server
+curl -L https://github.com/nats-io/nats-server/releases/download/v2.10.7/nats-server-v2.10.7-linux-amd64.zip -o nats-server.zip
+unzip nats-server.zip
+sudo mv nats-server-v2.10.7-linux-amd64/nats-server /usr/local/bin/
+rm -rf nats-server-v2.10.7-linux-amd64 nats-server.zip
+
+# Run NATS server
+nats-server &
+```
+
+**macOS:**
+
+```bash
+# Install NATS server
+brew install nats-server
+
+# Run NATS server
+nats-server &
+```
+
+### Running Hello Robot Example Locally
+
+**Using K3s/K3d (Containerized):**
+
+```bash
+# Navigate to hello-robot example
+cd gorai/examples/hello-robot
+
+# Build for local architecture (amd64)
+make build
+
+# IMPORTANT: Import images into K3s/K3d
+# Linux (K3s):
+podman save hello-robot-publisher:latest | sudo k3s ctr images import -
+podman save hello-robot-subscriber:latest | sudo k3s ctr images import -
+
+# macOS (K3d):
+k3d image import hello-robot-publisher:latest -c gorai-dev
+k3d image import hello-robot-subscriber:latest -c gorai-dev
+
+# Deploy to local K3s
+kubectl apply -f deploy/
+
+# Watch logs
+kubectl logs -n hello-robot -l app=subscriber -f
+```
+
+> **Note:** Images built locally must be imported into K3s/K3d. Skipping this causes "image can't be pulled" errors.
+
+**Using Native NATS (No Containers):**
+
+```bash
+# Navigate to hello-robot example
+cd gorai/examples/hello-robot
+
+# Build binaries
+make build-native
+
+# Run publisher in one terminal
+./bin/publisher
+
+# Run subscriber in another terminal
+./bin/subscriber
+
+# You should see:
+# Terminal 2 (subscriber):
+# 2025-01-11T22:00:00Z Received: Hello #1
+# 2025-01-11T22:00:01Z Received: Hello #2
+# ...
+```
+
+### Quick Verification
+
+```bash
+# Install NATS CLI for debugging
+# Linux
+curl -L https://github.com/nats-io/natscli/releases/download/v0.1.1/nats-0.1.1-linux-amd64.zip -o nats.zip
+unzip nats.zip
+sudo mv nats-0.1.1-linux-amd64/nats /usr/local/bin/
+rm -rf nats-0.1.1-linux-amd64 nats.zip
+
+# macOS
+brew install nats-io/nats-tools/nats
+
+# Subscribe to messages
+nats sub "hello.messages"
+
+# You should see messages being published
+```
+
+### Cleanup
+
+**K3s/K3d:**
+```bash
+# Remove deployment
+kubectl delete namespace hello-robot
+
+# Stop K3d cluster (macOS)
+k3d cluster delete gorai-dev
+```
+
+**Native:**
+```bash
+# Stop publisher and subscriber (Ctrl+C in terminals)
+
+# Stop NATS
+killall nats-server
+```
+
+---
+
 ## Design Principles
 
 Drawing from [our analysis](docs/general-designs.md) of ROS 2, Viam, and YARP, plus [strategic vision](docs/vision-analysis.md):
@@ -260,7 +684,9 @@ Gorai uses a **K3s-everywhere architecture** where all robots deploy on Kubernet
 - One deployment model to learn, debug, and maintain
 - Every robot is fleet-ready from day one
 - Container benefits: reproducible builds, versioned artifacts, isolated dependencies
-- K3s is designed for edge/IoT: 70MB binary, ~1.5GB RAM overhead
+- K3s is designed for edge/IoT: ~50MB binary, ~512MB RAM overhead
+
+**See [K3s Installation Guide](specs/k3s-installation.md) for platform-specific installation instructions.**
 
 ### What Users See vs What Runs
 
@@ -353,17 +779,26 @@ All communication happens via NATS—components and services are logically separ
 - Linux (Raspberry Pi OS 64-bit, Ubuntu)
 - Internet connection for initial setup
 
-### 1. Install Gorai and Initialize K3s
+### 1. Install K3s and Gorai
+
+**First, install K3s on your platform:**
+
+See the [K3s Installation Guide](specs/k3s-installation.md) for detailed, platform-specific instructions (Raspberry Pi 5, Orange Pi 5B, Jetson Orin, etc.).
+
+**Quick install (Raspberry Pi 5):**
 
 ```bash
+# Install K3s
+curl -sfL https://get.k3s.io | sh -s - \
+  --disable traefik \
+  --write-kubeconfig-mode 644
+
+# Verify K3s is running
+sudo systemctl status k3s
+sudo k3s kubectl get nodes
+
 # Install gorai CLI
 curl -sfL https://get.gorai.dev | sh
-
-# Initialize K3s cluster (first time only, ~2-3 minutes)
-gorai cluster init
-
-# Verify cluster is ready
-gorai cluster status
 ```
 
 ### 2. Create a robot configuration

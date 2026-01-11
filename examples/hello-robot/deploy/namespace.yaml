@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hello-robot
+  labels:
+    app.kubernetes.io/name: hello-robot
+    app.kubernetes.io/part-of: gorai
