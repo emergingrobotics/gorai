@@ -406,6 +406,346 @@ SDKs across languages:
 
 ---
 
+## Gorai Language Philosophy: When to Use C++
+
+### Core Principle
+
+**Gorai is a Go-first framework.** We use C++ only when there are clear **technical justifications**, not merely because existing code happens to be written in C++.
+
+This philosophy reflects the reality of modern software development in the AI-assisted era, where the calculus of porting vs. wrapping has fundamentally changed.
+
+### Technical Justifications for C++
+
+C++ is appropriate when **at least one** of these conditions is met:
+
+#### 1. Vendor-Provided Drivers Too Complex to Port
+
+**Scenario:** Hardware manufacturer provides SDK with:
+- Thousands of lines of low-level device control
+- Proprietary protocols without public specification
+- Vendor-tuned performance optimizations
+- Complex state machines for hardware initialization
+
+**Examples:**
+- RealSense camera SDK (`librealsense2`) — Complex USB3 Vision protocol implementation
+- NVIDIA CUDA libraries — Proprietary GPU control
+- Some industrial motor controllers with vendor-specific protocols
+
+**Decision:** Use C++ wrapper in satellite repository (not core)
+
+#### 2. Performance-Critical Code Requiring Non-GC Environment
+
+**Scenario:** Real-time constraints where garbage collection pauses are unacceptable:
+- Sub-millisecond control loops (motor commutation, safety cutoffs)
+- Zero-allocation hot paths in hard real-time contexts
+- Direct hardware register manipulation with cycle-accurate timing
+
+**Examples:**
+- Brushless motor ESC firmware (better: use TinyGo on microcontroller)
+- High-frequency sensor sampling with µs precision
+- Safety-critical watchdog implementations
+
+**Decision:** Prefer TinyGo on microcontroller; use C++ only if MCU insufficient
+
+#### 3. Irreplaceable Research Implementations
+
+**Scenario:** Algorithm represents years of academic research where:
+- Reimplementation would likely introduce subtle bugs
+- Proven stability in production over many years
+- Active maintenance by research community
+- Complexity justifies preservation over porting
+
+**Examples:**
+- Cartographer SLAM (Google's graph-based SLAM)
+- ORB-SLAM3 (vision-based SLAM with loop closure)
+- Mature point cloud processing (PCL) for specific advanced algorithms
+
+**Decision:** Wrap as external service communicating via NATS
+
+### Invalid Justifications for C++
+
+The following are **NOT** sufficient reasons to use C++:
+
+#### ❌ "It Already Exists in C++"
+
+**Why this is invalid:**
+
+In 2025, source code has less intrinsic value than in the 1990s-2010s. AI coding assistants can port implementations with:
+- High accuracy for well-documented code
+- Comprehensive test generation during translation
+- Architectural modernization (add NATS, Prometheus, etc.)
+- Improved code clarity through refactoring
+
+**The changed economics:**
+
+```
+Pre-AI Era (2015):
+Port 10,000-line C++ library manually
+├── 4-6 weeks senior developer time
+├── High risk of introducing subtle bugs
+├── Testing burden falls entirely on human
+└── Result: Often not worth the effort
+
+AI-Assisted Era (2025):
+Port 10,000-line C++ library with AI assistance
+├── 2-4 days developer time (review, iterate, test)
+├── AI generates tests alongside ported code
+├── Opportunity to modernize architecture
+├── Results in more maintainable, idiomatic Go
+└── Result: Frequently worth the investment
+```
+
+#### ❌ "C++ is Faster"
+
+**Why this is usually invalid:**
+
+For most robotics workloads:
+- Network I/O and sensor latency dominate (milliseconds)
+- Go is "fast enough" for 99% of robot control (microseconds available)
+- NATS messaging overhead same in C++ or Go
+- Bottlenecks are in CV/ML inference (handled by specialized hardware)
+
+**When speed matters:** Use hardware accelerators (NPU, TPU, GPU), not C++ on CPU
+
+#### ❌ "It Has More Features"
+
+**Why this is invalid:**
+
+Feature disparity is often:
+- Features you don't need for prosumer robotics
+- Over-engineering for enterprise/research use cases
+- Technical debt accumulated over decades
+
+**Better approach:** Implement features you actually need, in Go, for your target market
+
+### Integration Patterns When C++ Is Justified
+
+When technical justification exists, integrate C++ cleanly and isolate it:
+
+#### Pattern 1: External Service (Strongly Preferred)
+
+```
+┌──────────────────────────────────────────────────┐
+│  C++ Service (containerized, separate process)   │
+│                                                   │
+│  ┌────────────────┐   ┌──────────────────────┐  │
+│  │ Vendor C++ SDK │   │ Thin NATS Client     │  │
+│  │ or Research    │──▶│ (C++ nats.c library)  │  │
+│  │ Implementation │   │                       │  │
+│  └────────────────┘   └──────────────────────┘  │
+│                              │                    │
+│                              │ Publishes results  │
+│                              ▼                    │
+│                       ┌─────────────────┐        │
+│                       │ Prometheus      │        │
+│                       │ /metrics        │        │
+│                       └─────────────────┘        │
+└──────────────────────────────────────────────────┘
+                │
+                │ NATS messaging (language-agnostic)
+                ▼
+┌──────────────────────────────────────────────────┐
+│  Gorai Core (Pure Go)                            │
+│                                                   │
+│  Treats C++ service like any other service:      │
+│  - Subscribes to NATS topics                     │
+│  - No knowledge of implementation language       │
+│  - Monitors via Prometheus metrics               │
+└──────────────────────────────────────────────────┘
+```
+
+**Benefits:**
+- Complete isolation (crash in C++ doesn't affect core)
+- Language-agnostic interface (NATS)
+- Independent versioning and deployment
+- Core repository stays pure Go
+
+**Examples:** Cartographer SLAM service, RealSense camera service
+
+#### Pattern 2: CGo Wrapper (When Process Boundary Impractical)
+
+```go
+// Satellite repository: github.com/gorai/gorai-driver-realsense
+// NOT in core gorai repository
+
+package realsense
+
+// #cgo LDFLAGS: -lrealsense2
+// #include <librealsense2/rs.h>
+import "C"
+import "unsafe"
+
+type Camera struct {
+    ctx    C.rs2_context
+    device C.rs2_device
+}
+
+func NewCamera() (*Camera, error) {
+    // Minimal CGo - just enough to wrap vendor SDK
+    var err *C.rs2_error
+    ctx := C.rs2_create_context(C.RS2_API_VERSION, &err)
+    if err != nil {
+        return nil, parseError(err)
+    }
+
+    return &Camera{ctx: ctx}, nil
+}
+
+func (c *Camera) CaptureFrame() (image.Image, error) {
+    // Thin wrapper - delegate to C++ SDK
+    // Convert C types to Go types at boundary
+}
+```
+
+**Critical rules:**
+- CGo code MUST live in satellite repository (never core)
+- Wrapper must be thin (no business logic in CGo layer)
+- Clear Go interfaces that hide C++ implementation details
+- Comprehensive tests in pure Go (test via interface, not implementation)
+
+**When appropriate:** Camera drivers, some sensors where USB latency matters
+
+### Case Studies: Language Choices in Gorai
+
+| Component | Language | Justification | Notes |
+|-----------|----------|---------------|-------|
+| **NATS client** | Pure Go | Native Go library, excellent | nats.go is reference implementation |
+| **Web dashboard** | Pure Go | stdlib `net/http` sufficient | Templates, WebSockets all in stdlib |
+| **Configuration system** | Pure Go | JSON/YAML native support | No C++ advantage |
+| **GPS driver (NMEA)** | Pure Go | Text protocol, trivial parsing | NMEA spec is 50 pages; port in hours |
+| **IMU (I2C/SPI)** | Pure Go | Well-documented registers | Datasheets provide everything needed |
+| **Basic motor control** | Pure Go or TinyGo | PWM, I2C protocols simple | `periph.io` library excellent |
+| **Video4Linux camera** | Pure Go | V4L2 ioctl bindings exist | `github.com/blackjack/webcam` |
+| **Simple CV** | Python service | OpenCV ecosystem valuable | Port when Go CV matures |
+| **YOLO inference** | Python/ONNX Runtime | ML frameworks | Porting model itself: no value |
+| **RealSense camera** | C++ wrapper (satellite) | Vendor SDK complex | ✓ Valid: vendor SDK |
+| **Hailo NPU** | C++ wrapper (satellite) | Vendor runtime required | ✓ Valid: vendor SDK |
+| **Cartographer SLAM** | C++ service (container) | Research value | ✓ Valid: irreplaceable research |
+| **Motor PID (MCU)** | TinyGo | Real-time, no GC | Prefer TinyGo over C++ |
+
+### Decision Tree for New Dependencies
+
+When evaluating whether to use an existing C++ library:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Step 1: Does a Go implementation exist?                     │
+│                                                              │
+│ Check: GitHub, pkg.go.dev, awesome-go                       │
+│ ├─ Yes → Use Go implementation                              │
+│ └─ No  → Continue to Step 2                                 │
+└─────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 2: Can AI port it in <1 week?                          │
+│                                                              │
+│ Heuristics:                                                  │
+│ - Well-documented codebase with clear interfaces            │
+│ - < 20,000 lines of actual logic                            │
+│ - No exotic C++ features (template metaprogramming, etc.)   │
+│ - Clear separation of concerns                              │
+│                                                              │
+│ ├─ Yes → Port to Go with AI assistance                      │
+│ │         Benefits: Modernize, add NATS/Prometheus          │
+│ └─ No  → Continue to Step 3                                 │
+└─────────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 3: Technical justification?                            │
+│                                                              │
+│ Does it meet criteria?                                      │
+│ 1. Vendor SDK too complex to port?                          │
+│ 2. Requires non-GC environment? (consider TinyGo first)     │
+│ 3. Irreplaceable research implementation?                   │
+│                                                              │
+│ ├─ Yes → Use C++ via external service or satellite wrapper  │
+│ └─ No  → Implement in Go from first principles              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### The AI-Assisted Porting Process
+
+When porting C++ to Go with AI assistance:
+
+1. **Analyze Architecture**
+   ```bash
+   # Ask AI to analyze structure
+   "Analyze this C++ codebase and describe its architecture,
+    key abstractions, and public interfaces"
+   ```
+
+2. **Port in Layers**
+   - Start with data structures and core types
+   - Port pure functions (no state)
+   - Port stateful components with clear boundaries
+   - Add NATS integration and Prometheus metrics as you go
+
+3. **Generate Tests Alongside**
+   ```bash
+   # For each ported module
+   "Generate comprehensive unit tests for this Go implementation,
+    covering edge cases from the original C++ tests"
+   ```
+
+4. **Validate Against Original**
+   - Run both implementations on same inputs
+   - Compare outputs for numerical algorithms
+   - Performance benchmark (often Go is "fast enough")
+
+5. **Modernize Architecture**
+   - Replace C++ threading with goroutines + channels
+   - Add structured logging
+   - Implement graceful shutdown
+   - Export Prometheus metrics
+
+**Result:** Often better code than original, more maintainable, with modern observability
+
+### Why This Matters for Gorai
+
+#### For Users
+- **Simpler builds:** No C++ compiler, no complex CMake
+- **Easier debugging:** Single-language stack traces
+- **Better AI assistance:** AI coding tools excel at Go, struggle with C++
+- **Faster customization:** Modify behavior without C++ expertise
+
+#### For Contributors
+- **Lower barrier to entry:** Go is learnable in days; C++ takes months
+- **Better code review:** Go's simplicity makes reviews faster, more effective
+- **AI pair programming:** Claude, Copilot work dramatically better with Go
+- **Faster iteration:** `go build` in seconds vs. CMake in minutes
+
+#### For the Project
+- **Maintenance burden:** Pure Go codebase is easier to maintain
+- **Feature velocity:** Implement features faster in Go than C++
+- **Contributor base:** Wider pool of potential contributors (Go vs. C++ expertise)
+- **Future-proof:** AI tools will only get better at porting; invest in Go ecosystem
+
+### Comparison to Other Frameworks
+
+| Framework | C++ Philosophy | Gorai Difference |
+|-----------|---------------|------------------|
+| **ROS 2** | C++ primary, Python secondary | Opposite: Go primary, C++ only when justified |
+| **Viam** | Go primary, polyglot services | Similar, but Gorai more willing to port |
+| **YARP** | C++ throughout | Opposite: Minimize C++, port where possible |
+
+### Summary
+
+**Gorai's language strategy in one sentence:**
+
+> "Use Go everywhere unless there's a compelling technical reason not to. In the AI era, 'already exists in C++' is not a compelling reason."
+
+We're building for the 2020s, where:
+- AI assists development
+- Go's simplicity beats C++'s performance in most cases
+- Cloud-native patterns matter more than raw speed
+- Developer experience determines success
+
+When C++ is truly necessary (vendor SDKs, irreplaceable research), we isolate it cleanly via NATS services or satellite repositories. The core remains pure Go.
+
+---
+
 ## Conclusion
 
 ROS 2, Viam, and YARP represent three generations and philosophies of robotics middleware:

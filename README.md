@@ -96,6 +96,158 @@ Drawing from [our analysis](docs/general-designs.md) of ROS 2, Viam, and YARP, p
 - "Not Invented Here" syndrome (ROS 2 bridge planned for ecosystem access)
 - Complex middleware that leaks implementation details
 
+## Language Philosophy: Pragmatic C++ Use
+
+Gorai is a Go-first framework, but we use C++ pragmatically when there are **technical reasons** that justify it. This philosophy reflects the realities of modern AI-assisted development.
+
+### When We Use C++
+
+C++ is justified when **at least one** of these conditions is true:
+
+1. **Vendor-provided drivers too complex to port**
+   - Hardware SDK with thousands of lines of low-level device control
+   - Proprietary vendor libraries with no public specification
+   - Real-time constraints requiring vendor-tuned implementations
+
+2. **Performance-critical code requiring non-GC environment**
+   - Sub-millisecond control loops (motor commutation, safety cutoffs)
+   - Zero-allocation hot paths in hard real-time contexts
+   - Direct hardware register manipulation
+
+3. **Irreplaceable research implementations**
+   - SLAM algorithms representing years of academic research (Cartographer, ORB-SLAM3)
+   - When reimplementation would introduce novel bugs or lose proven stability
+
+### When We Don't Use C++
+
+**"It already exists in C++" is NOT sufficient justification.**
+
+In the AI-assisted development era, source code has less intrinsic value than it once did. Modern AI coding assistants can:
+
+- Port C++ implementations to Go with high accuracy
+- Modernize architecture during porting (add NATS messaging, Prometheus metrics)
+- Generate comprehensive tests during translation
+- Refactor for clarity and Go idioms
+
+### The AI-Assisted Porting Advantage
+
+Many robotics libraries were written in C++ during an era when:
+- Manual porting was prohibitively expensive
+- Existing code represented years of developer time
+- Rewriting meant high risk of introducing bugs
+
+**This calculus has changed.** With AI assistance:
+
+```
+Traditional Development:
+Port 10,000 lines C++ → Go manually
+├── 4-6 weeks developer time
+├── High bug introduction risk
+└── Exhausting, error-prone work
+
+AI-Assisted Development:
+Port 10,000 lines C++ → Go with Claude/Copilot
+├── 2-4 days developer time (review + iteration)
+├── Comprehensive tests generated alongside
+├── Modernize to use NATS, Prometheus during port
+└── Often results in cleaner, more maintainable code
+```
+
+### Integration Pattern: Wrap Only When Necessary
+
+When C++ is justified, we integrate it cleanly:
+
+**Option 1: External Service (Preferred)**
+```
+┌─────────────────────────────────────────┐
+│  C++ Service (containerized)            │
+│  ├── Vendor SDK (C++)                   │
+│  ├── NATS client (connects to broker)   │
+│  └── Prometheus metrics                 │
+└─────────────────────────────────────────┘
+         │ NATS messaging
+         ▼
+┌─────────────────────────────────────────┐
+│  Gorai Core (Go)                        │
+│  └── Treats C++ service like any other  │
+└─────────────────────────────────────────┘
+```
+
+**Option 2: CGo Wrapper (When External Process Impractical)**
+```go
+// Thin CGo wrapper in satellite repository
+// github.com/gorai/gorai-driver-realsense
+
+package realsense
+
+// #cgo LDFLAGS: -lrealsense2
+// #include <librealsense2/rs.h>
+import "C"
+
+type Camera struct {
+    ctx C.rs2_context
+    // ... minimal wrapper state
+}
+
+// Wrapper provides Go interface, delegates to C++
+func (c *Camera) CaptureFrame() (image.Image, error) {
+    // Minimal CGo calls
+}
+```
+
+**Key Principle:** Keep C++ isolated. Core gorai repository remains pure Go.
+
+### Examples in Gorai
+
+| Component | Language | Justification |
+|-----------|----------|---------------|
+| **NATS messaging** | Pure Go | Native Go library, excellent performance |
+| **Web dashboard** | Pure Go | stdlib http + templates sufficient |
+| **GPS driver** | Pure Go | NMEA protocol simple to parse |
+| **IMU sensor** | Pure Go | I2C protocol, well-documented registers |
+| **Simple vision** | Python service | OpenCV ecosystem (port not cost-effective *yet*) |
+| **RealSense camera** | C++ wrapper | Vendor SDK, complex low-level USB control |
+| **Motor PID** | TinyGo on MCU | Real-time requirements, no GC pauses |
+| **YOLO inference** | Python or ONNX | ML frameworks (porting detection model: no value) |
+| **Cartographer SLAM** | C++ service | Years of research, proven stability |
+
+### Decision Framework
+
+When evaluating a potential dependency:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Is there a Go implementation?                       │
+│ ├─ Yes → Use it                                     │
+│ └─ No → Continue...                                 │
+└─────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────┐
+│ Can AI port it in <1 week?                          │
+│ ├─ Yes → Port it to Go, modernize architecture      │
+│ └─ No → Continue...                                 │
+└─────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────┐
+│ Does it have technical justification?               │
+│ (vendor SDK complexity, real-time, research value)  │
+│ ├─ Yes → Use C++ as external service or CGo wrapper │
+│ └─ No → Build in Go from scratch                    │
+└─────────────────────────────────────────────────────┘
+```
+
+### Why This Matters
+
+**For users:** Simpler builds, fewer dependencies, easier debugging, AI-assisted customization
+
+**For contributors:** Modern, readable code; AI coding assistants work better with Go than C++
+
+**For the project:** Lower maintenance burden, faster feature velocity, wider contributor base
+
+We're building a framework for the 2020s, not the 1990s. Language choices should reflect modern development realities.
+
 ## Architecture: K3s-Everywhere
 
 Gorai uses a **K3s-everywhere architecture** where all robots deploy on Kubernetes (K3s), from simple single robots to multi-robot fleets. This provides a consistent deployment model that scales without architectural changes.
