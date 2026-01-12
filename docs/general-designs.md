@@ -372,6 +372,7 @@ SDKs across languages:
 | **Build** | Heavy | Simple | Moderate | Simple |
 | **MCU Support** | micro-ROS | No | No | TinyGo |
 | **Complexity** | High | Moderate | Moderate | Low |
+| **Orchestration** | Manual | Cloud-managed | Manual | K3s (abstracted via RDL) |
 
 ---
 
@@ -391,10 +392,11 @@ SDKs across languages:
 ### Differentiate
 
 1. **NATS as core**: Simpler than DDS, more capable than gRPC for pub/sub
-2. **TinyGo support**: Unified language from MCU to cloud
-3. **TPU/NPU focus**: Edge AI as primary, not secondary
-4. **No cloud dependency**: Standalone first, cloud optional
-5. **Lower barrier**: Simpler than ROS 2, more flexible than Viam
+2. **K3s-everywhere**: Production-grade orchestration abstracted behind simple CLI
+3. **TinyGo support**: Unified language from MCU to cloud
+4. **TPU/NPU focus**: Edge AI as primary, not secondary
+5. **No cloud dependency**: Standalone first, cloud optional
+6. **Lower barrier**: Simpler than ROS 2, more flexible than Viam
 
 ### Avoid
 

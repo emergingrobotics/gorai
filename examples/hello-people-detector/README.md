@@ -1,28 +1,37 @@
 # Hello People Detector Example
 
+> **🚧 WORK IN PROGRESS - NOT YET FUNCTIONAL 🚧**
+>
+> This example is currently under development and does not work yet. The implementation is incomplete.
+>
+> **Working examples:** See [hello-robot](../hello-robot/) or [hello-robot-production](../hello-robot-production/) for fully functional examples.
+
 A camera robot with AI-based person detection using an external service. This example demonstrates the **Service RDL** pattern for modular, reusable external services.
 
 ## Architecture
 
 ```
-Robot Deployment
-+-------------------------------------------------------------+
-|  Host System (Raspberry Pi 5, etc.)                         |
-|                                                             |
-|  systemd                                                    |
-|  +-- nats-server.service           (installed natively)     |
-|  +-- hello-people-detector.service (gorai robot binary)     |
-|                                                             |
-|  Container Runtime (Podman)                                 |
-|  +-- person-detector container     (external service)       |
-|      - Subscribes to camera frames via NATS                 |
-|      - Runs YOLOX inference on Hailo NPU                    |
-|      - Publishes annotated images + detections              |
-|                                                             |
-|  Hardware                                                   |
-|  +-- /dev/video0  -> camera component                       |
-|  +-- /dev/hailo0  -> person detector container              |
-+-------------------------------------------------------------+
+K3s Cluster (single-node)
+┌─────────────────────────────────────────────────────────────────┐
+│  Namespace: gorai-hello-people-detector                         │
+│                                                                 │
+│  ┌─────────────┐   ┌──────────────────────────────────────────┐ │
+│  │ nats pod    │   │ gorai-core pod                           │ │
+│  │             │◄──│  ├── camera component (V4L2)             │ │
+│  │ NATS server │   │  └── dashboard service (:8080)           │ │
+│  └─────────────┘   └──────────────────────────────────────────┘ │
+│        ▲                                                        │
+│        │ NATS messaging                                         │
+│        ▼                                                        │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ person-detector pod (external service)                      ││
+│  │  ├── Subscribes to camera frames via NATS                   ││
+│  │  ├── Runs YOLOX inference on Hailo NPU                      ││
+│  │  └── Publishes annotated images + detections                ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  Hardware passthrough: /dev/video0, /dev/hailo0                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Concepts
@@ -50,32 +59,23 @@ The robot RDL references the Service RDL and provides:
 
 ## Prerequisites
 
-- Raspberry Pi 5 with Raspberry Pi OS (Bookworm)
-- Go 1.22+ (for building gorai)
-- NATS server
-- Podman (for running external service container)
+- Raspberry Pi 5 (8GB) with K3s installed
+- NVMe SSD or USB 3.0 SSD (SD cards not supported)
 - Camera at `/dev/video0`
 - Hailo-8 NPU at `/dev/hailo0` (for real-time inference)
+- Go 1.22+ (for building gorai CLI)
+
+See [K3s Installation Guide](../../specs/k3s-installation.md) for K3s setup.
 
 ## Host Setup (Raspberry Pi 5)
 
-This section covers everything needed on the Raspberry Pi before building the container.
+This section covers Hailo NPU setup before deploying the robot.
 
-### 1. Base System Dependencies
+### 1. Verify K3s is Running
 
 ```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# NATS server
-sudo apt install -y nats-server
-sudo systemctl enable --now nats-server
-
-# Podman for container runtime
-sudo apt install -y podman
-
-# Enable podman socket for managed containers
-systemctl --user enable --now podman.socket
+sudo k3s kubectl get nodes
+# Should show: Ready
 ```
 
 ### 2. Hailo-8 NPU Setup
@@ -229,8 +229,9 @@ print('VDevice created - Hailo NPU is accessible')
 
 ### Summary Checklist
 
-Before building the container, ensure:
+Before deploying, ensure:
 
+- [ ] K3s is running (`sudo k3s kubectl get nodes`)
 - [ ] `hailortcli fw-control identify` shows Hailo-8 NPU
 - [ ] `/dev/hailo0` exists with appropriate permissions
 - [ ] `python3-hailort` package installed (`dpkg -l | grep python3-hailort`)
@@ -243,25 +244,25 @@ Before building the container, ensure:
 
 ## Quick Start
 
-### 1. Build Everything
+### 1. Build Container Images
 
 ```bash
-# Build the robot binary and external service container
+# Build the external service container
 gorai build --config hello-people-detector.json
 ```
 
 This will:
-- Build the main robot binary
 - Build the person-detector container image
+- Import it into the K3s containerd registry
 
-### 2. Run the Robot
+### 2. Deploy to K3s
 
 ```bash
-# Development: Run in foreground
-gorai run --config hello-people-detector.json
+# Deploy to K3s
+gorai deploy hello-people-detector.json
 
-# Production: Deploy as systemd service
-gorai start --config hello-people-detector.json --enable
+# Watch deployment
+gorai status hello-people-detector
 ```
 
 ### 3. Access the Dashboard
@@ -274,56 +275,46 @@ Open http://localhost:8080 to view:
 ### 4. Check Status
 
 ```bash
-gorai status --config hello-people-detector.json
+gorai status hello-people-detector
 ```
 
 Expected output:
 ```
 Robot: hello-people-detector
 
+PODS
+NAME                         READY   STATUS
+nats-0                       1/1     Running
+gorai-core-xxxxx             1/1     Running
+person-detector-xxxxx        1/1     Running
+
 COMPONENTS
 NAME          TYPE    MODEL   STATUS
 main_camera   camera  v4l2    running
 
 SERVICES
-NAME             TYPE              MODEL   STATUS    MODE
-dashboard        dashboard         web     running   internal
-person_detector  object_detection  yolox   running   external (container)
+NAME             TYPE              MODEL   STATUS
+dashboard        dashboard         web     running
+person_detector  object_detection  yolox   running
 ```
 
 ### 5. View Logs
 
 ```bash
-# All logs from gorai
-gorai logs --config hello-people-detector.json -f
+# All logs via gorai CLI
+gorai logs hello-people-detector -f
 
-# Person detector container logs (recommended for debugging)
-podman logs -f person_detector
+# Person detector pod logs directly
+sudo k3s kubectl logs -n gorai-hello-people-detector -l app=person-detector -f
 ```
 
-## Viewing Container Logs
-
-The person detector runs in a Podman container. Use these commands to view logs:
+### 6. Undeploy
 
 ```bash
-# Follow logs in real-time (like tail -f)
-podman logs -f person_detector
-
-# Show last 100 lines
-podman logs --tail 100 person_detector
-
-# Show logs with timestamps
-podman logs -t person_detector
-
-# Show logs since a specific time
-podman logs --since 5m person_detector   # Last 5 minutes
-podman logs --since 1h person_detector   # Last hour
-
-# Combine options: last 50 lines with timestamps, follow
-podman logs -t --tail 50 -f person_detector
+gorai undeploy hello-people-detector
 ```
 
-### Understanding the Log Output
+## Understanding the Log Output
 
 The person detector logs timing information every 10 frames:
 
@@ -433,7 +424,7 @@ gorai.hello-people-detector.person_detector.detections  # JSON detection results
 ### Subscribe to Detection Results
 
 ```bash
-# View raw detections
+# View raw detections (from within cluster or with port-forward)
 nats sub "gorai.hello-people-detector.person_detector.detections"
 ```
 
@@ -465,40 +456,34 @@ wget -O /opt/gorai/models/yolox_s.onnx \
 # Edit hello-people-detector.json:
 #   "model_path": "/models/yolox_s.onnx"
 
-# Rebuild and run
+# Rebuild and deploy
 gorai build --config hello-people-detector.json
-gorai run --config hello-people-detector.json
+gorai deploy hello-people-detector.json
 ```
 
 ## Troubleshooting
 
-### Container Won't Start
+### Pod Won't Start
 
 ```bash
-# Check container status
-podman ps -a
+# Check pod status
+sudo k3s kubectl get pods -n gorai-hello-people-detector
 
-# View container logs
-podman logs person_detector
+# View pod events
+sudo k3s kubectl describe pod -n gorai-hello-people-detector -l app=person-detector
 
-# Check if device is available
-ls -la /dev/hailo0
+# View pod logs
+sudo k3s kubectl logs -n gorai-hello-people-detector -l app=person-detector
 ```
 
 ### Hailo NPU Not Detected in Container
 
 ```bash
-# Verify device passthrough
-podman run --rm --device /dev/hailo0 alpine ls -la /dev/hailo0
+# Check if device is passed through to pod
+sudo k3s kubectl exec -n gorai-hello-people-detector -it deploy/person-detector -- ls -la /dev/hailo0
 
 # Check if another process is using the NPU
 lsof /dev/hailo0
-
-# Verify HailoRT library is in container
-podman run --rm localhost/person-detector:latest ls -la /usr/lib/libhailort*
-
-# Test Hailo import in container
-podman run --rm localhost/person-detector:latest python3 -c "from hailo_platform import VDevice; print('OK')"
 ```
 
 ### "Failed to create VDevice" Error
@@ -506,9 +491,6 @@ podman run --rm localhost/person-detector:latest python3 -c "from hailo_platform
 This usually means another process has the NPU open:
 
 ```bash
-# Stop all containers that might be using Hailo
-podman stop $(podman ps -q)
-
 # Check what's using the device
 sudo lsof /dev/hailo0
 
@@ -522,7 +504,7 @@ pkill -f rpicam
 2. **Check model architecture**: `yolov8s_h8.hef` for Hailo-8, `yolov8s_h8l.hef` for Hailo-8L
 3. **Lower confidence threshold**: Default 0.5 might be too high for your scene
 4. **Check NATS connectivity**: `nats sub "gorai.hello-people-detector.>"`
-5. **View container logs**: `podman logs -f person_detector`
+5. **View pod logs**: `sudo k3s kubectl logs -n gorai-hello-people-detector -l app=person-detector -f`
 
 ### Slow Performance (< 10 fps)
 
@@ -530,12 +512,9 @@ If running slower than expected:
 
 ```bash
 # Check which backend is being used
-podman logs person_detector 2>&1 | grep -i "backend\|hailo\|onnx"
+sudo k3s kubectl logs -n gorai-hello-people-detector -l app=person-detector | grep -i "backend\|hailo\|onnx"
 
 # If "ONNX backend" appears, Hailo isn't being used
-# Verify Hailo files are in container:
-podman run --rm localhost/person-detector:latest ls -la /usr/lib/libhailort*
-podman run --rm localhost/person-detector:latest ls -la /app/hailo_runtime/
 ```
 
 Expected performance:
@@ -568,9 +547,6 @@ The container's HailoRT version must match the host:
 ```bash
 # Check host version
 hailortcli --version
-
-# Check container version
-podman run --rm localhost/person-detector:latest python3 -c "import hailo_platform; print('OK')"
 
 # If mismatch, rebuild container with updated hailo_runtime/ files
 ```

@@ -1,69 +1,72 @@
 # Hello Camera Example
 
+> **🚧 WORK IN PROGRESS - NOT YET FUNCTIONAL 🚧**
+>
+> This example is currently under development and does not work yet. The implementation is incomplete.
+>
+> **Working examples:** See [hello-robot](../hello-robot/) or [hello-robot-production](../hello-robot-production/) for fully functional examples.
+
 A simple camera robot demonstrating V4L2 capture and web dashboard.
 
 ## Architecture
 
 ```
-Robot Deployment
-+-------------------------------------------------------------+
-|  Host System (Raspberry Pi, etc.)                           |
-|                                                             |
-|  systemd                                                    |
-|  +-- nats-server.service           (installed natively)     |
-|  +-- hello-camera.service          (gorai robot binary)     |
-|                                                             |
-|  Hardware                                                   |
-|  +-- /dev/video0  -> camera component                       |
-+-------------------------------------------------------------+
+K3s Cluster (single-node)
+┌─────────────────────────────────────────────────────────────┐
+│  Namespace: gorai-hello-camera                              │
+│                                                             │
+│  ┌─────────────┐   ┌──────────────────────────────────────┐ │
+│  │ nats pod    │   │ gorai-core pod                       │ │
+│  │             │◄──│  ├── camera component (V4L2)         │ │
+│  │ NATS server │   │  └── dashboard service (:8080)       │ │
+│  └─────────────┘   └──────────────────────────────────────┘ │
+│                                                             │
+│  Hardware passthrough: /dev/video0                          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
 
-- Linux (Raspberry Pi OS, Ubuntu, Fedora)
-- Go 1.22+ (for building gorai)
-- NATS server (`sudo apt install nats-server`)
+- Raspberry Pi 5 (8GB) or equivalent with K3s installed
+- NVMe SSD or USB 3.0 SSD (SD cards not supported)
 - Camera at `/dev/video0`
+- Go 1.22+ (for building gorai CLI)
+
+See [K3s Installation Guide](../../specs/k3s-installation.md) for setup instructions.
 
 ## Quick Start
 
-### 1. Install NATS
+### 1. Verify K3s is Running
 
 ```bash
-sudo apt install nats-server
-sudo systemctl enable --now nats-server
+sudo k3s kubectl get nodes
+# Should show: Ready
 ```
 
-### 2. Run
+### 2. Deploy
 
 ```bash
-# Run in foreground (development)
-make run
+# Deploy to K3s
+gorai deploy hello-camera.json
 
-# Or run as systemd service (production)
-make run-background
+# Watch deployment
+gorai status hello-camera
 ```
 
 ### 3. Access the Dashboard
 
 Open http://localhost:8080 in your browser to view the camera feed.
 
-### 4. Check Status
+### 4. View Logs
 
 ```bash
-make status
+gorai logs hello-camera -f
 ```
 
-### 5. View Logs
+### 5. Undeploy
 
 ```bash
-make logs
-```
-
-### 6. Stop
-
-```bash
-make stop
+gorai undeploy hello-camera
 ```
 
 ## Configuration
@@ -92,7 +95,7 @@ The camera publishes JPEG frames to:
 gorai.hello-camera.main_camera.data
 ```
 
-Subscribe to view frames:
+Subscribe to view frames (from within the cluster):
 ```bash
 nats sub "gorai.hello-camera.main_camera.data"
 ```
@@ -110,13 +113,23 @@ sudo usermod -aG video $USER
 # Log out and back in
 ```
 
-### Permission Denied
+### Pod Not Starting
 
 ```bash
-# Check device permissions
+# Check pod status
+sudo k3s kubectl get pods -n gorai-hello-camera
+
+# View pod logs
+sudo k3s kubectl logs -n gorai-hello-camera -l app=gorai-core
+```
+
+### Device Passthrough Issues
+
+```bash
+# Verify device exists
 ls -la /dev/video0
 
-# Fix permissions (temporary)
+# Check permissions
 sudo chmod 666 /dev/video0
 ```
 

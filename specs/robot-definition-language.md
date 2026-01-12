@@ -8,7 +8,7 @@
 
 The Robot Definition Language (RDL) is a JSON/YAML configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
 
-> **Architecture:** Gorai uses a **Podman-everywhere architecture** where all robots run as Podman pods managed by systemd. RDL abstracts away container complexity — users define robots in YAML/JSON, and `gorai deploy` generates pod definitions and systemd units automatically. Users never need to know Podman CLI or systemd syntax unless they choose to. See [deployment-podman.md](deployment-podman.md) for deployment details.
+> **Architecture:** Gorai uses a **K3s-everywhere architecture** where all robots deploy on Kubernetes (K3s). RDL abstracts away container complexity — users define robots in JSON/YAML, and `gorai deploy` generates K3s manifests automatically. Users never need kubectl or Kubernetes knowledge unless they choose to. See [k3s-installation.md](k3s-installation.md) for setup instructions.
 
 ### 1.1 Scope
 
@@ -85,7 +85,7 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 | `dashboard` | object | No | Web dashboard configuration (enabled by default) |
 | `alerting` | object | No | Alert Manager configuration |
 
-> **Migration from v3.0:** K3s deployment replaced by Podman pods + systemd. Same RDL format; only deployment mechanism changed. Services with `container.image` become separate containers in the pod.
+> **Note:** Services with `container.image` become separate pods in the K3s namespace. External services run as independent containers managed by K3s.
 
 ---
 
