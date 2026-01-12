@@ -1108,6 +1108,12 @@ When contributing new components or services, follow this format. The specificit
 
 ## Example Projects
 
+### [hello-robot](examples/hello-robot/)
+Minimal NATS pub/sub messaging example. Perfect for learning the basics of Gorai messaging.
+
+### [hello-robot-production](examples/hello-robot-production/)
+Production-ready NATS messaging example with full health checks, Kubernetes probes, and resilience features. Use this as a template for real deployments.
+
 ### [hello-camera](examples/hello-camera/)
 Simple camera robot demonstrating V4L2 capture and web dashboard. A minimal example to get started.
 

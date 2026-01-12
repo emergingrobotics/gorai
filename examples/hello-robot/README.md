@@ -5,6 +5,8 @@ A minimal example demonstrating NATS pub/sub messaging between two containers in
 > **📋 New to local testing?** See [SETUP.md](SETUP.md) for installing prerequisites on Linux/macOS
 >
 > **📋 Ready to test?** See [TESTING.md](TESTING.md) for detailed testing instructions
+>
+> **🔧 Need production features?** See [../hello-robot-production](../hello-robot-production/) for a version with full health checks and monitoring
 
 ## Architecture
 
