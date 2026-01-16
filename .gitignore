@@ -56,3 +56,4 @@ mem.out
 *.local.yaml
 *.local.json
 config.local.*
+.aider*
