@@ -1,0 +1,83 @@
+// Package {{.Model}} implements a {{.Type}} component
+package {{.Model}}
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/gorai/gorai/pkg/resource"
+	"github.com/gorai/gorai/pkg/registry"
+)
+
+// Register this component with Gorai
+func init() {
+	registry.RegisterComponent("{{.Type}}", "{{.Model}}", New{{.StructName}})
+}
+
+// {{.StructName}} implements the {{.Type}} interface
+type {{.StructName}} struct {
+	resource.Named
+	resource.TriviallyCloseable
+
+	// Add your component-specific fields here
+	config Config
+}
+
+// Config defines the JSON attributes from robot.json
+type Config struct {
+	ExampleAttribute string `json:"example_attribute"`
+	// Add more configuration fields here
+}
+
+// New{{.StructName}} creates a new instance of the component
+func New{{.StructName}}(
+	ctx context.Context,
+	deps resource.Dependencies,
+	conf resource.Config,
+) (resource.Resource, error) {
+	// Parse configuration
+	var config Config
+	if err := conf.DecodeAttributes(&config); err != nil {
+		return nil, fmt.Errorf("failed to decode config: %w", err)
+	}
+
+	// Validate configuration
+	if config.ExampleAttribute == "" {
+		return nil, fmt.Errorf("example_attribute is required")
+	}
+
+	// Create component instance
+	component := &{{.StructName}}{
+		Named:  conf.ResourceName().AsNamed(),
+		config: config,
+	}
+
+	// Initialize hardware connection or resources
+	if err := component.initialize(ctx); err != nil {
+		return nil, fmt.Errorf("failed to initialize: %w", err)
+	}
+
+	return component, nil
+}
+
+// initialize sets up the component
+func (c *{{.StructName}}) initialize(ctx context.Context) error {
+	// TODO: Initialize hardware, connect to devices, etc.
+	return nil
+}
+
+// DoCommand allows custom commands to be sent to the component
+func (c *{{.StructName}}) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+	// TODO: Implement custom commands
+	return nil, fmt.Errorf("command not supported")
+}
+
+// Close cleans up resources
+func (c *{{.StructName}}) Close(ctx context.Context) error {
+	// TODO: Clean up hardware connections, release resources
+	return nil
+}
+
+// TODO: Implement interface-specific methods based on component type
+// For sensors, implement Readings()
+// For motors, implement SetPower(), etc.

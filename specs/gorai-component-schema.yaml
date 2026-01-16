@@ -1,0 +1,648 @@
+# Gorai Component Metadata Schema
+
+**Version**: 1.0
+**Date**: 2026-01-16
+**Status**: Proposed
+
+---
+
+## Overview
+
+This document defines the schema for `gorai-component.yaml`, a metadata file that third-party Go component developers include in their repositories to enable:
+
+- Self-description of component capabilities
+- Discovery via CLI and registry
+- Validation of compatibility
+- Documentation of configuration attributes
+- Quality signals for users
+
+**File Name**: `gorai-component.yaml` (must be at repository root)
+
+**Format**: YAML (validated against JSON Schema below)
+
+---
+
+## JSON Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gorai.dev/schemas/component/v1.0.json",
+  "title": "Gorai Component Metadata",
+  "description": "Metadata for third-party Gorai components",
+  "type": "object",
+  "required": ["schema_version", "component"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"],
+      "description": "Metadata schema version"
+    },
+    "component": {
+      "type": "object",
+      "required": ["name", "repository", "version", "provides", "compatibility"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+          "description": "Component name in kebab-case",
+          "examples": ["custom-lidar", "advanced-imu", "rs485-motor"]
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri",
+          "description": "Git repository URL (e.g., github.com/org/repo)",
+          "examples": ["github.com/acme-corp/gorai-component-lidar"]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^v\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$",
+          "description": "Semantic version with 'v' prefix",
+          "examples": ["v1.0.0", "v2.1.3-beta.1", "v1.0.0+build.123"]
+        },
+        "provides": {
+          "type": "array",
+          "minItems": 1,
+          "description": "List of component type+model pairs this component registers",
+          "items": {
+            "type": "object",
+            "required": ["type", "model"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "motor",
+                  "sensor",
+                  "camera",
+                  "actuator",
+                  "arm",
+                  "gripper",
+                  "base",
+                  "board",
+                  "power",
+                  "generic"
+                ],
+                "description": "Component type (from Gorai component taxonomy)"
+              },
+              "model": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-_]*[a-z0-9]$",
+                "description": "Model identifier (kebab-case or snake_case)",
+                "examples": ["gpio", "mpu6050", "custom-lidar"]
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional brief description of this specific model",
+                "maxLength": 200
+              }
+            }
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "required": ["gorai_version"],
+          "description": "Compatibility constraints",
+          "properties": {
+            "gorai_version": {
+              "type": "string",
+              "description": "Gorai version constraint (npm semver syntax)",
+              "examples": [">=0.3.0", ">=0.3.0, <1.0.0", "^0.3.0"]
+            },
+            "platforms": {
+              "type": "array",
+              "description": "Supported OS/architecture combinations",
+              "items": {
+                "type": "string",
+                "pattern": "^(linux|darwin|windows)/(amd64|arm64|arm)$"
+              },
+              "examples": [["linux/arm64", "linux/amd64"]]
+            },
+            "go_version": {
+              "type": "string",
+              "description": "Minimum Go version required",
+              "pattern": "^>=\\d+\\.\\d+$",
+              "examples": [">=1.22", ">=1.23"]
+            }
+          }
+        },
+        "author": {
+          "type": "string",
+          "description": "Author name or organization",
+          "examples": ["ACME Corporation", "Robotics Lab", "John Doe"]
+        },
+        "license": {
+          "type": "string",
+          "description": "SPDX license identifier or 'Proprietary'",
+          "examples": ["MIT", "Apache-2.0", "GPL-3.0", "Proprietary", "BSD-3-Clause"]
+        },
+        "description": {
+          "type": "string",
+          "description": "One-line description of the component",
+          "maxLength": 200,
+          "examples": ["High-precision 360° LiDAR sensor driver"]
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri",
+          "description": "Repository or product homepage URL",
+          "examples": ["https://github.com/acme-corp/gorai-component-lidar"]
+        },
+        "documentation": {
+          "type": "string",
+          "format": "uri",
+          "description": "Link to detailed documentation",
+          "examples": ["https://docs.acme-corp.com/gorai-lidar"]
+        },
+        "support": {
+          "type": "object",
+          "description": "Support contact information",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "Support email address"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Support portal or issue tracker URL"
+            },
+            "chat": {
+              "type": "string",
+              "format": "uri",
+              "description": "Discord, Slack, or other chat URL"
+            }
+          }
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Keywords for search and categorization",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "examples": [["lidar", "sensor", "360-degree", "uart"]]
+        },
+        "hardware_requirements": {
+          "type": "object",
+          "description": "Hardware interface requirements",
+          "properties": {
+            "gpio": {
+              "type": "boolean",
+              "description": "Requires GPIO pins"
+            },
+            "i2c": {
+              "type": "boolean",
+              "description": "Requires I2C bus"
+            },
+            "spi": {
+              "type": "boolean",
+              "description": "Requires SPI bus"
+            },
+            "uart": {
+              "type": "boolean",
+              "description": "Requires UART/serial port"
+            },
+            "can": {
+              "type": "boolean",
+              "description": "Requires CAN bus"
+            },
+            "usb": {
+              "type": "boolean",
+              "description": "Requires USB connection"
+            },
+            "ethernet": {
+              "type": "boolean",
+              "description": "Requires Ethernet connection"
+            },
+            "pwm": {
+              "type": "boolean",
+              "description": "Requires PWM capability"
+            },
+            "custom": {
+              "type": "array",
+              "description": "Custom hardware requirements",
+              "items": {
+                "type": "string"
+              },
+              "examples": [["EtherCAT master", "RS485 adapter"]]
+            }
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "description": "Configuration attribute schemas",
+          "patternProperties": {
+            "^[a-z][a-z0-9_]*$": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["string", "int", "float", "bool", "array", "object"],
+                  "description": "Attribute data type"
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Whether this attribute is required",
+                  "default": false
+                },
+                "default": {
+                  "description": "Default value if not specified"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Explanation of what this attribute does",
+                  "maxLength": 500
+                },
+                "example": {
+                  "description": "Example value"
+                },
+                "enum": {
+                  "type": "array",
+                  "description": "Allowed values (for enumerated types)",
+                  "items": {}
+                },
+                "range": {
+                  "type": "array",
+                  "description": "Valid range for numeric types [min, max]",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "pattern": {
+                  "type": "string",
+                  "description": "Regex pattern for string validation"
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "description": "Whether this attribute is deprecated",
+                  "default": false
+                },
+                "deprecation_message": {
+                  "type": "string",
+                  "description": "Explanation if deprecated"
+                }
+              }
+            }
+          }
+        },
+        "dependencies": {
+          "type": "object",
+          "description": "External dependencies required",
+          "properties": {
+            "system_packages": {
+              "type": "array",
+              "description": "Required system packages (apt, yum, etc.)",
+              "items": {
+                "type": "string"
+              },
+              "examples": [["libudev-dev", "libusb-1.0-0"]]
+            },
+            "go_modules": {
+              "type": "array",
+              "description": "Required Go module dependencies",
+              "items": {
+                "type": "object",
+                "required": ["module", "version"],
+                "properties": {
+                  "module": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "other": {
+              "type": "array",
+              "description": "Other dependencies (firmware, drivers, etc.)",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "description": "Quality and health metrics",
+          "properties": {
+            "ci_status": {
+              "type": "string",
+              "format": "uri",
+              "description": "CI/CD status badge or dashboard URL"
+            },
+            "test_coverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Test coverage percentage"
+            },
+            "has_examples": {
+              "type": "boolean",
+              "description": "Whether examples are included in repo"
+            },
+            "has_integration_tests": {
+              "type": "boolean",
+              "description": "Whether integration tests are included"
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata for registry",
+          "properties": {
+            "first_released": {
+              "type": "string",
+              "format": "date",
+              "description": "First release date (YYYY-MM-DD)"
+            },
+            "last_updated": {
+              "type": "string",
+              "format": "date",
+              "description": "Last update date (YYYY-MM-DD)"
+            },
+            "maturity": {
+              "type": "string",
+              "enum": ["experimental", "alpha", "beta", "stable", "mature"],
+              "description": "Maturity level of the component"
+            },
+            "maintained": {
+              "type": "boolean",
+              "description": "Whether actively maintained"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## Example: Complete Component Metadata
+
+```yaml
+schema_version: "1.0"
+
+component:
+  name: "advanced-imu"
+  repository: "github.com/robotics-lab/gorai-component-imu"
+  version: "v1.2.3"
+
+  provides:
+    - type: "sensor"
+      model: "bno085"
+      description: "Bosch BNO085 9-DOF IMU with sensor fusion"
+    - type: "sensor"
+      model: "icm42688"
+      description: "TDK ICM-42688-P 6-axis IMU"
+
+  compatibility:
+    gorai_version: ">=0.3.0, <1.0.0"
+    platforms:
+      - "linux/arm64"
+      - "linux/amd64"
+    go_version: ">=1.22"
+
+  author: "Robotics Lab"
+  license: "MIT"
+  description: "High-precision IMU drivers with advanced calibration and filtering"
+  homepage: "https://github.com/robotics-lab/gorai-component-imu"
+  documentation: "https://docs.robotics-lab.com/gorai-imu"
+
+  support:
+    email: "support@robotics-lab.com"
+    url: "https://github.com/robotics-lab/gorai-component-imu/issues"
+    chat: "https://discord.gg/robotics-lab"
+
+  keywords:
+    - "imu"
+    - "sensor"
+    - "9dof"
+    - "accelerometer"
+    - "gyroscope"
+    - "magnetometer"
+
+  hardware_requirements:
+    i2c: true
+    gpio: false
+    spi: false
+    uart: false
+
+  configuration:
+    i2c_bus:
+      type: "int"
+      required: true
+      description: "I2C bus number (e.g., 1 for /dev/i2c-1)"
+      example: 1
+      range: [0, 10]
+
+    i2c_address:
+      type: "int"
+      required: false
+      default: 0x4A
+      description: "I2C device address (7-bit)"
+      example: 0x4A
+      range: [0x00, 0x7F]
+
+    update_rate_hz:
+      type: "int"
+      required: false
+      default: 100
+      description: "Sensor update rate in Hz"
+      enum: [50, 100, 200, 400]
+
+    enable_calibration:
+      type: "bool"
+      required: false
+      default: true
+      description: "Enable automatic calibration on startup"
+
+    calibration_file:
+      type: "string"
+      required: false
+      description: "Path to calibration data file"
+      example: "/etc/gorai/imu_calibration.json"
+
+    filter_type:
+      type: "string"
+      required: false
+      default: "madgwick"
+      description: "Sensor fusion filter algorithm"
+      enum: ["madgwick", "mahony", "complementary", "kalman"]
+
+    advanced_settings:
+      type: "object"
+      required: false
+      description: "Advanced configuration options (see documentation)"
+
+  dependencies:
+    system_packages:
+      - "libi2c-dev"
+      - "i2c-tools"
+    go_modules:
+      - module: "periph.io/x/conn/v3"
+        version: "v3.7.0"
+
+  quality:
+    ci_status: "https://github.com/robotics-lab/gorai-component-imu/actions"
+    test_coverage: 87
+    has_examples: true
+    has_integration_tests: true
+
+  metadata:
+    first_released: "2025-06-15"
+    last_updated: "2026-01-10"
+    maturity: "stable"
+    maintained: true
+```
+
+---
+
+## Validation
+
+Components can be validated using the Gorai CLI:
+
+```bash
+gorai component validate .
+```
+
+This checks:
+- `gorai-component.yaml` exists at repository root
+- YAML is valid and conforms to schema
+- All `provides` entries have corresponding `init()` registrations
+- Version matches git tag (if tagged)
+- Required files exist (LICENSE, README.md)
+- Tests pass (`go test ./...`)
+- Configuration examples in README match schema
+
+---
+
+## Usage in Gorai CLI
+
+### Component Search
+
+The CLI uses this metadata for search:
+
+```bash
+$ gorai component search imu
+
+github.com/robotics-lab/gorai-component-imu v1.2.3
+  High-precision IMU drivers with advanced calibration
+  Provides: sensor/bno085, sensor/icm42688
+  License: MIT | Platforms: linux/arm64, linux/amd64
+  ★ Stable | Last updated: 2026-01-10
+```
+
+### Component Info
+
+Detailed information display:
+
+```bash
+$ gorai component info github.com/robotics-lab/gorai-component-imu
+
+Name:         advanced-imu
+Repository:   github.com/robotics-lab/gorai-component-imu
+Version:      v1.2.3
+Author:       Robotics Lab
+License:      MIT
+Maturity:     Stable
+
+Description:
+  High-precision IMU drivers with advanced calibration and filtering
+
+Provides:
+  • sensor/bno085 - Bosch BNO085 9-DOF IMU with sensor fusion
+  • sensor/icm42688 - TDK ICM-42688-P 6-axis IMU
+
+Compatibility:
+  Gorai:     >=0.3.0, <1.0.0
+  Go:        >=1.22
+  Platforms: linux/arm64, linux/amd64
+
+Hardware Requirements:
+  ✓ I2C bus required
+  ✗ GPIO not required
+
+Configuration:
+  • i2c_bus (int, required): I2C bus number
+  • i2c_address (int): I2C device address (default: 0x4A)
+  • update_rate_hz (int): Sensor update rate (default: 100 Hz)
+  • enable_calibration (bool): Auto-calibration (default: true)
+
+Documentation: https://docs.robotics-lab.com/gorai-imu
+Support:       support@robotics-lab.com
+
+Quality:
+  Test Coverage:       87%
+  CI Status:           Passing
+  Examples:            Yes
+  Integration Tests:   Yes
+```
+
+---
+
+## Best Practices
+
+### 1. Keep Metadata Accurate
+
+Update `gorai-component.yaml` whenever you:
+- Add new models
+- Change configuration schema
+- Update compatibility requirements
+- Release new versions
+
+### 2. Use Semantic Versioning
+
+- **v1.0.0**: Initial stable release
+- **v1.1.0**: Add new features (backward compatible)
+- **v1.0.1**: Bug fixes
+- **v2.0.0**: Breaking changes
+
+Update `component.version` to match git tags.
+
+### 3. Document Configuration
+
+Provide clear descriptions for all configuration attributes:
+- What does it do?
+- What are valid values?
+- What's the default?
+- Give an example
+
+### 4. Declare All Dependencies
+
+List system packages and external dependencies so users know what to install.
+
+### 5. Maintain Quality Metrics
+
+Keep `quality` section up to date:
+- Link to CI status badge
+- Update test coverage
+- Mark if examples are included
+
+---
+
+## Future Extensions
+
+Planned additions to schema v2.0:
+
+- **Performance metrics**: Expected latency, throughput
+- **Power consumption**: Estimated power draw
+- **Security**: CVE tracking, security audit status
+- **Certification**: Hardware certifications (CE, FCC, etc.)
+- **Pricing**: Commercial licensing information
+- **Analytics**: Anonymous usage statistics opt-in
+
+---
+
+## See Also
+
+- [docs/modules-approach.md](../docs/modules-approach.md) - Multi-repository architecture
+- [docs/third-party-component-ecosystem.md](../docs/third-party-component-ecosystem.md) - Developer guide
+- [specs/service-rdl-schema.json](service-rdl-schema.json) - Container service schema
+- [specs/cli-component-commands.md](cli-component-commands.md) - CLI commands

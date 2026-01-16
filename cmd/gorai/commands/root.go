@@ -50,13 +50,22 @@ func Execute() error {
 	case "migrate":
 		return cmdMigrate()
 
+	// Component/service management
+	case "component":
+		return cmdComponent()
+	case "service":
+		// Check if it's the new service management commands
+		if len(os.Args) >= 3 && (os.Args[2] == "search" || os.Args[2] == "info" || os.Args[2] == "pull" || os.Args[2] == "validate") {
+			return cmdServiceManagement()
+		}
+		// Fall back to old service command for runtime operations
+		return cmdService()
+
 	// Topic/service commands
 	case "version":
 		return cmdVersion()
 	case "topic":
 		return cmdTopic()
-	case "service":
-		return cmdService()
 
 	// Help
 	case "help", "-h", "--help":
@@ -79,6 +88,21 @@ Project Commands:
   add               Add custom components or services
   list              List available component and service types
 
+Component Management:
+  component search  Search for third-party components
+  component info    Show component information
+  component add     Add component to project
+  component list    List installed components
+  component remove  Remove component from project
+  component update  Update components
+  component validate Validate component repository
+
+Service Management:
+  service search    Search for external services
+  service info      Show service information
+  service pull      Pull service container image
+  service validate  Validate service RDL file
+
 Runtime Commands (Recommended):
   run               Run robot directly (foreground, monolithic mode)
   start             Start robot as native systemd service
@@ -92,7 +116,7 @@ Build Commands:
 
 Topic/Service Commands:
   topic             Topic operations (list, echo, pub)
-  service           Service operations (list, call)
+  service           Service runtime operations (list, call)
 
 Other Commands:
   version           Print version information
@@ -177,4 +201,20 @@ func cmdService() error {
 		return fmt.Errorf("unknown service command: %s", subCmd)
 	}
 	return nil
+}
+
+// cmdComponent bridges to the new cobra-based component commands
+func cmdComponent() error {
+	cmd := NewComponentCmd()
+	// Set args to skip "gorai component" and pass the rest
+	cmd.SetArgs(os.Args[2:])
+	return cmd.Execute()
+}
+
+// cmdServiceManagement bridges to the new cobra-based service management commands
+func cmdServiceManagement() error {
+	cmd := NewServiceCmd()
+	// Set args to skip "gorai service" and pass the rest
+	cmd.SetArgs(os.Args[2:])
+	return cmd.Execute()
 }

@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "service": {
+    "name": "{{.Name}}",
+    "type": "{{.Type}}",
+    "model": "{{.Model}}",
+    "version": "v0.1.0",
+    "repository": "{{.Repository}}",
+
+    "description": "{{.Description}}",
+    "author": "{{.Author}}",
+    "license": "MIT",
+    "homepage": "https://{{.Repository}}",
+    "documentation": "https://{{.Repository}}/blob/main/README.md",
+
+    "compatibility": {
+      "gorai_version": ">=0.3.0",
+      "platforms": ["linux/arm64", "linux/amd64"],
+      "accelerators": ["cpu"]
+    },
+
+    "container": {
+      "default_image": "{{.Image}}:latest",
+      "image_variants": {
+        "cpu": {
+          "image": "{{.Image}}:latest-cpu",
+          "description": "CPU-only inference",
+          "accelerator": "cpu"
+        }
+      },
+      "pull_policy": "IfNotPresent",
+      "resource_requirements": {
+        "memory": "1Gi",
+        "cpu": "0.5"
+      },
+      "resource_limits": {
+        "memory": "2Gi",
+        "cpu": "1"
+      },
+      "health_check": {
+        "type": "http",
+        "endpoint": "http://localhost:8080/health",
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3
+      },
+      "environment": {
+        "LOG_LEVEL": "INFO"
+      }
+    },
+
+    "nats_topics": {
+      "subscribes": [
+        {
+          "pattern": "input.{name}.*",
+          "description": "Input data for processing"
+        }
+      ],
+      "publishes": [
+        {
+          "pattern": "{{.Type}}.{name}.output",
+          "description": "Processed results",
+          "frequency": "on-demand"
+        }
+      ]
+    },
+
+    "configuration": {
+      "example_param": {
+        "type": "string",
+        "default": "default_value",
+        "description": "Example configuration parameter",
+        "env_var": "EXAMPLE_PARAM"
+      }
+    },
+
+    "performance": {
+      "latency": {
+        "typical": "100ms",
+        "max": "500ms"
+      },
+      "throughput": "10 msgs/sec",
+      "startup_time": "5s"
+    },
+
+    "keywords": [
+      "{{.Type}}",
+      "{{.Model}}"
+    ],
+
+    "examples": [
+      {
+        "name": "basic",
+        "description": "Basic service configuration",
+        "config": {
+          "name": "my_service",
+          "rdl": "https://raw.githubusercontent.com/{{.Repository}}/main/service.rdl.json",
+          "attributes": {
+            "example_param": "custom_value"
+          }
+        }
+      }
+    ],
+
+    "metadata": {
+      "first_released": "{{.Date}}",
+      "maturity": "alpha"
+    }
+  }
+}

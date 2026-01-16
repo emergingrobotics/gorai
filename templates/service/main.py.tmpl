@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""
+{{.Name}} Service
+
+{{.Description}}
+"""
+
+import asyncio
+import json
+import os
+import sys
+from nats.aio.client import Client as NATS
+
+
+async def main():
+    """Main service entry point"""
+    # Load configuration from environment
+    nats_url = os.getenv("NATS_URL", "nats://localhost:4222")
+    service_name = os.getenv("SERVICE_NAME", "{{.Name}}")
+
+    # Service-specific configuration
+    example_param = os.getenv("EXAMPLE_PARAM", "default_value")
+
+    print(f"Starting {service_name} service...")
+    print(f"NATS URL: {nats_url}")
+    print(f"Example param: {example_param}")
+
+    # Initialize NATS connection
+    nc = NATS()
+
+    try:
+        await nc.connect(nats_url)
+        print(f"✓ Connected to NATS at {nats_url}")
+    except Exception as e:
+        print(f"✗ Failed to connect to NATS: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Subscribe to input topics
+    async def message_handler(msg):
+        """Handle incoming messages"""
+        try:
+            # Parse incoming message
+            data = json.loads(msg.data.decode())
+            print(f"Received message: {data}")
+
+            # TODO: Process the message
+            result = process(data)
+
+            # Publish result
+            result_topic = f"{{.Type}}.{service_name}.output"
+            await nc.publish(result_topic, json.dumps(result).encode())
+
+        except Exception as e:
+            print(f"Error processing message: {e}", file=sys.stderr)
+
+    # Subscribe to input topic pattern
+    await nc.subscribe(f"input.{service_name}.*", cb=message_handler)
+    print(f"✓ Subscribed to input.{service_name}.*")
+
+    print(f"✓ Service {service_name} is ready")
+
+    # Keep service running
+    try:
+        await asyncio.Event().wait()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+    finally:
+        await nc.drain()
+        print("✓ Service stopped")
+
+
+def process(data):
+    """
+    Process incoming data and return result
+
+    TODO: Implement your service logic here
+    """
+    return {
+        "status": "success",
+        "data": data,
+        "timestamp": asyncio.get_event_loop().time()
+    }
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

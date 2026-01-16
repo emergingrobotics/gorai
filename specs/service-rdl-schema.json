@@ -1,0 +1,494 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gorai.dev/schemas/service-rdl/v1.0.json",
+  "title": "Gorai Service RDL Schema",
+  "description": "Robot Definition Language schema for external container services with enhanced metadata for third-party distribution",
+  "type": "object",
+  "required": ["schema_version", "service"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"],
+      "description": "RDL schema version"
+    },
+    "service": {
+      "type": "object",
+      "required": ["name", "type", "model", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-_]*[a-z0-9]$",
+          "description": "Service name (kebab-case or snake_case)",
+          "examples": ["yolox-detector", "cartographer_slam"]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "vision",
+            "slam",
+            "navigation",
+            "motion",
+            "data_manager",
+            "mlmodel",
+            "generic"
+          ],
+          "description": "Service type from Gorai service taxonomy"
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-_]*[a-z0-9]$",
+          "description": "Model identifier for this service implementation",
+          "examples": ["yolox", "cartographer", "dwa-planner"]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^v\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$",
+          "description": "Semantic version with 'v' prefix",
+          "examples": ["v1.0.0", "v2.1.3-beta.1"]
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri",
+          "description": "Git repository URL",
+          "examples": ["github.com/gorai/gorai-service-vision"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of what this service does",
+          "maxLength": 500,
+          "examples": ["Real-time object detection using YOLOX neural network"]
+        },
+        "author": {
+          "type": "string",
+          "description": "Author name or organization",
+          "examples": ["Gorai Project", "ACME AI Labs"]
+        },
+        "license": {
+          "type": "string",
+          "description": "SPDX license identifier or 'Proprietary'",
+          "examples": ["MIT", "Apache-2.0", "Proprietary"]
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri",
+          "description": "Repository or product homepage URL"
+        },
+        "documentation": {
+          "type": "string",
+          "format": "uri",
+          "description": "Link to detailed documentation"
+        },
+        "compatibility": {
+          "type": "object",
+          "description": "Compatibility constraints",
+          "properties": {
+            "gorai_version": {
+              "type": "string",
+              "description": "Gorai version constraint (npm semver syntax)",
+              "examples": [">=0.3.0", "^0.3.0"]
+            },
+            "platforms": {
+              "type": "array",
+              "description": "Supported OS/architecture combinations",
+              "items": {
+                "type": "string",
+                "pattern": "^(linux|darwin|windows)/(amd64|arm64|arm)$"
+              },
+              "examples": [["linux/arm64", "linux/amd64"]]
+            },
+            "accelerators": {
+              "type": "array",
+              "description": "Supported AI accelerators",
+              "items": {
+                "type": "string",
+                "enum": ["cpu", "cuda", "hailo", "rockchip-npu", "coral", "openvino"]
+              },
+              "examples": [["cpu", "hailo", "cuda"]]
+            }
+          }
+        },
+        "container": {
+          "type": "object",
+          "required": ["default_image"],
+          "description": "Container deployment configuration",
+          "properties": {
+            "default_image": {
+              "type": "string",
+              "description": "Default container image reference (can be overridden in robot.json)",
+              "examples": ["ghcr.io/gorai/yolox:v1.2.0", "registry.acme.com/detector:latest"]
+            },
+            "image_variants": {
+              "type": "object",
+              "description": "Named image variants for different platforms/accelerators",
+              "patternProperties": {
+                "^[a-z][a-z0-9-]*$": {
+                  "type": "object",
+                  "required": ["image"],
+                  "properties": {
+                    "image": {
+                      "type": "string",
+                      "description": "Container image for this variant"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Description of when to use this variant"
+                    },
+                    "accelerator": {
+                      "type": "string",
+                      "description": "Accelerator this variant is optimized for"
+                    },
+                    "platform": {
+                      "type": "string",
+                      "description": "Platform this variant targets"
+                    }
+                  }
+                }
+              },
+              "examples": [{
+                "cpu": {
+                  "image": "ghcr.io/gorai/yolox:v1.2.0-cpu",
+                  "description": "CPU-only inference",
+                  "accelerator": "cpu"
+                },
+                "hailo": {
+                  "image": "ghcr.io/gorai/yolox:v1.2.0-hailo",
+                  "description": "Optimized for Hailo AI accelerator",
+                  "accelerator": "hailo"
+                }
+              }]
+            },
+            "pull_policy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "default": "IfNotPresent",
+              "description": "When to pull the container image"
+            },
+            "resource_requirements": {
+              "type": "object",
+              "description": "Minimum resource requirements (Kubernetes syntax)",
+              "properties": {
+                "memory": {
+                  "type": "string",
+                  "pattern": "^\\d+([EPTGMK]i?)?$",
+                  "description": "Memory requirement (e.g., '2Gi', '512Mi')",
+                  "examples": ["2Gi", "512Mi", "4G"]
+                },
+                "cpu": {
+                  "type": "string",
+                  "description": "CPU requirement (cores or millicores)",
+                  "examples": ["1", "500m", "2"]
+                },
+                "gpu": {
+                  "type": "string",
+                  "enum": ["required", "optional", "none"],
+                  "default": "none",
+                  "description": "GPU requirement"
+                }
+              }
+            },
+            "resource_limits": {
+              "type": "object",
+              "description": "Maximum resource limits",
+              "properties": {
+                "memory": {
+                  "type": "string",
+                  "pattern": "^\\d+([EPTGMK]i?)?$"
+                },
+                "cpu": {
+                  "type": "string"
+                }
+              }
+            },
+            "health_check": {
+              "type": "object",
+              "description": "Health check configuration",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["http", "tcp", "nats", "exec"],
+                  "description": "Health check mechanism"
+                },
+                "endpoint": {
+                  "type": "string",
+                  "description": "HTTP endpoint or command to execute",
+                  "examples": ["http://localhost:8080/health", "/usr/bin/check-health"]
+                },
+                "interval": {
+                  "type": "string",
+                  "pattern": "^\\d+[smh]$",
+                  "default": "30s",
+                  "description": "How often to check (e.g., '30s', '1m')"
+                },
+                "timeout": {
+                  "type": "string",
+                  "pattern": "^\\d+[smh]$",
+                  "default": "5s",
+                  "description": "Check timeout"
+                },
+                "retries": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 3,
+                  "description": "Number of retries before marking unhealthy"
+                }
+              }
+            },
+            "volumes": {
+              "type": "array",
+              "description": "Volumes to mount",
+              "items": {
+                "type": "object",
+                "required": ["name", "mount_path"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Volume name"
+                  },
+                  "mount_path": {
+                    "type": "string",
+                    "description": "Path to mount in container"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "What this volume is used for"
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether this volume must be provided"
+                  }
+                }
+              }
+            },
+            "environment": {
+              "type": "object",
+              "description": "Default environment variables",
+              "patternProperties": {
+                "^[A-Z_][A-Z0-9_]*$": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "nats_topics": {
+          "type": "object",
+          "required": ["subscribes", "publishes"],
+          "description": "NATS message bus topics",
+          "properties": {
+            "subscribes": {
+              "type": "array",
+              "description": "Topics this service subscribes to",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "description": "Topic pattern (can include wildcards)",
+                    "examples": ["camera.*.frame", "robot.state"]
+                  },
+                  {
+                    "type": "object",
+                    "required": ["pattern"],
+                    "properties": {
+                      "pattern": {
+                        "type": "string",
+                        "description": "Topic pattern"
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "What data this topic provides"
+                      },
+                      "message_type": {
+                        "type": "string",
+                        "description": "Expected message format/schema"
+                      },
+                      "qos": {
+                        "type": "string",
+                        "enum": ["at-most-once", "at-least-once", "exactly-once"],
+                        "default": "at-most-once",
+                        "description": "Quality of service"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "publishes": {
+              "type": "array",
+              "description": "Topics this service publishes to",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "required": ["pattern"],
+                    "properties": {
+                      "pattern": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "message_type": {
+                        "type": "string"
+                      },
+                      "frequency": {
+                        "type": "string",
+                        "description": "Typical publishing frequency",
+                        "examples": ["30 Hz", "on-demand", "1 Hz"]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "description": "Configuration attribute schemas",
+          "patternProperties": {
+            "^[a-z][a-z0-9_]*$": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["string", "int", "float", "bool", "array", "object"],
+                  "description": "Attribute data type"
+                },
+                "required": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "default": {
+                  "description": "Default value"
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "example": {
+                  "description": "Example value"
+                },
+                "enum": {
+                  "type": "array",
+                  "description": "Allowed values"
+                },
+                "range": {
+                  "type": "array",
+                  "description": "[min, max] for numeric types",
+                  "items": {"type": "number"},
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "env_var": {
+                  "type": "string",
+                  "pattern": "^[A-Z_][A-Z0-9_]*$",
+                  "description": "Environment variable name to pass this value to container"
+                }
+              }
+            }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "description": "Performance characteristics",
+          "properties": {
+            "latency": {
+              "type": "object",
+              "description": "Expected latency",
+              "properties": {
+                "typical": {
+                  "type": "string",
+                  "description": "Typical latency",
+                  "examples": ["50ms", "5ms", "1s"]
+                },
+                "max": {
+                  "type": "string",
+                  "description": "Maximum latency"
+                }
+              }
+            },
+            "throughput": {
+              "type": "string",
+              "description": "Expected throughput",
+              "examples": ["30 fps", "100 msgs/sec"]
+            },
+            "startup_time": {
+              "type": "string",
+              "description": "Typical startup time",
+              "examples": ["2s", "30s", "1m"]
+            }
+          }
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Keywords for search",
+          "items": {
+            "type": "string"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "description": "Example configurations",
+          "items": {
+            "type": "object",
+            "required": ["name", "description", "config"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Example name"
+              },
+              "description": {
+                "type": "string",
+                "description": "What this example demonstrates"
+              },
+              "config": {
+                "type": "object",
+                "description": "Example robot.json service configuration"
+              }
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "description": "Quality metrics",
+          "properties": {
+            "ci_status": {
+              "type": "string",
+              "format": "uri"
+            },
+            "test_coverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "has_benchmarks": {
+              "type": "boolean"
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "first_released": {
+              "type": "string",
+              "format": "date"
+            },
+            "last_updated": {
+              "type": "string",
+              "format": "date"
+            },
+            "maturity": {
+              "type": "string",
+              "enum": ["experimental", "alpha", "beta", "stable", "mature"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

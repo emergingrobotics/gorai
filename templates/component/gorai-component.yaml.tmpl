@@ -1,0 +1,54 @@
+schema_version: "1.0"
+component:
+  name: "{{.Name}}"
+  repository: "{{.Repository}}"
+  version: "v0.1.0"
+
+  provides:
+    - type: "{{.Type}}"
+      model: "{{.Model}}"
+      description: "{{.Description}}"
+
+  compatibility:
+    gorai_version: ">=0.3.0"
+    platforms:
+      - "linux/arm64"
+      - "linux/amd64"
+    go_version: ">=1.22"
+
+  author: "{{.Author}}"
+  license: "MIT"
+  description: "{{.Description}}"
+  homepage: "https://{{.Repository}}"
+  documentation: "https://{{.Repository}}/blob/main/README.md"
+
+  support:
+    email: "{{.Email}}"
+    url: "https://{{.Repository}}/issues"
+
+  keywords:
+    - "{{.Type}}"
+    - "{{.Model}}"
+
+  hardware_requirements:
+    gpio: false
+    i2c: false
+    spi: false
+    uart: false
+    can: false
+
+  configuration:
+    example_attribute:
+      type: "string"
+      required: true
+      description: "Example configuration attribute"
+      example: "example_value"
+
+  quality:
+    has_examples: true
+    has_integration_tests: false
+
+  metadata:
+    first_released: "{{.Date}}"
+    maturity: "alpha"
+    maintained: true

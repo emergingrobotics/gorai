@@ -1030,6 +1030,185 @@ require github.com/gorai/gorai-component-motor v1.2  // Any v1.2.x
 
 ---
 
+## Third-Party Component Ecosystem
+
+### Current Gaps for External Developers
+
+While the Go modules + containers approach enables third-party development, several gaps exist:
+
+1. **Discovery Problem**: No way to find available components except knowing exact import paths
+2. **Metadata Gap**: Components can't self-describe capabilities, compatibility, or configuration
+3. **Installation UX**: Manual `go get` + import is clunky compared to modern package managers
+4. **Quality Signals**: No way to assess third-party component quality, maintenance, or compatibility
+5. **Documentation**: External services lack standardized configuration documentation
+
+### Solution: Component Metadata Standard
+
+#### For Go Components: `gorai-component.yaml`
+
+Every third-party component repository should include metadata:
+
+```yaml
+schema_version: "1.0"
+component:
+  name: "advanced-imu"
+  repository: "github.com/robotics-lab/gorai-component-imu"
+  version: "v1.2.0"
+
+  provides:
+    - type: "sensor"
+      model: "bno085"
+    - type: "sensor"
+      model: "icm42688"
+
+  compatibility:
+    gorai_version: ">=0.3.0, <1.0.0"
+    platforms: ["linux/arm64", "linux/amd64"]
+    go_version: ">=1.22"
+
+  author: "Robotics Lab"
+  license: "MIT"
+  description: "High-precision 9-DOF IMU drivers with calibration"
+  homepage: "https://github.com/robotics-lab/gorai-component-imu"
+
+  hardware_requirements:
+    i2c: true
+    gpio: false
+```
+
+See [specs/gorai-component-schema.yaml](../specs/gorai-component-schema.yaml) for full schema definition.
+
+#### For Container Services: Enhanced `service.rdl.json`
+
+External services should include comprehensive metadata:
+
+```json
+{
+  "schema_version": "1.0",
+  "service": {
+    "name": "yolox-detector",
+    "type": "vision",
+    "model": "yolox",
+    "version": "v1.2.0",
+
+    "container": {
+      "default_image": "ghcr.io/gorai/yolox:v1.2.0",
+      "resource_requirements": {
+        "memory": "2Gi",
+        "cpu": "1"
+      }
+    },
+
+    "nats_topics": {
+      "subscribes": ["camera.{name}.frame"],
+      "publishes": ["vision.{name}.detections"]
+    },
+
+    "configuration": {
+      "confidence_threshold": {
+        "type": "float",
+        "default": 0.6,
+        "range": [0.0, 1.0]
+      }
+    }
+  }
+}
+```
+
+See [specs/service-rdl-schema.json](../specs/service-rdl-schema.json) for full schema definition.
+
+### Solution: CLI Commands for Discovery
+
+Add component management commands to the Gorai CLI:
+
+```bash
+# Search for components
+gorai component search imu
+gorai component search --type sensor
+
+# Show component info
+gorai component info github.com/robotics-lab/gorai-component-imu
+
+# Install component (adds to go.mod + shows import instructions)
+gorai component add github.com/robotics-lab/gorai-component-imu@v1.2.0
+
+# List installed components
+gorai component list
+
+# Validate component (for developers)
+gorai component validate ./my-component
+```
+
+See [specs/cli-component-commands.md](../specs/cli-component-commands.md) for full CLI specification.
+
+### Solution: Optional Component Registry
+
+Create **registry.gorai.dev** (optional, not required):
+
+- Searchable index of community components
+- Submitted via PR to registry repo
+- Validates metadata and compatibility
+- Shows download stats, CI status, last updated
+- Quality signals (test coverage, documentation)
+
+**Important**: Registry is opt-in for discovery. Components can be distributed anywhere:
+- Public GitHub repos
+- Private git repos
+- Internal artifact stores
+- Corporate package registries
+
+### Third-Party Developer Workflow
+
+```
+1. Create component
+   ├── gorai new component --type sensor --model my-sensor
+   ├── Implement resource.Resource interface
+   └── Fill out gorai-component.yaml
+
+2. Test & validate
+   ├── go test ./...
+   ├── gorai component validate .
+   └── Ensure CI passes
+
+3. Distribute
+   ├── Git tag: git tag v1.0.0 && git push origin v1.0.0
+   ├── Optional: Submit to registry.gorai.dev
+   └── Documentation: Add usage examples to README
+
+4. Users consume
+   ├── Discovery: gorai component search my-sensor
+   ├── Install: gorai component add github.com/me/gorai-component-my-sensor
+   ├── Import: import _ "github.com/me/gorai-component-my-sensor/driver"
+   └── Configure in robot.json
+```
+
+### Benefits
+
+**For Third-Party Developers:**
+- Clear path to create components outside Gorai repo
+- Standard metadata format for self-description
+- Validation tools ensure quality
+- Optional discoverability via registry
+- Template generators reduce boilerplate
+
+**For Users:**
+- Easy discovery of community components
+- Confidence in compatibility & quality
+- Simple installation workflow
+- Clear documentation of configuration options
+- Version management via go.mod
+
+**For Gorai Project:**
+- Ecosystem growth without core repo bloat
+- Community innovation and contributions
+- Maintained compatibility via version constraints
+- Quality bar through validation tools
+- Reduced maintenance burden
+
+See [docs/third-party-component-ecosystem.md](third-party-component-ecosystem.md) for comprehensive developer guide.
+
+---
+
 ## Conclusion
 
 The recommended **hybrid approach** leverages:
@@ -1037,21 +1216,28 @@ The recommended **hybrid approach** leverages:
 1. **Go Modules** for in-process components (idiomatic Go, great DX)
 2. **Container Registries** for external services (language-agnostic, standard distribution)
 3. **Service RDL Registry** for reusable service definitions (configuration-driven composition)
+4. **Component Metadata** for self-description and discovery
+5. **CLI Tooling** for installation and validation
+6. **Optional Registry** for community discovery
 
 This architecture maintains Gorai's core philosophy:
 - **Configuration-driven**: RDL defines robots, not code
 - **Loosely coupled**: Components communicate via NATS, not function calls
 - **Pluggable**: Registry pattern enables dynamic discovery
 - **Pragmatic polyglot**: Go for core, any language for services
+- **Ecosystem-friendly**: Clear path for third-party contributions
 
 It enables:
 - Independent component development & versioning
 - Private/proprietary components via Go modules & container registries
+- Thriving third-party ecosystem with discovery & validation
 - Zero changes to RDL format
 - Seamless migration path from monolithic repo
 
 **Next Steps**:
 1. Review & approve this proposal
-2. Create repository templates
-3. Begin Phase 1 extraction (services)
-4. Iterate based on community feedback
+2. Create repository templates with metadata files
+3. Implement CLI component commands
+4. Begin Phase 1 extraction (services)
+5. Launch optional registry for community discovery
+6. Iterate based on community feedback
