@@ -1,0 +1,85 @@
+// api/proto/gorai/input/input.proto
+syntax = "proto3";
+
+package gorai.input;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/input";
+
+import "gorai/std/std.proto";
+
+// KeyEvent represents a keyboard key press or release.
+message KeyEvent {
+    gorai.std.Header header = 1;
+    
+    // Key name (human-readable, e.g., "W", "SPACE", "UP", "LCTRL")
+    string key = 2;
+    
+    // Linux key code (e.g., KEY_W = 17)
+    uint32 code = 3;
+    
+    // True if key was pressed, false if released
+    bool pressed = 4;
+    
+    // Modifier state at time of event
+    Modifiers modifiers = 5;
+    
+    // True if this is a repeat event (key held down)
+    bool repeat = 6;
+}
+
+// Modifiers represents the state of modifier keys.
+message Modifiers {
+    bool shift = 1;      // Left or right shift
+    bool ctrl = 2;       // Left or right control
+    bool alt = 3;        // Left or right alt
+    bool meta = 4;       // Super/Windows/Command key
+    bool caps_lock = 5;  // Caps lock active
+    bool num_lock = 6;   // Num lock active
+}
+
+// KeyboardState reports the current module operational state.
+message KeyboardState {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    // Module operational state
+    enum State {
+        STATE_UNSPECIFIED = 0;
+        STATE_CLOSED = 1;
+        STATE_OPENING = 2;
+        STATE_RUNNING = 3;
+        STATE_DISCONNECTED = 4;
+        STATE_ERROR = 5;
+    }
+    State state = 3;
+    
+    // Currently pressed keys (snapshot for heartbeat)
+    repeated string pressed_keys = 4;
+    
+    // Current modifier state (snapshot for heartbeat)
+    Modifiers modifiers = 5;
+}
+
+// KeyboardStatus reports component health and statistics.
+message KeyboardStatus {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    // Health status (derived from operational state)
+    enum Health {
+        HEALTH_UNSPECIFIED = 0;
+        HEALTH_OK = 1;
+        HEALTH_DEGRADED = 2;
+        HEALTH_ERROR = 3;
+    }
+    Health health = 3;
+    
+    string error_message = 4;
+    string device_path = 5;
+    string device_name = 6;
+    
+    // Statistics
+    uint64 events_received = 7;
+    uint64 events_published = 8;
+}
+
