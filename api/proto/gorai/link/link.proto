@@ -1,0 +1,84 @@
+// api/proto/gorai/link/link.proto
+syntax = "proto3";
+
+package gorai.link;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/link";
+
+import "gorai/std/std.proto";
+
+// RawI2CData contains raw bytes read from an I2C device.
+message RawI2CData {
+    gorai.std.Header header = 1;
+    
+    // Device name from configuration
+    string device_name = 2;
+    
+    // I2C bus identifier (e.g., 1 for /dev/i2c-1)
+    uint32 bus_id = 3;
+    
+    // I2C device address (7-bit)
+    uint32 address = 4;
+    
+    // Starting register address (-1 if raw read)
+    int32 register_address = 5;
+    
+    // Raw bytes read from the device
+    bytes data = 6;
+}
+
+// I2CBridgeState reports the current operational state.
+message I2CBridgeState {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    enum State {
+        STATE_UNSPECIFIED = 0;
+        STATE_CLOSED = 1;
+        STATE_OPENING = 2;
+        STATE_RUNNING = 3;
+        STATE_ERROR = 4;
+    }
+    State state = 3;
+    
+    // Per-device states
+    repeated I2CDeviceState devices = 4;
+}
+
+// I2CDeviceState reports the state of a single I2C device.
+message I2CDeviceState {
+    string name = 1;
+    uint32 address = 2;
+    bool enabled = 3;
+    bool connected = 4;
+    uint64 reads_successful = 5;
+    uint64 reads_failed = 6;
+    double actual_rate_hz = 7;
+}
+
+// I2CBridgeStatus reports component health and statistics.
+message I2CBridgeStatus {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    enum Health {
+        HEALTH_UNSPECIFIED = 0;
+        HEALTH_OK = 1;
+        HEALTH_DEGRADED = 2;
+        HEALTH_ERROR = 3;
+    }
+    Health health = 3;
+    
+    string error_message = 4;
+    string bus_device = 5;
+    
+    // Statistics
+    uint64 total_reads = 6;
+    uint64 total_errors = 7;
+    uint64 messages_published = 8;
+    
+    // Device connectivity
+    repeated string connected_devices = 9;
+    repeated string failed_devices = 10;
+}
+
