@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package gorai.pwm;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/pwm";
+
+import "gorai/std/std.proto";
+
+// PWMCommand sets the PWM output.
+// Use ONE of the value fields (pulse_us, duty_cycle, or normalized).
+message PWMCommand {
+    gorai.std.Header header = 1;
+    
+    // Target component name (for routing)
+    string name = 2;
+    
+    // Value specification (use one):
+    
+    // Pulse width in microseconds (e.g., 1000-2000 for servos)
+    double pulse_us = 3;
+    
+    // Duty cycle as fraction (0.0 to 1.0)
+    double duty_cycle = 4;
+    
+    // Normalized value (-1.0 to 1.0) mapped to min/max pulse
+    // -1.0 = min_pulse_us, 0.0 = center, 1.0 = max_pulse_us
+    double normalized = 5;
+    
+    // Enable/disable the PWM output
+    bool enabled = 6;
+}
+
+// PWMState reports the current PWM output state.
+message PWMState {
+    gorai.std.Header header = 1;
+    
+    // Component name
+    string name = 2;
+    
+    // Current pulse width in microseconds
+    double pulse_us = 3;
+    
+    // Current duty cycle (0.0 to 1.0)
+    double duty_cycle = 4;
+    
+    // Current normalized value (-1.0 to 1.0)
+    double normalized = 5;
+    
+    // PWM frequency in Hz
+    double frequency_hz = 6;
+    
+    // Whether PWM is currently enabled
+    bool enabled = 7;
+    
+    // Configuration limits
+    double min_pulse_us = 8;
+    double max_pulse_us = 9;
+}
+
+// PWMStatus reports component health.
+message PWMStatus {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_OK = 1;
+        STATUS_ERROR = 2;
+        STATUS_DISABLED = 3;
+    }
+    Status status = 3;
+    
+    string error_message = 4;
+    
+    // Diagnostic info
+    uint64 commands_received = 5;
+    uint64 cycles_generated = 6;
+}
+
