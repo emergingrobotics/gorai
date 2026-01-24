@@ -62,11 +62,11 @@ type Properties struct {
 	// MaxPulseUs is the maximum pulse width in microseconds.
 	MaxPulseUs float64
 
-	// Pin is the GPIO pin number (BCM numbering on RPi).
+	// Pin is the GPIO pin number (resolved by HAL).
 	Pin int
 
-	// Chip is the GPIO chip device path.
-	Chip string
+	// Board is the board name from HAL (e.g., "raspberrypi5", "orangepi5b").
+	Board string
 
 	// Inverted indicates if the signal is active-low.
 	Inverted bool

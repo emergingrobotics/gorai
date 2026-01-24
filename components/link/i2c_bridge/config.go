@@ -10,8 +10,9 @@ import (
 
 // Config holds the configuration for the I2C bridge component.
 type Config struct {
-	// Device is the path to the I2C bus device (e.g., "/dev/i2c-1").
-	Device string `json:"device"`
+	// Bus is the I2C bus number (e.g., 1 for /dev/i2c-1).
+	// Replaces the old "device" field which was board-specific.
+	Bus int `json:"bus"`
 
 	// Devices is the list of I2C devices to poll.
 	Devices []DeviceConfig `json:"devices"`
@@ -42,12 +43,23 @@ type DeviceConfig struct {
 // NewConfigFromResource parses a resource.Config into a Config.
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	cfg := &Config{
+		Bus:     1, // Default to bus 1
 		Devices: []DeviceConfig{},
 	}
 
-	// Parse device path (required)
-	if device, ok := conf.Attributes["device"].(string); ok {
-		cfg.Device = device
+	// Parse bus number (new field)
+	if bus, ok := conf.Attributes["bus"].(float64); ok {
+		cfg.Bus = int(bus)
+	} else if bus, ok := conf.Attributes["bus"].(int); ok {
+		cfg.Bus = bus
+	}
+
+	// Legacy support: parse device path and extract bus number
+	if device, ok := conf.Attributes["device"].(string); ok && device != "" {
+		busID, err := ParseBusID(device)
+		if err == nil {
+			cfg.Bus = busID
+		}
 	}
 
 	// Parse devices array (required)
@@ -127,8 +139,8 @@ func parseDeviceConfig(m map[string]any, index int) (*DeviceConfig, error) {
 
 // Validate checks if the configuration is valid.
 func (c *Config) Validate() error {
-	if c.Device == "" {
-		return fmt.Errorf("device path is required")
+	if c.Bus < 0 {
+		return fmt.Errorf("bus number must be non-negative")
 	}
 
 	if len(c.Devices) == 0 {

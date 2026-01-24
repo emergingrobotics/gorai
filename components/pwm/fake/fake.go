@@ -37,7 +37,7 @@ type Config struct {
 	MinPulseUs  float64
 	MaxPulseUs  float64
 	Pin         int
-	Chip        string
+	Board       string
 }
 
 // DefaultConfig returns default configuration for testing.
@@ -47,7 +47,7 @@ func DefaultConfig() Config {
 		MinPulseUs:  1000.0,
 		MaxPulseUs:  2000.0,
 		Pin:         18,
-		Chip:        "/dev/gpiochip4",
+		Board:       "fake",
 	}
 }
 
@@ -58,8 +58,8 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 
 	cfg := DefaultConfig()
 
-	if chip, ok := conf["chip"].(string); ok {
-		cfg.Chip = chip
+	if board, ok := conf["board"].(string); ok {
+		cfg.Board = board
 	}
 	if pin, ok := conf["pin"].(float64); ok {
 		cfg.Pin = int(pin)
@@ -272,7 +272,7 @@ func (p *PWM) Properties(ctx context.Context) (pwm.Properties, error) {
 		MinPulseUs:  p.config.MinPulseUs,
 		MaxPulseUs:  p.config.MaxPulseUs,
 		Pin:         p.config.Pin,
-		Chip:        p.config.Chip,
+		Board:       p.config.Board,
 	}, nil
 }
 

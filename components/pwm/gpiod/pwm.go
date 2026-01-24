@@ -1,7 +1,7 @@
 // Package gpiod provides a software PWM implementation using libgpiod.
 //
 // This package implements the pwm.PWM interface for Raspberry Pi 5 and other
-// Linux systems with GPIO support via the gpiod character device interface.
+// Linux systems with GPIO support via the HAL (Hardware Abstraction Layer).
 //
 // Software PWM is generated in a dedicated goroutine with timing achieved
 // through a combination of time.Sleep and busy-waiting for precision.
@@ -16,23 +16,25 @@ import (
 	"time"
 
 	"github.com/gorai/gorai/components/pwm"
+	"github.com/gorai/gorai/driver/gpio"
+	"github.com/gorai/gorai/driver/hal"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
-	"github.com/warthog618/go-gpiocdev"
 )
 
 func init() {
 	registry.RegisterComponent("pwm", "gpiod", New)
 }
 
-// PWM implements software PWM using libgpiod.
+// PWM implements software PWM using HAL GPIO.
 type PWM struct {
 	name   resource.Name
 	config Config
 	logger *slog.Logger
 
-	chip *gpiocdev.Chip
-	line *gpiocdev.Line
+	hal       hal.HAL
+	gpioPin   gpio.Pin
+	pinNumber int
 
 	mu       sync.RWMutex
 	pulseUs  float64
@@ -61,37 +63,59 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
+	// Get HAL from dependencies
+	halAny, err := deps.Get("hal")
+	if err != nil {
+		return nil, fmt.Errorf("HAL not available: %w (ensure platform section is configured)", err)
+	}
+	h, ok := halAny.(hal.HAL)
+	if !ok {
+		return nil, fmt.Errorf("invalid HAL type: %T", halAny)
+	}
+
+	// Resolve pin using HAL
+	pinNumber, err := h.ResolvePinFromAny(cfg.Pin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve pin %v: %w", cfg.Pin, err)
+	}
+
+	// Get GPIO driver from HAL
+	gpioDriver, err := h.GPIO()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GPIO driver: %w", err)
+	}
+
+	// Get the pin
+	gpioPin, err := gpioDriver.Pin(pinNumber)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GPIO pin %d: %w", pinNumber, err)
+	}
+
+	// Set pin as output
+	if err := gpioPin.SetDirection(ctx, gpio.Output); err != nil {
+		return nil, fmt.Errorf("failed to set pin %d as output: %w", pinNumber, err)
+	}
+
 	p := &PWM{
-		name:     name,
-		config:   cfg,
-		logger:   slog.Default().With("component", nameStr),
-		pulseUs:  cfg.InitialPulseUs,
-		periodNs: cfg.PeriodNs(),
-		stopCh:   make(chan struct{}),
-		doneCh:   make(chan struct{}),
+		name:      name,
+		config:    cfg,
+		logger:    slog.Default().With("component", nameStr),
+		hal:       h,
+		gpioPin:   gpioPin,
+		pinNumber: pinNumber,
+		pulseUs:   cfg.InitialPulseUs,
+		periodNs:  cfg.PeriodNs(),
+		stopCh:    make(chan struct{}),
+		doneCh:    make(chan struct{}),
 	}
-
-	// Open GPIO chip
-	chip, err := gpiocdev.NewChip(cfg.Chip)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open GPIO chip %s: %w", cfg.Chip, err)
-	}
-	p.chip = chip
-
-	// Request line as output, initially LOW
-	line, err := chip.RequestLine(cfg.Pin, gpiocdev.AsOutput(0))
-	if err != nil {
-		chip.Close()
-		return nil, fmt.Errorf("failed to request GPIO pin %d: %w", cfg.Pin, err)
-	}
-	p.line = line
 
 	// Start PWM goroutine (initially disabled)
 	go p.pwmLoop()
 
 	p.logger.Info("PWM component initialized",
-		"chip", cfg.Chip,
-		"pin", cfg.Pin,
+		"board", h.Board(),
+		"pin", pinNumber,
+		"pin_ref", cfg.Pin,
 		"frequency_hz", cfg.FrequencyHz,
 		"min_pulse_us", cfg.MinPulseUs,
 		"max_pulse_us", cfg.MaxPulseUs,
@@ -195,15 +219,12 @@ func (p *PWM) Close(ctx context.Context) error {
 	}
 
 	// Set pin LOW
-	if p.line != nil {
-		p.line.SetValue(0)
-		p.line.Close()
+	if p.gpioPin != nil {
+		p.gpioPin.Write(ctx, false)
 	}
 
-	// Close chip
-	if p.chip != nil {
-		p.chip.Close()
-	}
+	// Note: GPIO driver cleanup is handled by HAL.Close()
+	// Don't close the pin here as other components may share the GPIO driver
 
 	return nil
 }
@@ -280,8 +301,8 @@ func (p *PWM) Disable(ctx context.Context) error {
 	p.enabled = false
 
 	// Set pin LOW immediately
-	if p.line != nil {
-		p.line.SetValue(0)
+	if p.gpioPin != nil {
+		p.gpioPin.Write(ctx, false)
 	}
 
 	p.logger.Info("PWM disabled")
@@ -315,8 +336,8 @@ func (p *PWM) Properties(ctx context.Context) (pwm.Properties, error) {
 		FrequencyHz: p.config.FrequencyHz,
 		MinPulseUs:  p.config.MinPulseUs,
 		MaxPulseUs:  p.config.MaxPulseUs,
-		Pin:         p.config.Pin,
-		Chip:        p.config.Chip,
+		Pin:         p.pinNumber,
+		Board:       string(p.hal.Board()),
 		Inverted:    p.config.Invert,
 	}, nil
 }
@@ -348,23 +369,24 @@ func (p *PWM) pwmLoop() {
 		pulseNs := int64(pulseUs * 1000)
 
 		// High phase
-		highVal := 1
-		lowVal := 0
+		highVal := true
+		lowVal := false
 		if invert {
-			highVal = 0
-			lowVal = 1
+			highVal = false
+			lowVal = true
 		}
 
 		cycleStart := time.Now()
 
-		// Set HIGH
-		p.line.SetValue(highVal)
+		// Set HIGH using gpio.Pin interface
+		ctx := context.Background()
+		p.gpioPin.Write(ctx, highVal)
 
 		// Wait for pulse duration
 		p.precisionSleep(pulseNs)
 
 		// Set LOW
-		p.line.SetValue(lowVal)
+		p.gpioPin.Write(ctx, lowVal)
 
 		// Wait for remaining period
 		elapsed := time.Since(cycleStart).Nanoseconds()

@@ -8,11 +8,11 @@ import (
 
 // Config holds configuration for a gpiod PWM component.
 type Config struct {
-	// Chip is the GPIO chip device path (e.g., "/dev/gpiochip4" on RPi5).
-	Chip string `json:"chip"`
-
-	// Pin is the GPIO pin number (BCM numbering).
-	Pin int `json:"pin"`
+	// Pin accepts multiple formats:
+	// - Integer: 17 (GPIO number)
+	// - String: "GPIO17", "PIN12", "PWM0", "18"
+	// The HAL will resolve this to the correct GPIO number for the board.
+	Pin any `json:"pin"`
 
 	// FrequencyHz is the PWM frequency in Hz. Default: 50 (servo standard).
 	FrequencyHz float64 `json:"frequency_hz"`
@@ -33,7 +33,6 @@ type Config struct {
 // DefaultConfig returns a Config with default values for servo control.
 func DefaultConfig() Config {
 	return Config{
-		Chip:           "/dev/gpiochip4",
 		Pin:            18,
 		FrequencyHz:    50.0,
 		MinPulseUs:     1000.0,
@@ -47,16 +46,8 @@ func DefaultConfig() Config {
 func ParseConfig(conf registry.Config) (Config, error) {
 	cfg := DefaultConfig()
 
-	// Required fields
-	if chip, ok := conf["chip"].(string); ok && chip != "" {
-		cfg.Chip = chip
-	} else {
-		return cfg, fmt.Errorf("chip is required")
-	}
-
-	if pin, ok := conf["pin"].(float64); ok {
-		cfg.Pin = int(pin)
-	} else if pin, ok := conf["pin"].(int); ok {
+	// Pin is required - can be int, float64, or string
+	if pin, ok := conf["pin"]; ok {
 		cfg.Pin = pin
 	} else {
 		return cfg, fmt.Errorf("pin is required")
@@ -88,12 +79,9 @@ func ParseConfig(conf registry.Config) (Config, error) {
 
 // Validate checks if the configuration is valid.
 func (c Config) Validate() error {
-	if c.Chip == "" {
-		return fmt.Errorf("chip path is required")
-	}
-
-	if c.Pin < 0 || c.Pin > 27 {
-		return fmt.Errorf("pin must be between 0 and 27, got %d", c.Pin)
+	// Pin validation is deferred to HAL resolution
+	if c.Pin == nil {
+		return fmt.Errorf("pin is required")
 	}
 
 	if c.FrequencyHz <= 0 {

@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gorai/gorai/driver/hal"
+	"github.com/gorai/gorai/driver/i2c"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
 )
@@ -62,8 +64,8 @@ type Bridge struct {
 	config *Config
 	logger *slog.Logger
 
-	bus   *I2CBus
-	busID int
+	hal hal.HAL
+	bus i2c.Bus // HAL-provided I2C bus interface
 
 	mu           sync.RWMutex
 	state        State
@@ -102,17 +104,28 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
-	// Parse bus ID
-	busID, err := ParseBusID(cfg.Device)
+	// Get HAL from dependencies
+	halAny, err := deps.Get("hal")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse bus ID: %w", err)
+		return nil, fmt.Errorf("HAL not available: %w (ensure platform section is configured)", err)
+	}
+	h, ok := halAny.(hal.HAL)
+	if !ok {
+		return nil, fmt.Errorf("invalid HAL type: %T", halAny)
+	}
+
+	// Get I2C bus from HAL
+	bus, err := h.I2C(cfg.Bus)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open I2C bus %d: %w", cfg.Bus, err)
 	}
 
 	b := &Bridge{
 		name:         resource.NewComponentName("gorai", "link", name),
 		config:       cfg,
 		logger:       slog.Default().With("component", "i2c_bridge", "name", name),
-		busID:        busID,
+		hal:          h,
+		bus:          bus,
 		state:        StateClosed,
 		deviceStates: make(map[string]*DeviceState),
 		stopCh:       make(chan struct{}),
@@ -128,33 +141,28 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	}
 
 	// Open the I2C bus
-	if err := b.open(); err != nil {
-		return nil, fmt.Errorf("failed to open I2C bus: %w", err)
+	if err := b.open(ctx); err != nil {
+		return nil, fmt.Errorf("failed to open I2C bridge: %w", err)
 	}
 
 	return b, nil
 }
 
 // open initializes the I2C bus and starts polling.
-func (b *Bridge) open() error {
+func (b *Bridge) open(ctx context.Context) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	b.state = StateOpening
 
-	// Open the I2C bus
-	bus, err := OpenBus(b.config.Device)
-	if err != nil {
-		b.state = StateError
-		b.errorMsg = err.Error()
-		return err
-	}
-	b.bus = bus
-
-	// Probe devices
+	// Probe devices using HAL's I2C bus
 	for _, dev := range b.config.Devices {
 		state := b.deviceStates[dev.Name]
-		if b.bus.ProbeDevice(dev.Address) {
+
+		// Try to read one byte to probe device
+		device := b.bus.Device(uint16(dev.Address))
+		_, err := device.Read(ctx, 1)
+		if err == nil {
 			state.Connected = true
 			b.logger.Info("device found", "name", dev.Name, "address", fmt.Sprintf("0x%02X", dev.Address))
 		} else {
@@ -171,24 +179,26 @@ func (b *Bridge) open() error {
 		dev := &b.config.Devices[i]
 		if dev.Enabled {
 			b.wg.Add(1)
-			go b.pollDevice(dev)
+			go b.pollDevice(ctx, dev)
 		}
 	}
 
-	b.logger.Info("I2C bridge started", "device", b.config.Device, "bus_id", b.busID)
+	b.logger.Info("I2C bridge started", "bus", b.config.Bus, "board", b.hal.Board())
 	return nil
 }
 
 // pollDevice polls a single I2C device at the configured rate.
-func (b *Bridge) pollDevice(dev *DeviceConfig) {
+func (b *Bridge) pollDevice(ctx context.Context, dev *DeviceConfig) {
 	defer b.wg.Done()
 
 	interval := time.Duration(float64(time.Second) / dev.PollRateHz)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	// Get device handle from bus
+	device := b.bus.Device(uint16(dev.Address))
+
 	var lastRead time.Time
-	var readCount uint64
 
 	for {
 		select {
@@ -206,8 +216,17 @@ func (b *Bridge) pollDevice(dev *DeviceConfig) {
 				continue
 			}
 
-			// Read from device
-			data, err := b.bus.ReadDevice(dev)
+			// Read from device using HAL's i2c.Device interface
+			var data []byte
+			var err error
+
+			if dev.ReadRegister >= 0 {
+				// Register read
+				data, err = device.ReadReg(ctx, byte(dev.ReadRegister), dev.ReadLength)
+			} else {
+				// Raw read
+				data, err = device.Read(ctx, dev.ReadLength)
+			}
 
 			b.mu.Lock()
 			if err != nil {
@@ -225,7 +244,6 @@ func (b *Bridge) pollDevice(dev *DeviceConfig) {
 			state.LastReadTime = time.Now()
 
 			// Calculate actual rate
-			readCount++
 			if !lastRead.IsZero() {
 				elapsed := time.Since(lastRead)
 				state.ActualRateHz = float64(time.Second) / float64(elapsed)
@@ -336,7 +354,9 @@ func (b *Bridge) DoCommand(ctx context.Context, cmd map[string]any) (map[string]
 		// Scan the bus for devices (addresses 0x08 - 0x77)
 		found := []string{}
 		for addr := uint8(0x08); addr <= 0x77; addr++ {
-			if b.bus.ProbeDevice(addr) {
+			device := b.bus.Device(uint16(addr))
+			_, err := device.Read(ctx, 1)
+			if err == nil {
 				found = append(found, fmt.Sprintf("0x%02X", addr))
 			}
 		}
@@ -359,7 +379,16 @@ func (b *Bridge) DoCommand(ctx context.Context, cmd map[string]any) (map[string]
 			return nil, fmt.Errorf("device %q not found", deviceName)
 		}
 
-		data, err := b.bus.ReadDevice(dev)
+		device := b.bus.Device(uint16(dev.Address))
+		var data []byte
+		var err error
+
+		if dev.ReadRegister >= 0 {
+			data, err = device.ReadReg(ctx, byte(dev.ReadRegister), dev.ReadLength)
+		} else {
+			data, err = device.Read(ctx, dev.ReadLength)
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("read failed: %w", err)
 		}
@@ -412,12 +441,8 @@ func (b *Bridge) Close(ctx context.Context) error {
 	// Wait for all goroutines to finish
 	b.wg.Wait()
 
-	// Close the I2C bus
-	if b.bus != nil {
-		if err := b.bus.Close(); err != nil {
-			b.logger.Warn("failed to close I2C bus", "error", err)
-		}
-	}
+	// Note: I2C bus cleanup is handled by HAL.Close()
+	// Don't close the bus here as other components may share it
 
 	b.logger.Info("I2C bridge closed")
 	return nil
@@ -480,6 +505,6 @@ func (b *Bridge) GetDeviceStates() map[string]*DeviceState {
 
 // GetBusID returns the I2C bus ID.
 func (b *Bridge) GetBusID() int {
-	return b.busID
+	return b.config.Bus
 }
 

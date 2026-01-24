@@ -19,7 +19,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "valid custom config",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    50,
 				MinPulseUs:     1000,
@@ -29,48 +28,20 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "empty chip",
+			name: "nil pin",
 			config: Config{
-				Chip:           "",
-				Pin:            18,
+				Pin:            nil,
 				FrequencyHz:    50,
 				MinPulseUs:     1000,
 				MaxPulseUs:     2000,
 				InitialPulseUs: 1500,
 			},
 			wantErr: true,
-			errMsg:  "chip path is required",
-		},
-		{
-			name: "invalid pin negative",
-			config: Config{
-				Chip:           "/dev/gpiochip4",
-				Pin:            -1,
-				FrequencyHz:    50,
-				MinPulseUs:     1000,
-				MaxPulseUs:     2000,
-				InitialPulseUs: 1500,
-			},
-			wantErr: true,
-			errMsg:  "pin must be between 0 and 27",
-		},
-		{
-			name: "invalid pin too high",
-			config: Config{
-				Chip:           "/dev/gpiochip4",
-				Pin:            28,
-				FrequencyHz:    50,
-				MinPulseUs:     1000,
-				MaxPulseUs:     2000,
-				InitialPulseUs: 1500,
-			},
-			wantErr: true,
-			errMsg:  "pin must be between 0 and 27",
+			errMsg:  "pin is required",
 		},
 		{
 			name: "zero frequency",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    0,
 				MinPulseUs:     1000,
@@ -83,7 +54,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "frequency too high",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    1001,
 				MinPulseUs:     1000,
@@ -96,7 +66,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "negative min pulse",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    50,
 				MinPulseUs:     -100,
@@ -109,7 +78,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "max pulse less than min pulse",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    50,
 				MinPulseUs:     2000,
@@ -122,7 +90,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "initial pulse below min",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    50,
 				MinPulseUs:     1000,
@@ -135,7 +102,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "initial pulse above max",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    50,
 				MinPulseUs:     1000,
@@ -148,7 +114,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "max pulse exceeds period",
 			config: Config{
-				Chip:           "/dev/gpiochip4",
 				Pin:            18,
 				FrequencyHz:    100, // period = 10,000 µs
 				MinPulseUs:     1000,
@@ -157,6 +122,28 @@ func TestConfigValidation(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "exceeds period",
+		},
+		{
+			name: "pin as string GPIO17",
+			config: Config{
+				Pin:            "GPIO17",
+				FrequencyHz:    50,
+				MinPulseUs:     1000,
+				MaxPulseUs:     2000,
+				InitialPulseUs: 1500,
+			},
+			wantErr: false,
+		},
+		{
+			name: "pin as string number",
+			config: Config{
+				Pin:            "18",
+				FrequencyHz:    50,
+				MinPulseUs:     1000,
+				MaxPulseUs:     2000,
+				InitialPulseUs: 1500,
+			},
+			wantErr: false,
 		},
 	}
 
@@ -218,7 +205,6 @@ func TestNormalizedConversion(t *testing.T) {
 
 func TestDutyConversion(t *testing.T) {
 	cfg := Config{
-		Chip:        "/dev/gpiochip4",
 		Pin:         18,
 		FrequencyHz: 50.0, // period = 20,000 µs
 		MinPulseUs:  1000,
@@ -260,15 +246,15 @@ func TestDutyConversion(t *testing.T) {
 
 func TestConfigParsing(t *testing.T) {
 	tests := []struct {
-		name    string
-		conf    map[string]any
-		want    Config
-		wantErr bool
+		name      string
+		conf      map[string]any
+		wantPin   any
+		wantFreq  float64
+		wantErr   bool
 	}{
 		{
-			name: "full config",
+			name: "full config with int pin",
 			conf: map[string]any{
-				"chip":             "/dev/gpiochip4",
 				"pin":              float64(18),
 				"frequency_hz":    float64(50),
 				"min_pulse_us":    float64(1000),
@@ -276,64 +262,54 @@ func TestConfigParsing(t *testing.T) {
 				"initial_pulse_us": float64(1500),
 				"invert":          false,
 			},
-			want: Config{
-				Chip:           "/dev/gpiochip4",
-				Pin:            18,
-				FrequencyHz:    50,
-				MinPulseUs:     1000,
-				MaxPulseUs:     2000,
-				InitialPulseUs: 1500,
-				Invert:         false,
+			wantPin:  float64(18),
+			wantFreq: 50,
+			wantErr:  false,
+		},
+		{
+			name: "config with string pin GPIO18",
+			conf: map[string]any{
+				"pin":          "GPIO18",
+				"frequency_hz": float64(50),
 			},
-			wantErr: false,
+			wantPin:  "GPIO18",
+			wantFreq: 50,
+			wantErr:  false,
+		},
+		{
+			name: "config with string pin PIN12",
+			conf: map[string]any{
+				"pin":          "PIN12",
+				"frequency_hz": float64(50),
+			},
+			wantPin:  "PIN12",
+			wantFreq: 50,
+			wantErr:  false,
 		},
 		{
 			name: "minimal config with defaults",
 			conf: map[string]any{
-				"chip": "/dev/gpiochip4",
-				"pin":  float64(12),
+				"pin": float64(12),
 			},
-			want: Config{
-				Chip:           "/dev/gpiochip4",
-				Pin:            12,
-				FrequencyHz:    50,
-				MinPulseUs:     1000,
-				MaxPulseUs:     2000,
-				InitialPulseUs: 1500,
-				Invert:         false,
-			},
-			wantErr: false,
-		},
-		{
-			name: "missing chip",
-			conf: map[string]any{
-				"pin": float64(18),
-			},
-			wantErr: true,
+			wantPin:  float64(12),
+			wantFreq: 50, // default
+			wantErr:  false,
 		},
 		{
 			name: "missing pin",
 			conf: map[string]any{
-				"chip": "/dev/gpiochip4",
+				"frequency_hz": float64(50),
 			},
 			wantErr: true,
 		},
 		{
 			name: "pin as int",
 			conf: map[string]any{
-				"chip": "/dev/gpiochip4",
-				"pin":  18,
+				"pin": 18,
 			},
-			want: Config{
-				Chip:           "/dev/gpiochip4",
-				Pin:            18,
-				FrequencyHz:    50,
-				MinPulseUs:     1000,
-				MaxPulseUs:     2000,
-				InitialPulseUs: 1500,
-				Invert:         false,
-			},
-			wantErr: false,
+			wantPin:  18,
+			wantFreq: 50, // default
+			wantErr:  false,
 		},
 	}
 
@@ -350,8 +326,11 @@ func TestConfigParsing(t *testing.T) {
 				t.Errorf("ParseConfig() unexpected error = %v", err)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("ParseConfig() = %+v, want %+v", got, tt.want)
+			if got.Pin != tt.wantPin {
+				t.Errorf("ParseConfig().Pin = %v, want %v", got.Pin, tt.wantPin)
+			}
+			if got.FrequencyHz != tt.wantFreq {
+				t.Errorf("ParseConfig().FrequencyHz = %v, want %v", got.FrequencyHz, tt.wantFreq)
 			}
 		})
 	}
@@ -359,7 +338,6 @@ func TestConfigParsing(t *testing.T) {
 
 func TestConfigHelpers(t *testing.T) {
 	cfg := Config{
-		Chip:        "/dev/gpiochip4",
 		Pin:         18,
 		FrequencyHz: 50.0,
 		MinPulseUs:  1000,
@@ -422,4 +400,3 @@ func findSubstring(s, substr string) bool {
 	}
 	return false
 }
-

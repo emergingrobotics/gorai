@@ -18,7 +18,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "valid config",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:         "mpu6050",
@@ -33,9 +33,9 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing device path",
+			name: "negative bus number",
 			config: &Config{
-				Device: "",
+				Bus: -1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "test",
@@ -45,12 +45,12 @@ func TestConfigValidation(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errMsg:  "device path is required",
+			errMsg:  "bus number must be non-negative",
 		},
 		{
 			name: "no devices",
 			config: &Config{
-				Device:  "/dev/i2c-1",
+				Bus:     1,
 				Devices: []DeviceConfig{},
 			},
 			wantErr: true,
@@ -59,7 +59,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "address out of range",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "test",
@@ -74,7 +74,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "duplicate device names",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "sensor",
@@ -96,7 +96,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "duplicate addresses",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "sensor1",
@@ -118,7 +118,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "invalid read length",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "test",
@@ -133,7 +133,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "read length too large",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "test",
@@ -149,7 +149,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "invalid poll rate",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "test",
@@ -165,7 +165,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "poll rate too high",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:       "test",
@@ -181,7 +181,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "raw read (no register)",
 			config: &Config{
-				Device: "/dev/i2c-1",
+				Bus: 1,
 				Devices: []DeviceConfig{
 					{
 						Name:         "test",
@@ -210,8 +210,9 @@ func TestConfigValidation(t *testing.T) {
 }
 
 func TestConfigParsing(t *testing.T) {
+	// Test with new bus field
 	attrs := map[string]any{
-		"device": "/dev/i2c-1",
+		"bus": float64(1),
 		"devices": []any{
 			map[string]any{
 				"name":          "mpu6050",
@@ -233,7 +234,7 @@ func TestConfigParsing(t *testing.T) {
 	cfg, err := NewConfigFromResource(conf)
 	require.NoError(t, err)
 
-	assert.Equal(t, "/dev/i2c-1", cfg.Device)
+	assert.Equal(t, 1, cfg.Bus)
 	require.Len(t, cfg.Devices, 2)
 
 	// Check first device
@@ -253,9 +254,30 @@ func TestConfigParsing(t *testing.T) {
 	assert.True(t, cfg.Devices[1].Enabled)            // default
 }
 
+func TestConfigParsingLegacy(t *testing.T) {
+	// Test with legacy device path (backward compatibility)
+	attrs := map[string]any{
+		"device": "/dev/i2c-3",
+		"devices": []any{
+			map[string]any{
+				"name":        "test",
+				"address":     float64(104),
+				"read_length": float64(14),
+			},
+		},
+	}
+
+	conf := resource.NewConfig(attrs)
+	cfg, err := NewConfigFromResource(conf)
+	require.NoError(t, err)
+
+	// Legacy device path should be parsed to extract bus number
+	assert.Equal(t, 3, cfg.Bus)
+}
+
 func TestConfigDefaults(t *testing.T) {
 	attrs := map[string]any{
-		"device": "/dev/i2c-1",
+		"bus": float64(1),
 		"devices": []any{
 			map[string]any{
 				"name":        "test",
@@ -328,7 +350,7 @@ func TestAddressValidation(t *testing.T) {
 	validAddresses := []uint8{0x08, 0x20, 0x50, 0x68, 0x77}
 	for _, addr := range validAddresses {
 		config := &Config{
-			Device: "/dev/i2c-1",
+			Bus: 1,
 			Devices: []DeviceConfig{
 				{
 					Name:       "test",
@@ -343,7 +365,7 @@ func TestAddressValidation(t *testing.T) {
 
 	// Invalid: > 127
 	config := &Config{
-		Device: "/dev/i2c-1",
+		Bus: 1,
 		Devices: []DeviceConfig{
 			{
 				Name:       "test",
@@ -358,7 +380,7 @@ func TestAddressValidation(t *testing.T) {
 
 func TestMultipleDevices(t *testing.T) {
 	config := &Config{
-		Device: "/dev/i2c-1",
+		Bus: 1,
 		Devices: []DeviceConfig{
 			{
 				Name:         "imu",
@@ -390,7 +412,7 @@ func TestMultipleDevices(t *testing.T) {
 
 func TestDeviceConfigDisabled(t *testing.T) {
 	attrs := map[string]any{
-		"device": "/dev/i2c-1",
+		"bus": float64(1),
 		"devices": []any{
 			map[string]any{
 				"name":        "test",
@@ -407,4 +429,3 @@ func TestDeviceConfigDisabled(t *testing.T) {
 
 	assert.False(t, cfg.Devices[0].Enabled)
 }
-

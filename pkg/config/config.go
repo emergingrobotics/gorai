@@ -16,6 +16,7 @@ type RDL struct {
 	Schema     string                       `json:"$schema,omitempty"`
 	Version    string                       `json:"version"`
 	Robot      RobotConfig                  `json:"robot"`
+	Platform   *PlatformConfig              `json:"platform,omitempty"`
 	NATS       *NATSConfig                  `json:"nats,omitempty"`
 	Containers map[string]*ContainerConfig  `json:"containers,omitempty"`
 	Networks   map[string]*NetworkConfig    `json:"networks,omitempty"`
@@ -32,6 +33,51 @@ type RobotConfig struct {
 	Name        string `json:"name"`
 	Namespace   string `json:"namespace,omitempty"`
 	Description string `json:"description,omitempty"`
+}
+
+// PlatformConfig defines hardware abstraction layer (HAL) configuration.
+type PlatformConfig struct {
+	// Board specifies the target board. Empty or "auto" for detection.
+	// Supported: "auto", "raspberrypi5", "raspberrypi4", "raspberrypi3",
+	//            "orangepi5b", "orangepi5", "generic"
+	Board string `json:"board,omitempty"`
+
+	// GPIO configuration
+	GPIO *PlatformGPIOConfig `json:"gpio,omitempty"`
+
+	// I2C configuration
+	I2C *PlatformI2CConfig `json:"i2c,omitempty"`
+
+	// SPI configuration
+	SPI *PlatformSPIConfig `json:"spi,omitempty"`
+
+	// PWM configuration
+	PWM *PlatformPWMConfig `json:"pwm,omitempty"`
+}
+
+// PlatformGPIOConfig holds GPIO-specific platform configuration.
+type PlatformGPIOConfig struct {
+	// Chip is the default GPIO chip number (e.g., 4 for /dev/gpiochip4 on RPi5)
+	// 0 means auto-detect based on board
+	Chip int `json:"chip,omitempty"`
+}
+
+// PlatformI2CConfig holds I2C-specific platform configuration.
+type PlatformI2CConfig struct {
+	// Buses lists enabled I2C bus numbers (e.g., [1] for /dev/i2c-1)
+	Buses []int `json:"buses,omitempty"`
+}
+
+// PlatformSPIConfig holds SPI-specific platform configuration.
+type PlatformSPIConfig struct {
+	// Buses lists enabled SPI bus numbers
+	Buses []int `json:"buses,omitempty"`
+}
+
+// PlatformPWMConfig holds PWM-specific platform configuration.
+type PlatformPWMConfig struct {
+	// Chips lists enabled PWM chip numbers
+	Chips []int `json:"chips,omitempty"`
 }
 
 // NATSConfig defines the NATS connection configuration.
