@@ -28,7 +28,7 @@ A robot might have:
 Services implement the same base Resource interface:
 
 ```go
-// From service/service.go
+// From services/service.go
 type Service interface {
     resource.Resource
 }

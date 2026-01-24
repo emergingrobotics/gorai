@@ -67,6 +67,7 @@ See [specs/hardware-requirements.md](specs/hardware-requirements.md) for full re
 - [specs/hardware-requirements.md](specs/hardware-requirements.md) — Hardware specs
 - [docs/STRATEGIC-SUMMARY.md](docs/STRATEGIC-SUMMARY.md) — Strategic decisions
 - [docs/FUTURE-ROADMAP.md](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
+- [docs/PACKAGE-LOCATIONS.md](docs/PACKAGE-LOCATIONS.md) — Where code belongs
 - [docs/archive/future-state/](docs/archive/future-state/) — Preserved K3s/container designs
 
 ## Code Structure
@@ -75,13 +76,14 @@ See [specs/hardware-requirements.md](specs/hardware-requirements.md) for full re
 gorai/
 ├── cmd/gorai/              # CLI commands
 ├── pkg/                    # Core libraries
+│   ├── accel/              # ML acceleration
 │   ├── config/             # RDL parsing
 │   ├── nats/               # NATS client
 │   ├── runtime/            # Robot lifecycle
 │   └── dashboard/          # Web dashboard
-├── component/              # Component interfaces
+├── components/              # Component interfaces
 ├── driver/                 # Hardware drivers (GPIO, I2C, serial)
-├── service/                # Service implementations
+├── services/                # Service implementations
 ├── examples/               # Example robots
 │   ├── gps-tracker/        # GPS tracking example
 │   └── blinky/             # LED blink example

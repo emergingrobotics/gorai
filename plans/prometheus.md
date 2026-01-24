@@ -686,7 +686,7 @@ require (
 - [ ] `pkg/node/node.go` - integrate metrics server
 - [ ] `pkg/config/robot.go` - add Prometheus/Alerting configs
 - [ ] `pkg/sensor/base.go` - record metrics on publish
-- [ ] `pkg/component/base.go` - record state changes
+- [ ] `pkg/componentss/base.go` - record state changes
 - [ ] `Makefile` - add templ generate
 
 ---

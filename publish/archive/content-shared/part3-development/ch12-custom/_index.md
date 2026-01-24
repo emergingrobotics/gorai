@@ -56,7 +56,7 @@ package drv8833
 
 import (
     "context"
-    "github.com/gorai/gorai/component/motor"
+    "github.com/gorai/gorai/components/motor"
 )
 
 // DRV8833Motor implements motor.Motor for DRV8833 controller.
@@ -297,7 +297,7 @@ import (
     "context"
     "sync"
 
-    "github.com/gorai/gorai/component/motor"
+    "github.com/gorai/gorai/components/motor"
     "github.com/gorai/gorai/pkg/resource"
 )
 

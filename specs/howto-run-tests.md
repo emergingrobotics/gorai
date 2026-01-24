@@ -32,7 +32,7 @@ This guide provides practical examples for running tests during Gorai developmen
 go test ./...                                    # All unit tests
 go test -v ./pkg/node                            # Verbose, single package
 go test -run TestPublish ./...                   # Tests matching pattern
-go test -tags=component ./component/...          # Component tests
+go test -tags=component ./components/...          # Component tests
 go test -tags=integration ./tests/integration    # Integration tests
 go test -tags=module ./tests/module              # Module tests
 go test -cover ./...                             # With coverage
@@ -74,14 +74,14 @@ go test -failfast ./...
 # Test specific package
 go test ./pkg/node
 go test ./pkg/pub
-go test ./component/motor
+go test ./components/motor
 
 # Multiple packages
 go test ./pkg/node ./pkg/sub ./pkg/pub
 
 # Package and subpackages
 go test ./pkg/...
-go test ./component/...
+go test ./components/...
 ```
 
 ### Single Test
@@ -130,37 +130,37 @@ Component tests verify individual components with fake dependencies.
 
 ```bash
 # All component tests
-go test -tags=component ./component/...
+go test -tags=component ./components/...
 
 # With verbose output
-go test -v -tags=component ./component/...
+go test -v -tags=component ./components/...
 
 # With race detection
-go test -race -tags=component ./component/...
+go test -race -tags=component ./components/...
 ```
 
 ### Specific Component
 
 ```bash
 # Motor component tests
-go test -tags=component ./component/motor
+go test -tags=component ./components/motor
 
 # Camera component tests
-go test -tags=component ./component/camera
+go test -tags=component ./components/camera
 
 # All sensor components
-go test -tags=component ./component/sensor/...
+go test -tags=component ./components/sensor/...
 ```
 
 ### Examples
 
 ```bash
 # Test motor component
-$ go test -tags=component ./component/motor
-ok      github.com/gorai/gorai/component/motor    0.089s
+$ go test -tags=component ./components/motor
+ok      github.com/gorai/gorai/components/motor    0.089s
 
 # Verbose motor tests
-$ go test -v -tags=component ./component/motor
+$ go test -v -tags=component ./components/motor
 === RUN   TestGPIOMotor_SetPower
 === RUN   TestGPIOMotor_SetPower/positive_power
 === RUN   TestGPIOMotor_SetPower/negative_power
@@ -169,7 +169,7 @@ $ go test -v -tags=component ./component/motor
 === RUN   TestGPIOMotor_Stop
 --- PASS: TestGPIOMotor_Stop (0.01s)
 PASS
-ok      github.com/gorai/gorai/component/motor    0.091s
+ok      github.com/gorai/gorai/components/motor    0.091s
 ```
 
 ---
@@ -438,7 +438,7 @@ go test $(go list ./... | grep -v /vendor/)
 
 ```bash
 # Component tests for motor, matching SetPower
-go test -tags=component ./component/motor -run TestSetPower
+go test -tags=component ./components/motor -run TestSetPower
 
 # Integration tests for pub/sub with race detection
 go test -tags=integration -race ./tests/integration -run TestPubSub
@@ -707,7 +707,7 @@ $ go test -cover ./pkg/...
 ok      github.com/gorai/gorai/pkg/node      0.023s    coverage: 85.2%
 ok      github.com/gorai/gorai/pkg/pub       0.018s    coverage: 92.1%
 ok      github.com/gorai/gorai/pkg/sub       0.019s    coverage: 88.7%
-ok      github.com/gorai/gorai/pkg/service   0.021s    coverage: 79.3%
+ok      github.com/gorai/gorai/pkg/services   0.021s    coverage: 79.3%
 
 # Function-level coverage
 $ go tool cover -func=coverage.out | head -20
@@ -957,7 +957,7 @@ GORAI_GPIO_PIN=18 go test -tags=hardware ./driver/gpio/...
 | Quick unit tests | `go test ./...` |
 | Verbose single package | `go test -v ./pkg/node` |
 | Run specific test | `go test -run TestName ./...` |
-| Component tests | `go test -tags=component ./component/...` |
+| Component tests | `go test -tags=component ./components/...` |
 | Integration tests | `go test -tags=integration ./tests/integration` |
 | Module tests | `go test -tags=module ./tests/module` |
 | System tests | `go test -tags=system ./tests/system` |

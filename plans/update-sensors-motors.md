@@ -86,7 +86,7 @@ type Actuator interface {
 
 ### Phase 2: Expand Sensor Interfaces
 
-**Goal**: Update `component/sensor/sensor.go` with all new sensor types from the specification.
+**Goal**: Update `components/sensor/sensor.go` with all new sensor types from the specification.
 
 #### 2.1 Enhance Existing Interfaces
 
@@ -290,14 +290,14 @@ type ReflectanceSensor interface {
 
 **Goal**: Create new packages for specialized actuators.
 
-#### 3.1 Create `component/servo/servo.go`
+#### 3.1 Create `components/servo/servo.go`
 
 ```go
 package servo
 
 import (
     "context"
-    "github.com/gorai/gorai/component"
+    "github.com/gorai/gorai/components"
 )
 
 // Servo for position-controlled motors (RC servos, Dynamixel, etc.).
@@ -320,14 +320,14 @@ type Properties struct {
 }
 ```
 
-#### 3.2 Create `component/stepper/stepper.go`
+#### 3.2 Create `components/stepper/stepper.go`
 
 ```go
 package stepper
 
 import (
     "context"
-    "github.com/gorai/gorai/component"
+    "github.com/gorai/gorai/components"
 )
 
 // Stepper for discrete-step motors (NEMA 17, etc.).
@@ -352,14 +352,14 @@ type Properties struct {
 }
 ```
 
-#### 3.3 Create `component/thruster/thruster.go`
+#### 3.3 Create `components/thruster/thruster.go`
 
 ```go
 package thruster
 
 import (
     "context"
-    "github.com/gorai/gorai/component"
+    "github.com/gorai/gorai/components"
 )
 
 // Thruster for underwater propulsion (BlueRobotics, etc.).
@@ -383,14 +383,14 @@ type Properties struct {
 }
 ```
 
-#### 3.4 Create `component/valve/valve.go`
+#### 3.4 Create `components/valve/valve.go`
 
 ```go
 package valve
 
 import (
     "context"
-    "github.com/gorai/gorai/component"
+    "github.com/gorai/gorai/components"
 )
 
 // Valve for fluid control actuators.
@@ -456,7 +456,7 @@ Each fake implementation should follow these patterns:
 
 **Goal**: Comprehensive test coverage for all new interfaces.
 
-#### 5.1 Sensor Tests (`component/sensor/sensor_test.go`)
+#### 5.1 Sensor Tests (`components/sensor/sensor_test.go`)
 
 - Test all new interface method signatures
 - Test fake implementations
@@ -466,10 +466,10 @@ Each fake implementation should follow these patterns:
 #### 5.2 Actuator Tests
 
 Create test files for each new actuator package:
-- `component/servo/servo_test.go`
-- `component/stepper/stepper_test.go`
-- `component/thruster/thruster_test.go`
-- `component/valve/valve_test.go`
+- `components/servo/servo_test.go`
+- `components/stepper/stepper_test.go`
+- `components/thruster/thruster_test.go`
+- `components/valve/valve_test.go`
 
 ---
 
@@ -534,7 +534,7 @@ Gorai uses a **single-owner model** for components:
 
 This simplifies implementations and aligns with Go's "share memory by communicating" philosophy.
 
-**Note**: Existing fake implementations (`component/motor/fake/fake.go`, `component/link/fake/fake.go`, etc.) currently use `sync.RWMutex`. These should be refactored to remove the mutex boilerplate, either as part of this work or as a separate cleanup task.
+**Note**: Existing fake implementations (`components/motor/fake/fake.go`, `components/link/fake/fake.go`, etc.) currently use `sync.RWMutex`. These should be refactored to remove the mutex boilerplate, either as part of this work or as a separate cleanup task.
 
 ---
 
@@ -567,26 +567,26 @@ This simplifies implementations and aligns with Go's "share memory by communicat
 
 | File | Description |
 |------|-------------|
-| `component/servo/servo.go` | Servo interface definition |
-| `component/servo/fake/fake.go` | Fake servo implementation |
-| `component/servo/servo_test.go` | Servo tests |
-| `component/stepper/stepper.go` | Stepper interface definition |
-| `component/stepper/fake/fake.go` | Fake stepper implementation |
-| `component/stepper/stepper_test.go` | Stepper tests |
-| `component/thruster/thruster.go` | Thruster interface definition |
-| `component/thruster/fake/fake.go` | Fake thruster implementation |
-| `component/thruster/thruster_test.go` | Thruster tests |
-| `component/valve/valve.go` | Valve interface definition |
-| `component/valve/fake/fake.go` | Fake valve implementation |
-| `component/valve/valve_test.go` | Valve tests |
-| `component/sensor/fake/*.go` | Multiple fake sensor files |
+| `components/servo/servo.go` | Servo interface definition |
+| `components/servo/fake/fake.go` | Fake servo implementation |
+| `components/servo/servo_test.go` | Servo tests |
+| `components/stepper/stepper.go` | Stepper interface definition |
+| `components/stepper/fake/fake.go` | Fake stepper implementation |
+| `components/stepper/stepper_test.go` | Stepper tests |
+| `components/thruster/thruster.go` | Thruster interface definition |
+| `components/thruster/fake/fake.go` | Fake thruster implementation |
+| `components/thruster/thruster_test.go` | Thruster tests |
+| `components/valve/valve.go` | Valve interface definition |
+| `components/valve/fake/fake.go` | Fake valve implementation |
+| `components/valve/valve_test.go` | Valve tests |
+| `components/sensor/fake/*.go` | Multiple fake sensor files |
 
 ### Existing Files (Modify)
 
 | File | Changes |
 |------|---------|
-| `component/sensor/sensor.go` | Add new interfaces, enhance existing |
-| `component/sensor/sensor_test.go` | Add tests for new interfaces |
+| `components/sensor/sensor.go` | Add new interfaces, enhance existing |
+| `components/sensor/sensor_test.go` | Add tests for new interfaces |
 | `pkg/registry/registry.go` | Register new component types |
 
 ---

@@ -227,7 +227,7 @@ Interactive tree/graph showing:
 
 ### 3. Component Inspector
 
-**URL**: `/component/{name}`
+**URL**: `/components/{name}`
 
 Detailed view of a single component:
 - Configuration (read-only)

@@ -26,7 +26,7 @@ the motor.Motor interface. Include:
 - Thread-safe state management
 - A fake implementation for testing
 
-Follow the patterns in component/motor/ and examples/hello-sensor/.
+Follow the patterns in components/motor/ and examples/hello-sensor/.
 ```
 
 **Why this works**:
@@ -261,7 +261,7 @@ Help me implement velocity control using encoder feedback.
 ### Reference Existing Code
 
 ```
-Following the pattern in component/motor/motor.go, create a
+Following the pattern in components/motor/motor.go, create a
 servo component that implements similar interfaces.
 ```
 

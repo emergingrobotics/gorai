@@ -12,8 +12,8 @@ This plan implements the v0.2.0 specification updates to the Gorai codebase. The
 
 ### Already Implemented:
 - `pkg/resource/resource.go`: Resource, Sensor, Actuator interfaces
-- `component/`: motor, camera, sensor, arm, base, gripper
-- `service/`: vision, motion, navigation, slam, mlmodel
+- `components/`: motor, camera, sensor, arm, base, gripper
+- `services/`: vision, motion, navigation, slam, mlmodel
 - `driver/`: gpio, i2c, serial, spi
 
 ### Needs Implementation:
@@ -92,7 +92,7 @@ type Link interface {
 
 ## Phase 2: Power Component
 
-Create `/gorai/component/power/` package.
+Create `/gorai/components/power/` package.
 
 ### Files:
 - `power.go` - Interface definition
@@ -103,7 +103,7 @@ Create `/gorai/component/power/` package.
 
 ## Phase 3: Space Component
 
-Create `/gorai/component/space/` package.
+Create `/gorai/components/space/` package.
 
 ### Files:
 - `space.go` - Interface definition
@@ -114,7 +114,7 @@ Create `/gorai/component/space/` package.
 
 ## Phase 4: Link Component
 
-Create `/gorai/component/link/` package.
+Create `/gorai/components/link/` package.
 
 ### Files:
 - `link.go` - Interface definition with NATSLink
@@ -125,7 +125,7 @@ Create `/gorai/component/link/` package.
 
 ## Phase 5: Behavior Service
 
-Create `/gorai/service/behavior/` package.
+Create `/gorai/services/behavior/` package.
 
 ### Files:
 - `behavior.go` - Core interface, State, Goal, Status types
@@ -138,7 +138,7 @@ Create `/gorai/service/behavior/` package.
 
 ## Phase 6: Coordinator Service
 
-Create `/gorai/service/coordinator/` package.
+Create `/gorai/services/coordinator/` package.
 
 ### Files:
 - `coordinator.go` - Core interface, Mission, Phase types
@@ -150,8 +150,8 @@ Create `/gorai/service/coordinator/` package.
 
 ## Phase 7: Integration
 
-1. Update `component/component.go` with Power, Space, Link types
-2. Update `service/service.go` with Behavior, Coordinator types
+1. Update `components/component.go` with Power, Space, Link types
+2. Update `services/service.go` with Behavior, Coordinator types
 3. Run full test suite
 
 ---
@@ -161,10 +161,10 @@ Create `/gorai/service/coordinator/` package.
 Each phase runs tests before proceeding:
 ```bash
 go test ./pkg/resource/...
-go test ./component/power/...
-go test ./component/space/...
-go test ./component/link/...
-go test ./service/behavior/...
-go test ./service/coordinator/...
+go test ./components/power/...
+go test ./components/space/...
+go test ./components/link/...
+go test ./services/behavior/...
+go test ./services/coordinator/...
 go test ./...
 ```

@@ -12,7 +12,7 @@ GoRAI is a modern robotics framework that provides:
 
 - **NATS-based messaging** for pub/sub, request/reply, and persistence
 - **Protocol Buffer serialization** for type-safe communication
-- **Resource-centric architecture** with unified component/service abstraction
+- **Resource-centric architecture** with unified components/service abstraction
 - **First-class AI/ML support** with hardware acceleration
 - **Hot reconfiguration** without restart
 - **TinyGo compatibility** for microcontrollers

@@ -15,7 +15,7 @@ This document summarizes the complete implementation of the third-party componen
 
 ### 1. Core Infrastructure
 
-#### Component Metadata System (`pkg/component/metadata/`)
+#### Component Metadata System (`pkg/componentss/metadata/`)
 - **types.go**: Complete type definitions for `gorai-component.yaml`
 - **parser.go**: YAML parser with validation and remote fetching
 - **Features**:
@@ -24,7 +24,7 @@ This document summarizes the complete implementation of the third-party componen
   - Support for GitHub/GitLab raw file fetching
   - Comprehensive metadata including compatibility, configuration, dependencies
 
-#### Service RDL System (`pkg/service/rdl/`)
+#### Service RDL System (`pkg/servicess/rdl/`)
 - **types.go**: Complete type definitions for `service.rdl.json`
 - **parser.go**: JSON parser with validation and URL fetching
 - **Features**:
@@ -35,7 +35,7 @@ This document summarizes the complete implementation of the third-party componen
   - Configuration schema with environment variable mapping
 
 #### Discovery & Registry Client (`pkg/discovery/`)
-- **registry.go**: Registry client for component/service discovery
+- **registry.go**: Registry client for components/service discovery
 - **Features**:
   - Search components and services via registry API
   - Fallback to GitHub search if registry unavailable
@@ -119,12 +119,12 @@ Implemented commands:
 
 ### 3. Templates
 
-#### Component Template (`templates/component/`)
+#### Component Template (`templates/components/`)
 - **gorai-component.yaml.tmpl**: Metadata template
 - **component.go.tmpl**: Go implementation template
 - **Variables**: Name, Type, Model, Repository, Author, Description
 
-#### Service Template (`templates/service/`)
+#### Service Template (`templates/services/`)
 - **service.rdl.json.tmpl**: RDL metadata template
 - **Containerfile.tmpl**: Container build template
 - **main.py.tmpl**: Python service implementation template
@@ -152,11 +152,11 @@ Implemented commands:
 ```
 /gorai/
 ├── pkg/
-│   ├── component/
+│   ├── components/
 │   │   └── metadata/
 │   │       ├── types.go           # Component metadata types
 │   │       └── parser.go          # YAML parser & validator
-│   ├── service/
+│   ├── services/
 │   │   └── rdl/
 │   │       ├── types.go           # Service RDL types
 │   │       └── parser.go          # JSON parser & validator
@@ -169,10 +169,10 @@ Implemented commands:
 │   ├── service.go                 # Service CLI commands
 │   └── root.go                    # Updated with new commands
 ├── templates/
-│   ├── component/
+│   ├── components/
 │   │   ├── gorai-component.yaml.tmpl
 │   │   └── component.go.tmpl
-│   └── service/
+│   └── services/
 │       ├── service.rdl.json.tmpl
 │       ├── Containerfile.tmpl
 │       └── main.py.tmpl
@@ -199,8 +199,8 @@ mkdir gorai-component-my-sensor
 cd gorai-component-my-sensor
 
 # Copy templates
-cp /gorai/templates/component/gorai-component.yaml.tmpl gorai-component.yaml
-cp /gorai/templates/component/component.go.tmpl my-sensor/sensor.go
+cp /gorai/templates/components/gorai-component.yaml.tmpl gorai-component.yaml
+cp /gorai/templates/components/component.go.tmpl my-sensor/sensor.go
 
 # Edit metadata and implement component
 vim gorai-component.yaml
@@ -247,7 +247,7 @@ mkdir gorai-service-my-detector
 cd gorai-service-my-detector
 
 # Copy templates
-cp /gorai/templates/service/* .
+cp /gorai/templates/services/* .
 
 # Edit and implement
 vim service.rdl.json
@@ -396,7 +396,7 @@ Components currently in the main repo should be:
    cd gorai-component-motor
 
    # Copy code from main repo
-   cp -r /gorai/component/motor/* .
+   cp -r /gorai/components/motor/* .
 
    # Add metadata
    gorai component validate .
@@ -411,7 +411,7 @@ Components currently in the main repo should be:
 Update imports in robot code:
 ```go
 // Before
-import _ "github.com/gorai/gorai/component/motor/gpio"
+import _ "github.com/gorai/gorai/components/motor/gpio"
 
 // After
 import _ "github.com/gorai/gorai-component-motor/gpio"

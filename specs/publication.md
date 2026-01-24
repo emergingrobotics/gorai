@@ -82,7 +82,7 @@ Auto-generated Go package documentation from source code comments.
 - Package hierarchy navigation
 - Type, function, and method documentation
 
-**Source:** Go source files in `pkg/`, `component/`, `service/`, etc.
+**Source:** Go source files in `pkg/`, `components/`, `services/`, etc.
 **Output:** `publish/dist/api/`
 
 ---

@@ -194,7 +194,7 @@ Services are computational/algorithmic resources built on top of components:
 
 ### 3. RPC Client Pattern
 
-For each component/service:
+For each components/service:
 - Server-side RPC handler registers gRPC service
 - Client implementation created from connection
 - Transparent proxying of local resources as remote clients for composition

@@ -391,7 +391,7 @@ go test -tags=hardware ./...
 | Package | Target |
 |---------|--------|
 | pkg/* | 80% |
-| component/* | 75% |
+| components/* | 75% |
 | examples/* | 80% |
 
 Check coverage:

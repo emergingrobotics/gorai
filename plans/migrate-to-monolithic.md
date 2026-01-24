@@ -463,7 +463,7 @@ Update to new format without containers:
 
 For transition period:
 1. If `containers` section present, warn and ignore
-2. If component/service has `container` field, warn and ignore
+2. If components/service has `container` field, warn and ignore
 3. Provide `gorai migrate --config old.json --output new.json` command
 
 ### 6.3 Migration Script

@@ -96,7 +96,7 @@ func (m *Motor) Stop(ctx context.Context) error {
 
 ## Motor Interface
 
-Motors are the most common actuators. The Motor interface from `component/motor/motor.go` provides comprehensive control:
+Motors are the most common actuators. The Motor interface from `components/motor/motor.go` provides comprehensive control:
 
 ```go
 type Motor interface {

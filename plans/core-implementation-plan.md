@@ -32,7 +32,7 @@ This document provides a comprehensive implementation plan for the Gorai framewo
 | `pkg/node` | **Partial** | Node struct exists, basic lifecycle, missing some spec methods |
 | `pkg/pub` | **Complete** | Generic `Publisher[T]` with protobuf support |
 | `pkg/sub` | **Complete** | Generic `Subscriber[T]` with protobuf support |
-| `pkg/service` | **Complete** | Generic `Server[Req,Resp]` and `Client[Req,Resp]` |
+| `pkg/services` | **Complete** | Generic `Server[Req,Resp]` and `Client[Req,Resp]` |
 | `pkg/action` | **Skeleton** | Types defined, methods not implemented |
 | `pkg/param` | **Complete** | NATS KV-backed parameter store |
 | `pkg/registry` | **Complete** | Component/service registration pattern |
@@ -40,8 +40,8 @@ This document provides a comprehensive implementation plan for the Gorai framewo
 | `pkg/tf` | **Complete** | Transform buffer implementation |
 | `pkg/log` | **Complete** | Structured logging wrapper |
 | `pkg/nats` | **Complete** | NATS connection management |
-| `component/*` | **Partial** | Interfaces defined, fake implementations exist |
-| `service/*` | **Partial** | Interfaces defined, no implementations |
+| `components/*` | **Partial** | Interfaces defined, fake implementations exist |
+| `services/*` | **Partial** | Interfaces defined, no implementations |
 | `driver/*` | **Interfaces only** | No actual driver implementations |
 | `accel/*` | **Skeleton** | CPU stub only, no real accelerators |
 | `api/proto/*` | **Partial** | std, geometry, sensor, vision defined; action, control, nav, ml empty |
@@ -894,12 +894,12 @@ go test -v ./pkg/action/...
 #### Step 3.1: Update Component Base
 
 **Files**:
-- `component/component.go` (modify to use resource.Resource)
-- `component/component_test.go` (new)
+- `components/component.go` (modify to use resource.Resource)
+- `components/component_test.go` (new)
 
 **Implementation**:
 ```go
-// component/component.go
+// components/component.go
 package component
 
 import (
@@ -932,7 +932,7 @@ package component_test
 import (
     "testing"
 
-    "github.com/gorai/gorai/component"
+    "github.com/gorai/gorai/components"
     "github.com/gorai/gorai/pkg/resource"
 )
 
@@ -952,7 +952,7 @@ Similar to components, align with resource.Resource.
 
 #### Step 3.3: Update Fake Implementations
 
-Update `component/motor/fake/fake.go` and `component/camera/fake/fake.go` to implement the full resource.Resource interface.
+Update `components/motor/fake/fake.go` and `components/camera/fake/fake.go` to implement the full resource.Resource interface.
 
 ---
 
@@ -962,7 +962,7 @@ Update `component/motor/fake/fake.go` and `component/camera/fake/fake.go` to imp
 
 #### Step 4.1: Motor Interface
 
-**Verify/Update**: `component/motor/motor.go`
+**Verify/Update**: `components/motor/motor.go`
 
 **Required Methods** (from spec):
 - SetPower(ctx, power float64) error
@@ -976,7 +976,7 @@ Update `component/motor/fake/fake.go` and `component/camera/fake/fake.go` to imp
 - IsPowered(ctx) (bool, error)
 - Properties(ctx) (Properties, error)
 
-**Unit Tests**: `component/motor/motor_test.go`
+**Unit Tests**: `components/motor/motor_test.go`
 ```go
 func TestFakeMotor_SetPower(t *testing.T) {
     ctx := context.Background()
@@ -1046,7 +1046,7 @@ import (
 
     "github.com/gorai/gorai/pkg/node"
     "github.com/gorai/gorai/pkg/resource"
-    "github.com/gorai/gorai/pkg/service"
+    "github.com/gorai/gorai/pkg/services"
 )
 
 // Server exposes a local resource over NATS.
@@ -1116,7 +1116,7 @@ import (
 
     "github.com/gorai/gorai/pkg/node"
     "github.com/gorai/gorai/pkg/resource"
-    "github.com/gorai/gorai/pkg/service"
+    "github.com/gorai/gorai/pkg/services"
 )
 
 // Connect creates a client for a remote resource.
@@ -1431,9 +1431,9 @@ go test -tags=integration ./...
 | `pkg/node` | 80% |
 | `pkg/pub` | 80% |
 | `pkg/sub` | 80% |
-| `pkg/service` | 80% |
+| `pkg/services` | 80% |
 | `pkg/action` | 70% |
-| `component/*` | 70% |
+| `components/*` | 70% |
 | `examples/hello-sensor` | 80% |
 
 **Measure**:

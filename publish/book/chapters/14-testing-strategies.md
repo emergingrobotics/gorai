@@ -394,7 +394,7 @@ go test -tags=hardware ./...
 | Package | Target |
 |---------|--------|
 | pkg/* | 80% |
-| component/* | 75% |
+| components/* | 75% |
 | examples/* | 80% |
 
 Check coverage:
@@ -543,13 +543,13 @@ go test -v ./...
 ### Run Single Test
 
 ```bash
-go test -v -run TestMotor_SetPower ./component/motor/...
+go test -v -run TestMotor_SetPower ./components/motor/...
 ```
 
 ### Debug with delve
 
 ```bash
-dlv test ./component/motor/ -- -test.run TestMotor_SetPower
+dlv test ./components/motor/ -- -test.run TestMotor_SetPower
 ```
 
 ### Test Timeout

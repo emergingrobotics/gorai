@@ -196,23 +196,23 @@ import (
     // ============================================
 
     // Sensors
-    _ "github.com/gorai/gorai/component/sensor/bno055"    // ahrs: front_imu
-    _ "github.com/gorai/gorai/component/sensor/rplidar"   // lidar: front_lidar
+    _ "github.com/gorai/gorai/components/sensor/bno055"    // ahrs: front_imu
+    _ "github.com/gorai/gorai/components/sensor/rplidar"   // lidar: front_lidar
 
     // Actuators
-    _ "github.com/gorai/gorai/component/motor/gpio"       // motor: left_motor, right_motor
-    _ "github.com/gorai/gorai/component/base/differential" // base: base
+    _ "github.com/gorai/gorai/components/motor/gpio"       // motor: left_motor, right_motor
+    _ "github.com/gorai/gorai/components/base/differential" // base: base
 
     // Cameras
-    _ "github.com/gorai/gorai/component/camera/v4l2"      // camera: front_camera
+    _ "github.com/gorai/gorai/components/camera/v4l2"      // camera: front_camera
 
     // ============================================
     // Standard Gorai Services (from robot.json)
     // ============================================
 
-    _ "github.com/gorai/gorai/service/vision/yolox"           // vision: detector
-    _ "github.com/gorai/gorai/service/slam/cartographer"      // slam: mapper
-    _ "github.com/gorai/gorai/service/navigation/default"     // navigation: navigator
+    _ "github.com/gorai/gorai/services/vision/yolox"           // vision: detector
+    _ "github.com/gorai/gorai/services/slam/cartographer"      // slam: mapper
+    _ "github.com/gorai/gorai/services/navigation/default"     // navigation: navigator
 
     // ============================================
     // Custom Components (from components/)
@@ -244,18 +244,18 @@ const ServiceCount = 3
 package generated
 
 import (
-    "github.com/gorai/gorai/component/motor"
-    "github.com/gorai/gorai/component/sensor"
-    "github.com/gorai/gorai/component/camera"
-    "github.com/gorai/gorai/component/base"
-    "github.com/gorai/gorai/service/vision"
-    "github.com/gorai/gorai/service/slam"
-    "github.com/gorai/gorai/service/navigation"
+    "github.com/gorai/gorai/components/motor"
+    "github.com/gorai/gorai/components/sensor"
+    "github.com/gorai/gorai/components/camera"
+    "github.com/gorai/gorai/components/base"
+    "github.com/gorai/gorai/services/vision"
+    "github.com/gorai/gorai/services/slam"
+    "github.com/gorai/gorai/services/navigation"
 )
 
 // These type assertions ensure that the interfaces referenced in robot.json
 // actually exist at compile time. If any of these fail to compile, your
-// robot.json references a component/service type that doesn't exist.
+// robot.json references a components/service type that doesn't exist.
 
 var (
     // Component interface assertions
@@ -351,7 +351,7 @@ Generating code...
   ✓ internal/generated/imports.go (updated)
   ✓ internal/generated/validate.go (updated)
   ✓ deploy/my-robot.service (updated)
-  ✓ go.mod (updated: added github.com/gorai/gorai/component/sensor/bno055)
+  ✓ go.mod (updated: added github.com/gorai/gorai/components/sensor/bno055)
 
 Generation complete!
 ```
@@ -915,9 +915,9 @@ $ gorai generate --verbose
 
 Analyzing dependencies...
   robot.json requires:
-    - github.com/gorai/gorai/component/sensor/bno055
-    - github.com/gorai/gorai/component/motor/gpio
-    - github.com/gorai/gorai/service/vision/yolox
+    - github.com/gorai/gorai/components/sensor/bno055
+    - github.com/gorai/gorai/components/motor/gpio
+    - github.com/gorai/gorai/services/vision/yolox
 
   go.mod has:
     - github.com/gorai/gorai v0.2.0

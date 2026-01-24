@@ -22,12 +22,12 @@ github.com/gorai/gorai/
 │   ├── sub/
 │   ├── resource/
 │   └── registry/
-├── component/           # Component interfaces
+├── components/           # Component interfaces
 │   ├── component.go
 │   ├── motor/
 │   ├── camera/
 │   └── sensor/
-├── service/             # Service interfaces
+├── services/             # Service interfaces
 │   ├── service.go
 │   ├── vision/
 │   └── navigation/
@@ -52,7 +52,7 @@ Use the core monorepo for:
 
 - Framework development
 - Changes affecting multiple packages
-- Core component/service interfaces
+- Core components/service interfaces
 - Shared protocol definitions
 
 ## When to Create Separate Repos
@@ -204,7 +204,7 @@ Motor component interface for Gorai.
 
 ## Installation
 
-go get github.com/gorai/gorai/component/motor
+go get github.com/gorai/gorai/components/motor
 
 ## Usage
 

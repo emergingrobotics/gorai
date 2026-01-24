@@ -873,8 +873,8 @@ import (
     "github.com/gorai/gorai/pkg/robot"
 
     // Import components to register them
-    _ "github.com/gorai/gorai/component/motor/gpio"
-    _ "github.com/gorai/gorai/component/sensor/mpu6050"
+    _ "github.com/gorai/gorai/components/motor/gpio"
+    _ "github.com/gorai/gorai/components/sensor/mpu6050"
 )
 
 func main() {

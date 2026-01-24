@@ -716,7 +716,7 @@ func TestPubSub(t *testing.T) {
 | Package | Target |
 |---------|--------|
 | pkg/* | 80% |
-| component/* | 75% |
+| components/* | 75% |
 | examples/* | 80% |
 
 ### 11.10 CI/CD Integration
@@ -823,11 +823,11 @@ github.com/gorai/gorai/
 │   ├── pub/             # Publishing
 │   ├── sub/             # Subscribing
 │   └── ...
-├── component/           # Component interfaces
+├── components/           # Component interfaces
 │   ├── motor/
 │   ├── camera/
 │   └── sensor/
-├── service/             # Service interfaces
+├── services/             # Service interfaces
 ├── driver/              # Hardware drivers
 ├── accel/               # Acceleration layer
 ├── nws/                 # Network wrappers

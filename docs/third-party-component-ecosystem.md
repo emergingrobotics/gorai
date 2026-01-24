@@ -10,7 +10,7 @@
 
 This document provides a comprehensive guide for third-party developers who want to create Gorai components and services **outside the main Gorai repository**. It covers:
 
-- How to structure a third-party component/service repository
+- How to structure a third-party components/service repository
 - Metadata standards for self-description and discovery
 - Testing and validation requirements
 - Distribution strategies (public vs private)
@@ -143,7 +143,7 @@ import (
     "context"
     "fmt"
 
-    "github.com/gorai/gorai/component/sensor"
+    "github.com/gorai/gorai/components/sensor"
     "github.com/gorai/gorai/pkg/resource"
     "github.com/gorai/gorai/pkg/registry"
 )

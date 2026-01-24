@@ -10,7 +10,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/gorai/gorai/pkg/component/metadata"
+	"github.com/gorai/gorai/pkg/components/metadata"
 	"github.com/gorai/gorai/pkg/discovery"
 	"github.com/gorai/gorai/pkg/validation"
 	"github.com/spf13/cobra"

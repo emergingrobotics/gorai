@@ -327,13 +327,13 @@ Resources divide into two categories:
 
 - Motors, cameras, sensors, grippers
 - Have physical counterparts
-- Defined in the `component/` package
+- Defined in the `components/` package
 
 **Services** provide software capabilities:
 
 - Vision processing, navigation, SLAM
 - Pure computation, no direct hardware
-- Defined in the `service/` package
+- Defined in the `services/` package
 
 ### The Resource Model
 

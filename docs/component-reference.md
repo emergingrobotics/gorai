@@ -73,7 +73,7 @@ type Actuator interface {
 
 ### IMU (Inertial Measurement Unit)
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type IMU interface {
@@ -97,7 +97,7 @@ type IMU interface {
 
 ### AHRS (Attitude and Heading Reference System)
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 AHRS extends IMU with onboard sensor fusion:
 
@@ -126,7 +126,7 @@ type AHRS interface {
 
 ### GPS
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type GPS interface {
@@ -165,7 +165,7 @@ const (
 
 ### Encoder
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type Encoder interface {
@@ -198,7 +198,7 @@ type EncoderProperties struct {
 
 ### RangeSensor
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type RangeSensor interface {
@@ -222,7 +222,7 @@ type RangeSensor interface {
 
 ### LiDAR
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type LiDAR interface {
@@ -266,7 +266,7 @@ type LiDARProperties struct {
 
 ### PresenceSensor
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type PresenceSensor interface {
@@ -294,7 +294,7 @@ const (
 
 ### ThermalArray
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type ThermalArray interface {
@@ -318,7 +318,7 @@ type ThermalArray interface {
 
 ### ForceSensor
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type ForceSensor interface {
@@ -336,7 +336,7 @@ type ForceSensor interface {
 
 ### Force6DOF
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 6-axis force/torque sensor:
 
@@ -358,7 +358,7 @@ type Wrench struct {
 
 ### CurrentSensor
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type CurrentSensor interface {
@@ -379,7 +379,7 @@ type CurrentSensor interface {
 
 ### ReflectanceSensor
 
-**Package**: `component/sensor`
+**Package**: `components/sensor`
 
 ```go
 type ReflectanceSensor interface {
@@ -404,7 +404,7 @@ type ReflectanceSensor interface {
 
 ### Motor
 
-**Package**: `component/motor`
+**Package**: `components/motor`
 
 ```go
 type Motor interface {
@@ -447,7 +447,7 @@ type Properties struct {
 
 ### Servo
 
-**Package**: `component/servo`
+**Package**: `components/servo`
 
 ```go
 type Servo interface {
@@ -482,7 +482,7 @@ type Properties struct {
 
 ### Stepper
 
-**Package**: `component/stepper`
+**Package**: `components/stepper`
 
 ```go
 type Stepper interface {
@@ -523,7 +523,7 @@ type Properties struct {
 
 ### Thruster
 
-**Package**: `component/thruster`
+**Package**: `components/thruster`
 
 ```go
 type Thruster interface {
@@ -559,7 +559,7 @@ type Properties struct {
 
 ### Valve
 
-**Package**: `component/valve`
+**Package**: `components/valve`
 
 ```go
 type Valve interface {
@@ -591,7 +591,7 @@ type Valve interface {
 
 ### Gripper
 
-**Package**: `component/gripper`
+**Package**: `components/gripper`
 
 ```go
 type Gripper interface {
@@ -613,7 +613,7 @@ type Gripper interface {
 
 ### Base (Mobile Robot)
 
-**Package**: `component/base`
+**Package**: `components/base`
 
 ```go
 type Base interface {
@@ -635,7 +635,7 @@ type Base interface {
 
 ### Arm (Manipulator)
 
-**Package**: `component/arm`
+**Package**: `components/arm`
 
 ```go
 type Arm interface {

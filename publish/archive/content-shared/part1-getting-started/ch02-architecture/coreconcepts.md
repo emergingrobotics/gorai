@@ -180,12 +180,12 @@ Resources divide into two categories:
 **Components** abstract hardware:
 - Motors, cameras, sensors, grippers
 - Have physical counterparts
-- Defined in the `component/` package
+- Defined in the `components/` package
 
 **Services** provide software capabilities:
 - Vision processing, navigation, SLAM
 - Pure computation, no direct hardware
-- Defined in the `service/` package
+- Defined in the `services/` package
 
 This distinction matters for organization but not for the core interface—both are Resources.
 

@@ -170,7 +170,7 @@ github.com/gorai/gorai/
 │   ├── nats/                       # NATS abstraction
 │   ├── pub/                        # Publisher
 │   ├── sub/                        # Subscriber
-│   ├── service/                    # Service server/client
+│   ├── services/                    # Service server/client
 │   ├── action/                     # Action server/client
 │   ├── param/                      # Parameter store
 │   ├── tf/                         # Transform tree
@@ -178,7 +178,7 @@ github.com/gorai/gorai/
 │   ├── registry/                   # Component/service registry
 │   └── log/                        # Structured logging
 │
-├── component/                      # Component interfaces
+├── components/                      # Component interfaces
 │   ├── component.go                # Base interface
 │   ├── motor/
 │   │   ├── motor.go                # Motor interface
@@ -195,7 +195,7 @@ github.com/gorai/gorai/
 │   └── gripper/
 │       └── gripper.go
 │
-├── service/                        # Service interfaces
+├── services/                        # Service interfaces
 │   ├── service.go                  # Base interface
 │   ├── vision/
 │   │   └── vision.go
@@ -253,8 +253,8 @@ github.com/gorai/gorai/
 |-----------|---------|----------|
 | `api/` | Protocol Buffer definitions | `.proto` files and generated Go code |
 | `pkg/` | Core libraries | Node, messaging, configuration |
-| `component/` | Component interfaces | Motor, camera, sensor interfaces + fakes |
-| `service/` | Service interfaces | Vision, SLAM, navigation interfaces |
+| `components/` | Component interfaces | Motor, camera, sensor interfaces + fakes |
+| `services/` | Service interfaces | Vision, SLAM, navigation interfaces |
 | `accel/` | Acceleration layer | Accelerator interface + CPU reference |
 | `driver/` | Hardware drivers | Pure Go drivers only |
 | `nws/` | Network transparency | Network wrapper server/client |
@@ -382,7 +382,7 @@ package v4l2
 import (
     "context"
 
-    "github.com/gorai/gorai/component/camera"
+    "github.com/gorai/gorai/components/camera"
     "github.com/gorai/gorai/pkg/registry"
 )
 
@@ -732,7 +732,7 @@ gorai-api
 gorai-types
 
 # CORRECT
-Interfaces in github.com/gorai/gorai/component/*
+Interfaces in github.com/gorai/gorai/components/*
 ```
 
 ### 4. Premature Extraction
@@ -771,8 +771,8 @@ Initial development **SHALL** occur entirely in the core repository:
 github.com/gorai/gorai/
 ├── api/
 ├── pkg/
-├── component/
-├── service/
+├── components/
+├── services/
 ├── accel/cpu/
 ├── driver/gpio/
 ├── cmd/

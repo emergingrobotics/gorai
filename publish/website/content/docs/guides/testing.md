@@ -241,7 +241,7 @@ func TestSensor_PublishesReadings(t *testing.T) {
 | Package | Target |
 |---------|--------|
 | pkg/* | 80% |
-| component/* | 75% |
+| components/* | 75% |
 | examples/* | 80% |
 
 Check coverage:

@@ -30,8 +30,8 @@ This approach maintains Gorai's configuration-driven philosophy while enabling:
 
 ```
 gorai/gorai (single repo)
-├── component/          # All component implementations
-├── service/            # All service implementations
+├── components/          # All component implementations
+├── services/            # All service implementations
 ├── pkg/                # Core framework
 └── cmd/                # CLI & runtime
 
@@ -405,13 +405,13 @@ podman login registry.acme-corp.com
 
 ```
 github.com/gorai/gorai
-├── component/           # Base interfaces ONLY (no implementations except fake/)
+├── components/           # Base interfaces ONLY (no implementations except fake/)
 │   ├── motor/
 │   │   ├── motor.go          # Motor interface
 │   │   └── fake/fake.go      # Fake motor for testing
 │   ├── sensor/
 │   └── ...
-├── service/             # Base interfaces ONLY
+├── services/             # Base interfaces ONLY
 ├── pkg/                 # Core runtime, config, registry, nats, dashboard
 ├── driver/              # Low-level driver interfaces (gpio, i2c, spi)
 ├── cmd/
@@ -558,8 +558,8 @@ go get github.com/gorai/gorai
 package main
 import (
     "github.com/gorai/gorai/pkg/robot"
-    _ "github.com/gorai/gorai/component/motor/gpio"  // All components in one repo
-    _ "github.com/gorai/gorai/component/sensor/imu"
+    _ "github.com/gorai/gorai/components/motor/gpio"  // All components in one repo
+    _ "github.com/gorai/gorai/components/sensor/imu"
 )
 func main() { robot.RunFromConfig("robot.json") }
 ```

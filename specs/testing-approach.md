@@ -109,7 +109,7 @@ package motor_test
 | Tag | Purpose | Location |
 |-----|---------|----------|
 | (none) | Unit tests | Same package as code |
-| `component` | Component tests | `component/*/` |
+| `component` | Component tests | `components/*/` |
 | `integration` | Integration tests | `tests/integration/` |
 | `module` | Module lifecycle tests | `tests/module/` |
 | `system` | Full robot tests | `tests/system/` |
@@ -125,7 +125,7 @@ github.com/gorai/gorai/
 │       ├── node.go
 │       └── node_test.go           # Unit tests (no tag)
 │
-├── component/
+├── components/
 │   └── motor/
 │       ├── motor.go
 │       ├── motor_test.go          # Unit tests
@@ -287,8 +287,8 @@ import (
     "context"
     "testing"
 
-    "github.com/gorai/gorai/component/motor"
-    "github.com/gorai/gorai/component/motor/fake"
+    "github.com/gorai/gorai/components/motor"
+    "github.com/gorai/gorai/components/motor/fake"
 )
 
 func TestGPIOMotor_SetPower(t *testing.T) {
@@ -489,8 +489,8 @@ import (
     "time"
 
     "github.com/gorai/gorai/internal/testutil"
-    "github.com/gorai/gorai/component/motor"
-    fakemotor "github.com/gorai/gorai/component/motor/fake"
+    "github.com/gorai/gorai/components/motor"
+    fakemotor "github.com/gorai/gorai/components/motor/fake"
 )
 
 func TestMotorModule_Lifecycle(t *testing.T) {
@@ -740,14 +740,14 @@ Every component interface **SHALL** have a fake implementation.
 ### Fake Structure
 
 ```go
-// component/motor/fake/fake.go
+// components/motor/fake/fake.go
 package fake
 
 import (
     "context"
     "sync"
 
-    "github.com/gorai/gorai/component/motor"
+    "github.com/gorai/gorai/components/motor"
 )
 
 // Motor is a fake motor for testing
@@ -1157,7 +1157,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      - run: go test -tags=component -race ./component/...
+      - run: go test -tags=component -race ./components/...
 
   integration:
     runs-on: ubuntu-latest
@@ -1210,8 +1210,8 @@ go test -short ./...
 | Package | Line Coverage |
 |---------|---------------|
 | `pkg/*` | 80% |
-| `component/*` | 75% |
-| `service/*` | 75% |
+| `components/*` | 75% |
+| `services/*` | 75% |
 | `driver/*` | 60% |
 | `accel/*` | 70% |
 
@@ -1263,7 +1263,7 @@ func RequireCoverage(t *testing.T, pkg string, threshold float64) {
 | Test naming | `TestSubject_Scenario_ExpectedBehavior` |
 | Build tags | `component`, `integration`, `module`, `system`, `hardware` |
 | NATS testing | Use `testutil.StartNATS(t)` |
-| Hardware abstraction | Fake implementations in `component/*/fake/` |
+| Hardware abstraction | Fake implementations in `components/*/fake/` |
 | Cleanup | Use `t.Cleanup()` |
 | Parallelism | Use `t.Parallel()` where safe |
 | Coverage target | 75% overall |

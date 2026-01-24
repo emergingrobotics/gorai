@@ -25,7 +25,7 @@ the motor.Motor interface. Include:
 - Thread-safe state management
 - A fake implementation for testing
 
-Follow the patterns in component/motor/ and examples/hello-sensor/.
+Follow the patterns in components/motor/ and examples/hello-sensor/.
 ```
 
 **Why this works**:

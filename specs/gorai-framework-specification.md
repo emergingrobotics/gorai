@@ -49,7 +49,7 @@ Gorai is a robotics framework providing:
 
 - **NATS-based messaging** for pub/sub, request/reply, and persistence
 - **Protocol Buffer serialization** for type-safe, efficient communication
-- **Resource-centric architecture** with unified component/service abstraction
+- **Resource-centric architecture** with unified components/service abstraction
 - **First-class AI/ML support** with hardware acceleration (RK3588 NPU, NVIDIA CUDA)
 - **Hot reconfiguration** without restart
 - **TinyGo compatibility** for microcontroller deployment
@@ -4352,7 +4352,7 @@ gorai/
 │   ├── config/                      # Configuration
 │   └── nws/                         # Network wrappers
 │
-├── component/                       # Component interfaces
+├── components/                       # Component interfaces
 │   ├── motor/
 │   ├── camera/
 │   ├── sensor/
@@ -4360,7 +4360,7 @@ gorai/
 │   ├── arm/
 │   └── gripper/
 │
-├── service/                         # Service interfaces
+├── services/                         # Service interfaces
 │   ├── vision/
 │   ├── mlmodel/
 │   ├── slam/
