@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/blackjack/webcam"
-	"github.com/gorai/gorai/component/camera"
+	"github.com/gorai/gorai/components/camera"
 )
 
 // Common V4L2 pixel format FourCC codes

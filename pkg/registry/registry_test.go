@@ -7,12 +7,12 @@ import (
 	"github.com/gorai/gorai/pkg/registry"
 
 	// Import fake implementations to trigger registrations
-	_ "github.com/gorai/gorai/component/motor/fake"
-	_ "github.com/gorai/gorai/component/sensor/fake"
-	_ "github.com/gorai/gorai/component/servo/fake"
-	_ "github.com/gorai/gorai/component/stepper/fake"
-	_ "github.com/gorai/gorai/component/thruster/fake"
-	_ "github.com/gorai/gorai/component/valve/fake"
+	_ "github.com/gorai/gorai/components/motor/fake"
+	_ "github.com/gorai/gorai/components/sensor/fake"
+	_ "github.com/gorai/gorai/components/servo/fake"
+	_ "github.com/gorai/gorai/components/stepper/fake"
+	_ "github.com/gorai/gorai/components/thruster/fake"
+	_ "github.com/gorai/gorai/components/valve/fake"
 )
 
 func TestRegisteredSensorComponents(t *testing.T) {
