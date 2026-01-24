@@ -15,6 +15,7 @@ import (
 	"github.com/gorai/gorai/pkg/dashboard"
 	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
 	gorainats "github.com/gorai/gorai/pkg/nats"
+	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/topics"
 )
 
@@ -36,6 +37,10 @@ type Robot struct {
 	// Active cameras
 	cameras   map[string]*v4l2.Camera
 	camerasMu sync.RWMutex
+
+	// Active components (from registry)
+	components   map[string]any
+	componentsMu sync.RWMutex
 
 	// External services (managed child processes)
 	externalServices   map[string]*ExternalService
@@ -86,6 +91,7 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 		cancel:           cancel,
 		topics:           topics.NewBuilder(cfg.Robot.Name),
 		cameras:          make(map[string]*v4l2.Camera),
+		components:       make(map[string]any),
 		externalServices: make(map[string]*ExternalService),
 		frameCounters:    make(map[string]uint64),
 	}
@@ -135,8 +141,9 @@ func (r *Robot) Start(ctx context.Context) error {
 				return fmt.Errorf("failed to start camera %s: %w", comp.Name, err)
 			}
 		default:
-			r.logger.Info("Initializing component", "name", comp.Name, "type", comp.Type, "model", comp.Model)
-			// TODO: Initialize other component types from registry
+			if err := r.startRegistryComponent(ctx, comp); err != nil {
+				return fmt.Errorf("failed to start component %s: %w", comp.Name, err)
+			}
 		}
 	}
 
@@ -372,6 +379,73 @@ func (r *Robot) startCamera(ctx context.Context, comp config.ComponentConfig) er
 	)
 
 	return nil
+}
+
+// Startable is an interface for components that can be started.
+type Startable interface {
+	Start(ctx context.Context) error
+}
+
+// Closeable is an interface for components that can be closed.
+type Closeable interface {
+	Close(ctx context.Context) error
+}
+
+// startRegistryComponent starts a component from the registry.
+func (r *Robot) startRegistryComponent(ctx context.Context, comp config.ComponentConfig) error {
+	// Look up the constructor
+	ctor, err := registry.LookupComponent(comp.Type, comp.Model)
+	if err != nil {
+		r.logger.Warn("Component not found in registry", "name", comp.Name, "type", comp.Type, "model", comp.Model)
+		r.logger.Info("Skipping unregistered component", "name", comp.Name, "type", comp.Type, "model", comp.Model)
+		return nil
+	}
+
+	// Build config for constructor
+	conf := registry.Config{
+		"name":       comp.Name,
+		"type":       comp.Type,
+		"model":      comp.Model,
+		"attributes": comp.Attributes,
+		// Pass NATS configuration for components that need it
+		"nats_url":   r.getNATSURL(),
+		"namespace":  "gorai",
+		"robot_name": r.cfg.Robot.Name,
+	}
+
+	// Create the component
+	component, err := ctor(ctx, nil, conf)
+	if err != nil {
+		return fmt.Errorf("failed to create component %s: %w", comp.Name, err)
+	}
+
+	// If component is startable, start it
+	if startable, ok := component.(Startable); ok {
+		if err := startable.Start(r.ctx); err != nil {
+			return fmt.Errorf("failed to start component %s: %w", comp.Name, err)
+		}
+		r.logger.Info("Component started", "name", comp.Name, "type", comp.Type, "model", comp.Model)
+	} else {
+		r.logger.Info("Component initialized", "name", comp.Name, "type", comp.Type, "model", comp.Model)
+	}
+
+	// Track the component
+	r.componentsMu.Lock()
+	r.components[comp.Name] = component
+	r.componentsMu.Unlock()
+
+	r.publishStartupEvent(topics.EventComponentDetected, comp.Name, comp.Type,
+		fmt.Sprintf("Component %q started", comp.Name), true, nil)
+
+	return nil
+}
+
+// getNATSURL returns the NATS URL from configuration.
+func (r *Robot) getNATSURL() string {
+	if r.cfg.NATS != nil && r.cfg.NATS.URL != "" {
+		return r.cfg.NATS.URL
+	}
+	return "nats://localhost:4222"
 }
 
 // publishFrame publishes a camera frame to NATS.
@@ -624,6 +698,19 @@ func (r *Robot) Stop(ctx context.Context) error {
 			r.logger.Warn("Error stopping dashboard", "error", err)
 		}
 	}
+
+	// Stop all registry components
+	r.componentsMu.Lock()
+	for name, comp := range r.components {
+		r.logger.Info("Stopping component", "name", name)
+		if closeable, ok := comp.(Closeable); ok {
+			if err := closeable.Close(ctx); err != nil {
+				r.logger.Warn("Error closing component", "name", name, "error", err)
+			}
+		}
+	}
+	r.components = make(map[string]any)
+	r.componentsMu.Unlock()
 
 	// Stop all cameras
 	r.camerasMu.Lock()

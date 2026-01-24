@@ -1,72 +1,64 @@
 # Hello Camera Example
 
-> **🚧 WORK IN PROGRESS - NOT YET FUNCTIONAL 🚧**
->
-> This example is currently under development and does not work yet. The implementation is incomplete.
->
-> **Working examples:** See [hello-robot](../hello-robot/) or [hello-robot-production](../hello-robot-production/) for fully functional examples.
+> **Work in Progress**: This example is under development and may not be fully functional. The camera component implementation is incomplete.
 
-A simple camera robot demonstrating V4L2 capture and web dashboard.
+A camera robot demonstrating V4L2 capture and web dashboard.
 
-## Architecture
+## What it does
 
-```
-K3s Cluster (single-node)
-┌─────────────────────────────────────────────────────────────┐
-│  Namespace: gorai-hello-camera                              │
-│                                                             │
-│  ┌─────────────┐   ┌──────────────────────────────────────┐ │
-│  │ nats pod    │   │ gorai-core pod                       │ │
-│  │             │◄──│  ├── camera component (V4L2)         │ │
-│  │ NATS server │   │  └── dashboard service (:8080)       │ │
-│  └─────────────┘   └──────────────────────────────────────┘ │
-│                                                             │
-│  Hardware passthrough: /dev/video0                          │
-└─────────────────────────────────────────────────────────────┘
-```
+- Captures video from a V4L2 camera (USB or CSI)
+- Publishes JPEG frames to NATS
+- Provides a web dashboard on port 8080
 
 ## Prerequisites
 
-- Raspberry Pi 5 (8GB) or equivalent with K3s installed
-- NVMe SSD or USB 3.0 SSD (SD cards not supported)
-- Camera at `/dev/video0`
-- Go 1.22+ (for building gorai CLI)
+- Camera connected at `/dev/video0`
+- USB webcam or Raspberry Pi Camera Module
+- NATS server running
 
-See [K3s Installation Guide](../../specs/k3s-installation.md) for setup instructions.
+## Running
 
-## Quick Start
-
-### 1. Verify K3s is Running
+### 1. Start NATS Server
 
 ```bash
-sudo k3s kubectl get nodes
-# Should show: Ready
+# Install NATS server
+# macOS:
+brew install nats-server
+
+# Linux:
+sudo apt install nats-server
+
+# Start the server
+nats-server
 ```
 
-### 2. Deploy
+### 2. Check Camera
 
 ```bash
-# Deploy to K3s
-gorai deploy hello-camera.json
+# Verify camera is available
+v4l2-ctl --list-devices
 
-# Watch deployment
-gorai status hello-camera
+# Should show something like:
+# USB Camera (usb-0000:00:14.0-1):
+#     /dev/video0
 ```
 
-### 3. Access the Dashboard
+### 3. Run the Robot
+
+From the gorai root directory:
+
+```bash
+./bin/gorai run examples/hello-camera/hello-camera.json
+```
+
+### 4. Access the Dashboard
 
 Open http://localhost:8080 in your browser to view the camera feed.
 
-### 4. View Logs
+### 5. Watch Camera Data via NATS
 
 ```bash
-gorai logs hello-camera -f
-```
-
-### 5. Undeploy
-
-```bash
-gorai undeploy hello-camera
+nats sub "gorai.hello-camera.main_camera.data"
 ```
 
 ## Configuration
@@ -95,11 +87,6 @@ The camera publishes JPEG frames to:
 gorai.hello-camera.main_camera.data
 ```
 
-Subscribe to view frames (from within the cluster):
-```bash
-nats sub "gorai.hello-camera.main_camera.data"
-```
-
 ## Troubleshooting
 
 ### Camera Not Found
@@ -113,26 +100,12 @@ sudo usermod -aG video $USER
 # Log out and back in
 ```
 
-### Pod Not Starting
-
-```bash
-# Check pod status
-sudo k3s kubectl get pods -n gorai-hello-camera
-
-# View pod logs
-sudo k3s kubectl logs -n gorai-hello-camera -l app=gorai-core
-```
-
-### Device Passthrough Issues
+### Permission Denied
 
 ```bash
 # Verify device exists
 ls -la /dev/video0
 
-# Check permissions
+# Check permissions (temporary fix)
 sudo chmod 666 /dev/video0
 ```
-
-## Next Steps
-
-See [hello-people-detector](../hello-people-detector/) for an example that adds AI-based person detection using an external service.

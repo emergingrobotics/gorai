@@ -4,12 +4,41 @@ A practical guide to protecting your open hardware and software platform while m
 
 ---
 
+## Overview: Three Pillars of Protection
+
+This project employs a comprehensive intellectual property strategy using three complementary forms of legal protection:
+
+### Copyright
+
+Copyright protects the original expression of ideas — your source code, hardware schematics, PCB layouts, CAD designs, and documentation. Copyright exists automatically upon creation but registration provides critical enforcement advantages including statutory damages and attorney's fees. Our dual-license structure (AGPL + CERN-OHL-S with non-commercial exceptions) leverages copyright to ensure commercial users either contribute back or purchase a license.
+
+### Trademark
+
+Trademarks protect brand identity — the project name, logo, and associated goodwill. Even when our open-source licenses permit copying the technology, trademarks prevent others from passing off their products as ours or implying official endorsement. Trademark protection is essential for maintaining brand integrity and preventing market confusion.
+
+### Patent
+
+Patents protect novel inventions and technical innovations — the functional aspects of how something works, not just how it's expressed. While copyright protects code as written, patents can protect the underlying methods and systems regardless of implementation. Patent protection provides the strongest exclusionary rights and can prevent competitors from independently developing similar solutions.
+
+### Why All Three Matter
+
+| Protection | What It Covers | Key Benefit |
+|------------|----------------|-------------|
+| **Copyright** | Expression (code, designs, docs) | Prevents direct copying |
+| **Trademark** | Brand identity (name, logo) | Prevents market confusion |
+| **Patent** | Inventions (methods, systems) | Prevents independent development |
+
+Together, these three forms of protection create overlapping layers of defense. A competitor cannot simply rewrite your code to avoid copyright, use a different name to avoid trademarks, or claim independent invention to avoid patents. This comprehensive approach maximizes legal options for enforcement while still permitting non-commercial use under our open licensing terms.
+
+---
+
 ## Table of Contents
 
 1. [License Structure](#license-structure)
 2. [Copyright Registration](#copyright-registration)
 3. [Trademark Protection](#trademark-protection)
-4. [Documentation Protocol](#documentation-protocol)
+4. [Patent Protection](#patent-protection)
+5. [Documentation Protocol](#documentation-protocol)
 
 ---
 
@@ -438,6 +467,38 @@ For international protection:
    - EU: File with EUIPO for EU-wide coverage
 
 **Priority tip**: File in China early, even before product launch. Trademark squatting is common.
+
+---
+
+## Patent Protection
+
+Patents protect the functional aspects of inventions — the novel methods, systems, and processes that make your technology work. Unlike copyright (which protects expression) or trademarks (which protect brand identity), patents protect the underlying innovation itself.
+
+### Why Patents Matter for Open Hardware/Software
+
+| Scenario | Without Patents | With Patents |
+|----------|-----------------|--------------|
+| Competitor reverse-engineers your design | Legal (if they avoid copying expression) | Potentially infringing |
+| Competitor independently develops similar solution | Legal | Potentially infringing |
+| Larger company enters market with resources | You compete on execution alone | You have exclusionary rights |
+| Licensing negotiations | Limited leverage | Strong negotiating position |
+| Acquisition discussions | IP portfolio is weaker | Patents add significant value |
+
+### What Can Be Patented
+
+*[To be expanded with specific patentable innovations]*
+
+### Patent Strategy
+
+*[To be expanded with filing strategy, provisional vs. non-provisional, PCT international filing, etc.]*
+
+### Patent Registration Process
+
+*[To be expanded with USPTO process, timing considerations, and cost estimates]*
+
+### Maintenance and Enforcement
+
+*[To be expanded with maintenance fees, monitoring, and enforcement procedures]*
 
 ---
 

@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/gorai/gorai/cmd/gorai/commands"
+
+	// Import component packages to register them
+	_ "github.com/gorai/gorai/components/serial"
 )
 
 func main() {
