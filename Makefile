@@ -12,56 +12,21 @@
 #   make lint         - Run linters
 #   make clean        - Clean build artifacts
 
+# Default target - print all available targets
 .PHONY: help
 help:
 	@echo "Gorai Development Makefile"
 	@echo ""
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "Installation:"
-	@echo "  install           Install binaries to /usr/local/bin (requires sudo)"
+	@echo "Available targets:"
 	@echo ""
-	@echo "Testing:"
-	@echo "  test              Run unit tests (fast, default)"
-	@echo "  test-quick        Run unit + component tests"
-	@echo "  test-prepush      Run unit + component + integration tests with race detection"
-	@echo "  test-all          Run all tests (unit, component, integration, module, system)"
-	@echo "  test-component    Run component tests only"
-	@echo "  test-integration  Run integration tests only"
-	@echo "  test-module       Run module tests only"
-	@echo "  test-system       Run system tests only"
-	@echo "  test-hardware     Run hardware tests (requires hardware)"
-	@echo "  test-cover        Run tests with coverage report"
-	@echo "  test-race         Run tests with race detector"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Building:"
-	@echo "  build             Build all binaries"
-	@echo "  build-linux       Cross-compile for Linux ARM64"
-	@echo "  build-pi          Cross-compile for Raspberry Pi"
-	@echo ""
-	@echo "Protocol Buffers:"
-	@echo "  proto             Generate all Protocol Buffer code"
-	@echo "  proto-lint        Lint Protocol Buffer files"
-	@echo "  proto-clean       Clean generated Protocol Buffer code"
-	@echo ""
-	@echo "Code Quality:"
-	@echo "  lint              Run all linters"
-	@echo "  fmt               Format all Go code"
-	@echo "  vet               Run go vet"
-	@echo "  tidy              Run go mod tidy"
-	@echo ""
-	@echo "Development:"
-	@echo "  dev-deps          Install development dependencies"
-	@echo "  nats-start        Start local NATS server"
-	@echo "  nats-stop         Stop local NATS server"
-	@echo "  watch             Watch and run tests on file changes"
-	@echo ""
-	@echo "Cleanup:"
-	@echo "  clean             Clean all build artifacts"
-	@echo "  clean-coverage    Clean coverage files"
-	@echo ""
-	@echo "Documentation:"
-	@echo "  docs              Generate documentation"
+	@echo "Common workflows:"
+	@echo "  make build          Build the CLI"
+	@echo "  make test           Run unit tests"
+	@echo "  make check          Run all checks (fmt, vet, lint, test)"
 	@echo ""
 
 # Default target
@@ -79,7 +44,7 @@ GOBUILD := $(GO) build
 
 # Build output directory
 BUILD_DIR := build
-BIN_DIR := $(BUILD_DIR)/bin
+BIN_DIR := bin
 
 # Coverage output
 COVERAGE_DIR := $(BUILD_DIR)/coverage
@@ -114,12 +79,12 @@ NATS_PID_FILE := /tmp/gorai-nats.pid
 # ============================================================================
 
 .PHONY: test
-test:
+test: ## Run unit tests (fast)
 	@echo "==> Running unit tests..."
 	$(GOTEST) ./...
 
 .PHONY: test-quick
-test-quick:
+test-quick: ## Run unit + component tests
 	@echo "==> Running unit + component tests..."
 	$(GOTEST) $(COMPONENT_TAGS) ./...
 
@@ -130,7 +95,7 @@ test-prepush:
 	$(GOTEST) -race $(INTEGRATION_TAGS) -timeout=$(INTEGRATION_TIMEOUT) ./tests/integration/...
 
 .PHONY: test-all
-test-all:
+test-all: ## Run all tests (unit, component, integration, module, system)
 	@echo "==> Running all tests..."
 	$(GOTEST) $(ALL_TAGS) -timeout=$(SYSTEM_TIMEOUT) ./...
 
@@ -161,7 +126,7 @@ test-hardware:
 	$(GOTEST) $(HARDWARE_TAGS) ./driver/...
 
 .PHONY: test-cover
-test-cover: $(COVERAGE_DIR)
+test-cover: $(COVERAGE_DIR) ## Run tests with coverage report
 	@echo "==> Running tests with coverage..."
 	$(GOTEST) $(COMPONENT_TAGS) -coverprofile=$(COVERAGE_FILE) ./...
 	$(GO) tool cover -html=$(COVERAGE_FILE) -o $(COVERAGE_HTML)
@@ -191,7 +156,7 @@ $(COVERAGE_DIR):
 # ============================================================================
 
 .PHONY: build
-build: $(BIN_DIR)
+build: $(BIN_DIR) ## Build all binaries
 	@echo "==> Building all binaries..."
 	$(GOBUILD) $(GOFLAGS) -o $(BIN_DIR)/gorai ./cmd/gorai
 
@@ -202,7 +167,7 @@ build-linux: $(BIN_DIR)
 	$(LINUX_AMD64) $(GOBUILD) $(GOFLAGS) -o $(BIN_DIR)/gorai-linux-amd64 ./cmd/gorai
 
 .PHONY: build-pi
-build-pi: $(BIN_DIR)
+build-pi: $(BIN_DIR) ## Cross-compile for Raspberry Pi
 	@echo "==> Cross-compiling for Raspberry Pi (Linux ARM64)..."
 	$(LINUX_ARM64) $(GOBUILD) $(GOFLAGS) -o $(BIN_DIR)/gorai-pi ./cmd/gorai
 	@echo "==> Binary ready: $(BIN_DIR)/gorai-pi"
@@ -227,7 +192,7 @@ $(BIN_DIR):
 INSTALL_DIR := /usr/local/bin
 
 .PHONY: install
-install:
+install: ## Install binaries to /usr/local/bin (requires sudo)
 	@if [ ! -f $(BIN_DIR)/gorai ]; then \
 		echo "ERROR: Binary not found. Run 'make build' first, then 'sudo make install'."; \
 		exit 1; \
@@ -282,7 +247,7 @@ proto-breaking:
 # ============================================================================
 
 .PHONY: lint
-lint: vet
+lint: vet ## Run all linters
 	@echo "==> Running golangci-lint..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run ./...; \
@@ -292,7 +257,7 @@ lint: vet
 	fi
 
 .PHONY: fmt
-fmt:
+fmt: ## Format all Go code
 	@echo "==> Formatting Go code..."
 	$(GO) fmt ./...
 	@echo "==> Done"
@@ -309,18 +274,18 @@ fmt-check:
 	@echo "==> All files are formatted correctly"
 
 .PHONY: vet
-vet:
+vet: ## Run go vet
 	@echo "==> Running go vet..."
 	$(GO) vet ./...
 
 .PHONY: tidy
-tidy:
+tidy: ## Run go mod tidy
 	@echo "==> Running go mod tidy..."
 	$(GO) mod tidy
 	@echo "==> Done"
 
 .PHONY: check
-check: fmt-check vet lint test
+check: fmt-check vet lint test ## Run all checks (fmt, vet, lint, test)
 	@echo "==> All checks passed"
 
 # ============================================================================
@@ -328,7 +293,7 @@ check: fmt-check vet lint test
 # ============================================================================
 
 .PHONY: dev-deps
-dev-deps:
+dev-deps: ## Install development dependencies
 	@echo "==> Installing development dependencies..."
 	@echo ""
 	@echo "Installing buf (Protocol Buffers)..."
@@ -355,7 +320,7 @@ dev-deps:
 	@echo "  nats --version"
 
 .PHONY: nats-start
-nats-start:
+nats-start: ## Start local NATS server
 	@echo "==> Starting NATS server..."
 	@if [ -f $(NATS_PID_FILE) ] && kill -0 $$(cat $(NATS_PID_FILE)) 2>/dev/null; then \
 		echo "NATS server already running (PID: $$(cat $(NATS_PID_FILE)))"; \
@@ -368,7 +333,7 @@ nats-start:
 	fi
 
 .PHONY: nats-stop
-nats-stop:
+nats-stop: ## Stop local NATS server
 	@echo "==> Stopping NATS server..."
 	@if [ -f $(NATS_PID_FILE) ]; then \
 		kill $$(cat $(NATS_PID_FILE)) 2>/dev/null || true; \
@@ -433,9 +398,10 @@ watch-test:
 # ============================================================================
 
 .PHONY: clean
-clean: clean-coverage proto-clean
+clean: clean-coverage proto-clean ## Clean all build artifacts
 	@echo "==> Cleaning build artifacts..."
 	rm -rf $(BUILD_DIR)
+	rm -rf $(BIN_DIR)
 	rm -f /tmp/.gorai-watch-marker
 	$(GO) clean -cache -testcache
 	@echo "==> Done"
@@ -562,7 +528,7 @@ tinygo-check:
 # ============================================================================
 
 .PHONY: version
-version:
+version: ## Show version info for Go and tools
 	@echo "Gorai Development Environment"
 	@echo ""
 	@echo "Go:       $$(go version)"

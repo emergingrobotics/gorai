@@ -1,0 +1,29 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
+
+  "robot": {
+    "name": "blinky",
+    "description": "Blink an LED on GPIO pin 17"
+  },
+
+  "nats": {
+    "url": "nats://localhost:4222"
+  },
+
+  "components": [
+    {
+      "name": "led",
+      "type": "gpio",
+      "model": "output",
+      "attributes": {
+        "pin": 17
+      }
+    }
+  ],
+
+  "log": {
+    "level": "info",
+    "format": "json"
+  }
+}

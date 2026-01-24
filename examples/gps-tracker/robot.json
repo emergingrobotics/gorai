@@ -1,0 +1,30 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
+
+  "robot": {
+    "name": "gps-tracker",
+    "description": "A simple GPS tracker that publishes location data"
+  },
+
+  "nats": {
+    "url": "nats://localhost:4222"
+  },
+
+  "components": [
+    {
+      "name": "gps",
+      "type": "serial",
+      "model": "gps",
+      "attributes": {
+        "device": "/dev/gps-sim",
+        "baud_rate": 9600
+      }
+    }
+  ],
+
+  "log": {
+    "level": "info",
+    "format": "json"
+  }
+}

@@ -2,13 +2,15 @@
 
 **Version:** 3.1
 **Status:** Draft
-**Last Updated:** 2024-12-25
+**Last Updated:** 2025-01-24
 
 ## 1. Overview
 
-The Robot Definition Language (RDL) is a JSON/YAML configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
+The Robot Definition Language (RDL) is a JSON configuration format that defines the software architecture of a Gorai robot. RDL specifies what components and services a robot has, how they are configured, and their dependencies.
 
-> **Architecture:** Gorai uses a **K3s-everywhere architecture** where all robots deploy on Kubernetes (K3s). RDL abstracts away container complexity — users define robots in JSON/YAML, and `gorai deploy` generates K3s manifests automatically. Users never need kubectl or Kubernetes knowledge unless they choose to. See [k3s-installation.md](k3s-installation.md) for setup instructions.
+> **Architecture:** Gorai uses a **simple binary deployment** model where robots are compiled to a single Go binary. The RDL configuration defines components and services that run within this binary, communicating via NATS messaging. No containers or Kubernetes required.
+>
+> **Future Extensions:** Container and K3s support is planned for production fleets. See [FUTURE-ROADMAP.md](../docs/FUTURE-ROADMAP.md) for details.
 
 ### 1.1 Scope
 
@@ -85,7 +87,7 @@ RDL files use the `.json` extension. By convention, the main robot configuration
 | `dashboard` | object | No | Web dashboard configuration (enabled by default) |
 | `alerting` | object | No | Alert Manager configuration |
 
-> **Note:** Services with `container.image` become separate pods in the K3s namespace. External services run as independent containers managed by K3s.
+> **Note:** For the current phase, services run within the main robot binary. Container-based services are planned for future phases. See [FUTURE-ROADMAP.md](../docs/FUTURE-ROADMAP.md).
 
 ---
 

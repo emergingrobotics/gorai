@@ -20,52 +20,28 @@ func Execute() error {
 	}
 
 	switch os.Args[1] {
-	// Project commands
-	case "init":
-		return cmdInit()
-	case "generate":
-		return cmdGenerate()
+	// Core commands
 	case "validate":
 		return cmdValidate()
-	case "add":
-		return cmdAdd()
-	case "list":
-		return cmdList()
-
-	// Runtime commands
 	case "run":
 		return cmdRun()
-	case "start":
-		return cmdStart()
-	case "stop":
-		return cmdStop()
-	case "status":
-		return cmdStatus()
-	case "logs":
-		return cmdLogs()
-
-	// Build commands
 	case "build":
 		return cmdBuild()
-	case "migrate":
-		return cmdMigrate()
 
-	// Component/service management
+	// Component management
+	case "components":
+		return cmdList()
+	case "list":
+		// Alias for backwards compatibility
+		return cmdList()
 	case "component":
 		return cmdComponent()
-	case "service":
-		// Check if it's the new service management commands
-		if len(os.Args) >= 3 && (os.Args[2] == "search" || os.Args[2] == "info" || os.Args[2] == "pull" || os.Args[2] == "validate") {
-			return cmdServiceManagement()
-		}
-		// Fall back to old service command for runtime operations
-		return cmdService()
 
-	// Topic/service commands
+	// Utility commands
 	case "version":
 		return cmdVersion()
-	case "topic":
-		return cmdTopic()
+	case "migrate":
+		return cmdMigrate()
 
 	// Help
 	case "help", "-h", "--help":
@@ -78,72 +54,50 @@ func Execute() error {
 func printUsage() error {
 	fmt.Printf(`gorai - Gorai Robotics Framework CLI (v%s)
 
+Professional robotics for prosumers — without the PhD
+
 Usage:
   gorai <command> [flags]
 
-Project Commands:
-  init <name>       Initialize project from <name>.json (must exist)
-  generate <name>   Generate code from <name>.json
-  validate <name>   Validate <name>.json configuration
-  add               Add custom components or services
-  list              List available component and service types
+Core Commands:
+  validate <config>   Validate RDL configuration file
+  run <config>        Run robot in development mode (foreground)
+  build <config>      Build standalone binary for deployment
 
-Component Management:
-  component search  Search for third-party components
-  component info    Show component information
-  component add     Add component to project
-  component list    List installed components
-  component remove  Remove component from project
-  component update  Update components
-  component validate Validate component repository
+Component Commands:
+  components          List available component types
+  component search    Search for third-party components
+  component info      Show component information
+  component add       Add component to project
 
-Service Management:
-  service search    Search for external services
-  service info      Show service information
-  service pull      Pull service container image
-  service validate  Validate service RDL file
-
-Runtime Commands (Recommended):
-  run               Run robot directly (foreground, monolithic mode)
-  start             Start robot as native systemd service
-  stop              Stop robot systemd service
-  status            Show robot process status
-  logs              View robot logs
-
-Build Commands:
-  build             Build container images for external services
-  migrate           Migrate RDL v1 config to v2 format
-
-Topic/Service Commands:
-  topic             Topic operations (list, echo, pub)
-  service           Service runtime operations (list, call)
-
-Other Commands:
-  version           Print version information
-  help              Print this help message
+Utility Commands:
+  version             Print version information
+  migrate             Migrate RDL v1 config to v2 format
+  help                Print this help message
 
 Use "gorai <command> -h" for more information about a command.
 
 Examples:
-  # Run robot directly (recommended):
-  gorai run --config robot.json
+  # Validate configuration
+  gorai validate robot.json
 
-  # Deploy as systemd service:
-  gorai start --config robot.json --enable
-  gorai status --config robot.json
-  gorai logs --config robot.json --follow
-  gorai stop --config robot.json
+  # Run robot in development mode
+  gorai run robot.json
 
-  # Project management:
-  gorai init my-robot              Initialize project from my-robot.json
-  gorai validate my-robot          Validate my-robot.json
-  gorai add component my_sensor    Add a custom component
+  # Build standalone binary
+  gorai build robot.json -o my-robot --target linux/arm64
 
-  # Migrate old config:
-  gorai migrate --config old-robot.json --output robot.json
+  # List available components
+  gorai components
+
+Quick Start:
+  1. Create robot.json with your components
+  2. gorai validate robot.json
+  3. gorai run robot.json
 
 Documentation:
   https://gorai.dev/docs
+
 `, Version)
 	return nil
 }
@@ -155,54 +109,6 @@ func cmdVersion() error {
 	return nil
 }
 
-func cmdTopic() error {
-	if len(os.Args) < 3 {
-		return fmt.Errorf("usage: gorai topic <list|echo|pub> [args]")
-	}
-	subCmd := os.Args[2]
-	switch subCmd {
-	case "list":
-		fmt.Println("Listing topics...")
-		// TODO: List active topics
-	case "echo":
-		if len(os.Args) < 4 {
-			return fmt.Errorf("usage: gorai topic echo <topic>")
-		}
-		fmt.Printf("Echoing topic %s...\n", os.Args[3])
-		// TODO: Subscribe and print messages
-	case "pub":
-		if len(os.Args) < 5 {
-			return fmt.Errorf("usage: gorai topic pub <topic> <message>")
-		}
-		fmt.Printf("Publishing to %s...\n", os.Args[3])
-		// TODO: Publish message
-	default:
-		return fmt.Errorf("unknown topic command: %s", subCmd)
-	}
-	return nil
-}
-
-func cmdService() error {
-	if len(os.Args) < 3 {
-		return fmt.Errorf("usage: gorai service <list|call> [args]")
-	}
-	subCmd := os.Args[2]
-	switch subCmd {
-	case "list":
-		fmt.Println("Listing services...")
-		// TODO: List registered services
-	case "call":
-		if len(os.Args) < 5 {
-			return fmt.Errorf("usage: gorai service call <service> <request>")
-		}
-		fmt.Printf("Calling service %s...\n", os.Args[3])
-		// TODO: Call service
-	default:
-		return fmt.Errorf("unknown service command: %s", subCmd)
-	}
-	return nil
-}
-
 // cmdComponent bridges to the new cobra-based component commands
 func cmdComponent() error {
 	cmd := NewComponentCmd()
@@ -211,10 +117,23 @@ func cmdComponent() error {
 	return cmd.Execute()
 }
 
-// cmdServiceManagement bridges to the new cobra-based service management commands
-func cmdServiceManagement() error {
-	cmd := NewServiceCmd()
-	// Set args to skip "gorai service" and pass the rest
-	cmd.SetArgs(os.Args[2:])
-	return cmd.Execute()
+// findConfigFile looks for common config file names in the current directory.
+func findConfigFile() string {
+	// Check environment variable
+	if name := os.Getenv("GORAI_ROBOT_NAME"); name != "" {
+		path := name + ".json"
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+
+	// Check common names
+	candidates := []string{"robot.json", "gorai.json", "robot.rdl.json"}
+	for _, name := range candidates {
+		if _, err := os.Stat(name); err == nil {
+			return name
+		}
+	}
+
+	return ""
 }

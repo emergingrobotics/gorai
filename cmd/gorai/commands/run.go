@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/robot"
-	"github.com/gorai/gorai/pkg/runtime"
 )
 
 func cmdRun() error {
@@ -61,9 +60,6 @@ func cmdRun() error {
 			configPath = absPath
 		}
 	}
-
-	// Get config directory
-	configDir := filepath.Dir(configPath)
 
 	// Load configuration with Service RDL support
 	cfg, err := config.LoadWithServiceRDL(configPath)
@@ -137,47 +133,9 @@ func cmdRun() error {
 
 	logger.Info("Robot started", "name", cfg.Robot.Name)
 
-	// Start external services
-	var extManager *runtime.Manager
-	externalServices := cfg.GetExternalServices()
-	managedCount := 0
-	for _, svc := range externalServices {
-		if !svc.Disabled && svc.IsManaged() {
-			managedCount++
-		}
-	}
-
-	if managedCount > 0 {
-		logger.Info("Starting external services", "count", managedCount)
-		extManager = runtime.NewManager(cfg, configDir)
-
-		for i := range externalServices {
-			svc := &externalServices[i]
-			if svc.Disabled || !svc.IsManaged() {
-				continue
-			}
-
-			logger.Info("Starting external service", "name", svc.Name)
-			if err := extManager.Start(ctx, svc); err != nil {
-				logger.Error("Failed to start external service", "name", svc.Name, "error", err)
-			} else {
-				logger.Info("External service started", "name", svc.Name)
-			}
-		}
-	}
-
 	// Run until context is cancelled
 	if err := r.Run(ctx); err != nil && err != context.Canceled {
 		logger.Error("Robot error", "error", err)
-	}
-
-	// Stop external services
-	if extManager != nil {
-		logger.Info("Stopping external services")
-		stopCtx := context.Background()
-		if err := extManager.StopAll(stopCtx); err != nil {
-			logger.Error("Error stopping external services", "error", err)
-		}
 	}
 
 	// Stop robot
@@ -191,14 +149,13 @@ func cmdRun() error {
 }
 
 func printRunUsage() error {
-	fmt.Println(`gorai run - Run robot directly (monolithic mode)
+	fmt.Println(`gorai run - Run robot in development mode
 
 Usage:
   gorai run [--config robot.json] [flags]
 
-This command runs the robot as a single process with all components and internal
-services in one binary. External services (configured with external.enabled=true)
-are spawned as child processes if external.managed=true.
+This command runs the robot as a single process with all components in one
+binary. The robot runs in the foreground and can be stopped with Ctrl+C.
 
 Flags:
   -c, --config <file>     Path to robot configuration file
@@ -210,11 +167,7 @@ Examples:
   gorai run -c robot.json --log-level debug
   gorai run robot.json
 
-The robot runs in the foreground and can be stopped with Ctrl+C (SIGINT) or
-SIGTERM. For background/daemon operation, use 'gorai start' to run as a
-systemd service.
-
-Note: NATS must be running before starting the robot. Install NATS natively:
+Note: NATS must be running before starting the robot:
   sudo apt install nats-server
   sudo systemctl start nats-server`)
 	return nil

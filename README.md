@@ -6,7 +6,30 @@
 
 *Pronounced "go-ray" (like "sting-ray")*
 
-Gorai is a Go-based robotics framework designed for makers, citizen scientists, students, and small organizations who need real autonomy without ROS 2's complexity. Built on battle-tested cloud infrastructure (NATS, Prometheus, K3s), Gorai applies distributed systems patterns to robotics.
+Build a robot in under an hour. Write JSON, get a binary, deploy to a Raspberry Pi.
+
+```bash
+# 1. Write a JSON file
+cat > robot.rdl.json << 'EOF'
+{
+  "name": "my-robot",
+  "nats": {"url": "nats://localhost:4222"},
+  "components": [
+    {"name": "gps", "type": "serial/gps", "config": {"device": "/dev/gps-sim"}}
+  ]
+}
+EOF
+
+# 2. Validate and run (development mode)
+gorai validate robot.rdl.json
+gorai run robot.rdl.json
+
+# 3. Build for deployment
+gorai build robot.rdl.json -o robot --target linux/arm64
+scp robot pi@raspberrypi:~ && ssh pi@raspberrypi ./robot
+```
+
+No containers. No K8s. Just a 10-20MB binary that runs on a Raspberry Pi 5 or Orange Pi 5.
 
 ---
 
@@ -27,98 +50,123 @@ We're not replacing ROS 2 — we're targeting a different market. Think "ROS 2 f
 
 ---
 
-## Architecture: K3s-Everywhere
+## Prerequisites
 
-Gorai uses **K3s** (Lightweight Kubernetes) for all deployments. Every robot runs the same way, from a single Raspberry Pi to a multi-robot fleet.
+Before you start, you need two things: **Go** (to build gorai) and **NATS Server** (message broker for component communication).
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    User Experience                               │
-│                                                                  │
-│   robot.json (RDL)  →  gorai deploy  →  Robot running           │
-│                                                                  │
-│   Users work with: Robot Definition Language (JSON/YAML)        │
-│   Users never need: kubectl, manifests, pods, deployments       │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    What Actually Runs                            │
-│                                                                  │
-│   K3s Cluster (single-node or multi-node)                       │
-│   ├── Namespace: gorai-{robot-name}                             │
-│   ├── Pod: nats (message broker)                                │
-│   ├── Pod: gorai-core (Go orchestration + components)           │
-│   └── Pod: {services} (vision, SLAM, navigation)                │
-└─────────────────────────────────────────────────────────────────┘
+### 1. Install Go
+
+**macOS:**
+```bash
+brew install go
 ```
 
-**Why K3s?** AI at the edge requires capable hardware. Capable hardware can run K3s (~512 MB overhead). One deployment model from 1 robot to 100+.
+**Ubuntu/Debian:**
+```bash
+sudo apt update && sudo apt install -y golang-go
+```
+
+Or download from https://go.dev/dl/ for the latest version (1.22+ required).
+
+### 2. Install NATS Server
+
+NATS is a lightweight message broker that gorai uses for all component communication. It must be running before you start your robot.
+
+**macOS:**
+```bash
+brew install nats-server
+
+# Start NATS (runs in foreground)
+nats-server
+
+# Or run in background
+brew services start nats-server
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update && sudo apt install -y nats-server
+
+# Start NATS and enable on boot
+sudo systemctl enable --now nats-server
+
+# Verify it's running
+systemctl status nats-server
+```
+
+### 3. Install NATS CLI (optional, for debugging)
+
+The NATS CLI lets you subscribe to messages and debug your robot.
+
+**macOS:**
+```bash
+brew install nats-io/nats-tools/nats
+```
+
+**Ubuntu/Debian:**
+```bash
+go install github.com/nats-io/natscli/nats@latest
+```
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- Raspberry Pi 5 (8GB) or equivalent — see [Hardware Requirements](specs/hardware-requirements.md)
-- NVMe SSD or USB 3.0 SSD (SD cards not supported for K3s)
-- Linux (Raspberry Pi OS 64-bit recommended)
-
-### 1. Install K3s
+### 1. Build Gorai CLI
 
 ```bash
-curl -sfL https://get.k3s.io | sh -s - \
-  --disable traefik \
-  --write-kubeconfig-mode 644
+# Clone the repository
+git clone https://github.com/emergingrobotics/gorai.git
+cd gorai
 
-# Verify
-sudo k3s kubectl get nodes
+# Build CLI
+go build -o bin/gorai ./cmd/gorai
 ```
 
-See [K3s Installation Guide](specs/k3s-installation.md) for platform-specific instructions.
-
-### 2. Install Gorai CLI
+### 2. Create your first robot
 
 ```bash
-curl -sfL https://get.gorai.dev | sh
-```
-
-### 3. Create a Robot Configuration
-
-```json
+# Create robot configuration (uses GPS simulator)
+cat > robot.rdl.json << 'EOF'
 {
-  "$schema": "https://gorai.dev/schemas/rdl-v3.json",
-  "version": "3",
-  "robot": {
-    "name": "my-robot",
-    "description": "Example robot with camera"
-  },
+  "name": "gps-tracker",
+  "description": "My first robot!",
+  "nats": {"url": "nats://localhost:4222"},
   "components": [
     {
-      "name": "main_camera",
-      "type": "camera",
-      "model": "v4l2",
-      "attributes": {
-        "device": "/dev/video0",
-        "width": 640,
-        "height": 480
+      "name": "gps",
+      "type": "serial/gps",
+      "config": {
+        "device": "/dev/gps-sim",
+        "baud_rate": 9600
       }
     }
-  ],
-  "dashboard": {
-    "enabled": true
-  }
+  ]
 }
+EOF
 ```
 
-### 4. Deploy
+**Note:** The GPS simulator (`/dev/gps-sim`) is used by default. This lets you test without hardware.
+
+### 3. Validate and run
 
 ```bash
-gorai deploy robot.json
-gorai status my-robot
-gorai logs my-robot -f
+# Validate configuration
+./bin/gorai validate robot.rdl.json
+
+# Run in development mode
+./bin/gorai run robot.rdl.json
 ```
+
+### 4. Verify it works
+
+In another terminal, subscribe to GPS data:
+
+```bash
+nats sub "gorai.gps-tracker.gps.nmea"
+```
+
+You'll see GPS NMEA sentences streaming over NATS.
 
 ---
 
@@ -127,23 +175,12 @@ gorai logs my-robot -f
 | Platform | AI Performance | Cost | Best For |
 |----------|----------------|------|----------|
 | **Raspberry Pi 5 (8GB)** | External (Hailo 13-26 TOPS) | ~$160 | Primary platform, best ecosystem |
-| **Jetson Orin Nano Super** | 67 TOPS (CUDA) | ~$335 | Maximum AI, VLMs |
+| **Raspberry Pi 5 (4GB)** | External (Hailo 13-26 TOPS) | ~$100 | Budget builds |
 | **Orange Pi 5B (8GB)** | 6 TOPS (built-in NPU) | ~$145 | Budget AI builds |
 
-**Not supported:** Pi 3, Pi Zero, Pi 4 (2GB), SD card-only deployments
+**Not supported:** Pi 3, Pi Zero, Pi 4 (2GB)
 
 See [Hardware Requirements](specs/hardware-requirements.md) for details.
-
----
-
-## Examples
-
-| Example | Description | Status |
-|---------|-------------|--------|
-| [hello-robot](examples/hello-robot/) | Basic NATS pub/sub messaging | ✅ Working |
-| [hello-robot-production](examples/hello-robot-production/) | Production-ready with health checks | ✅ Working |
-| [hello-camera](examples/hello-camera/) | Camera capture + web dashboard | 🚧 In Progress |
-| [hello-people-detector](examples/hello-people-detector/) | AI person detection with Hailo NPU | 🚧 In Progress |
 
 ---
 
@@ -151,32 +188,70 @@ See [Hardware Requirements](specs/hardware-requirements.md) for details.
 
 | Command | Description |
 |---------|-------------|
-| `gorai deploy <config>` | Deploy robot to K3s cluster |
-| `gorai undeploy <name>` | Remove robot from cluster |
-| `gorai status <name>` | Show robot status |
-| `gorai logs <name> -f` | Stream robot logs |
-| `gorai dashboard <name>` | Open web dashboard |
-| `gorai validate <config>` | Validate configuration |
-| `gorai build <config>` | Build container images |
+| `gorai validate <config>` | Validate RDL configuration |
+| `gorai run <config>` | Run robot in development mode |
+| `gorai build <config>` | Build standalone binary |
+| `gorai components` | List available component types |
+| `gorai version` | Show version information |
 
 ---
 
-## Documentation
+## Built-in Components
 
-### Getting Started
-- [K3s Installation Guide](specs/k3s-installation.md) — Platform-specific K3s setup
-- [Hardware Requirements](specs/hardware-requirements.md) — Supported platforms and specs
-- [Robot Definition Language](specs/robot-definition-language.md) — RDL configuration format
+### Currently Implemented
+- `serial/gps` - GPS NMEA reader (uses simulator by default)
+- `gpio/input` - Digital input
+- `gpio/output` - Digital output
 
-### Architecture & Design
-- [Framework Specification](specs/gorai-framework-specification.md) — Complete technical spec
-- [Vision Analysis](docs/vision-analysis.md) — Strategic architecture assessment
-- [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
+### Coming Soon
+- `motor/gpio` - DC motor control via GPIO
+- `servo/gpio` - Hobby servo control
+- `sensor/hcsr04` - HC-SR04 ultrasonic distance sensor
+- `camera/v4l2` - USB/CSI cameras via Video4Linux
 
-### Reference
-- [Code Organization](specs/code-organization.md) — Module structure
-- [Runtime Specification](specs/runtime.md) — Robot lifecycle
-- [Component Reference](docs/component-reference.md) — Component APIs
+---
+
+## Architecture
+
+Gorai uses a message-based architecture where all components communicate via NATS:
+
+```
+┌─────────────────────────────────────────────────┐
+│              Your Robot Binary                  │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │  GPS    │ │ Motor   │ │ Sensor  │    ...    │
+│  │Component│ │Component│ │Component│           │
+│  └────┬────┘ └────┬────┘ └────┬────┘           │
+│       │           │           │                 │
+│       └───────────┴─────┬─────┘                 │
+│                         │                        │
+│                   ┌─────▼─────┐                  │
+│                   │  Message  │                  │
+│                   │   Router  │                  │
+│                   └─────┬─────┘                  │
+└─────────────────────────┼───────────────────────┘
+                          │ NATS Protocol
+                          ▼
+                   ┌─────────────┐
+                   │ NATS Server │
+                   └─────────────┘
+```
+
+**Key principles:**
+- Each component runs in its own goroutine
+- Internal control uses Go channels
+- Inter-component communication uses NATS only
+- No shared memory between components
+- Message-based architecture enables remote debugging
+
+---
+
+## Examples
+
+| Example | Description | Status |
+|---------|-------------|--------|
+| [gps-tracker](examples/gps-tracker/) | GPS tracking robot | Working |
+| [blinky](examples/blinky/) | LED blink demo | Working |
 
 ---
 
@@ -189,13 +264,12 @@ See [Hardware Requirements](specs/hardware-requirements.md) for details.
 | **Message Broker** | DDS peer-to-peer | NATS server | Decoupled, easy monitoring |
 | **Event Sourcing** | rosbag (manual) | JetStream (built-in) | Replay, time-travel debug |
 | **Observability** | Custom diagnostics | Prometheus /metrics | Industry-standard tools |
-| **Orchestration** | Manual | K3s | Health checks, rolling updates |
 
 ### Language Strategy
 
 - **Go core** — NATS orchestration, configuration, web dashboard
-- **Python services** — Vision (OpenCV), ML inference (PyTorch)
-- **C++ services** — SLAM (Cartographer), point cloud processing
+- **Python services** — Vision (OpenCV), ML inference (PyTorch) — *future*
+- **C++ services** — SLAM (Cartographer), point cloud processing — *future*
 
 NATS has clients for 40+ languages. Use the best tool for each job.
 
@@ -205,16 +279,39 @@ NATS has clients for 40+ languages. Use the best tool for each job.
 
 **Version:** 0.1.0 (Early Development)
 
-### Roadmap
+### Current Phase: Simple Binary Deployment
 
-**Phase 1: Core Framework** — ✅ Complete
-- NATS messaging, Resource model, Configuration, Web dashboard
+The current focus is on a simple, single-binary deployment model:
+- Single Go binary (~10-20MB)
+- NATS as only external dependency
+- No containers, no K8s required
+- Runs directly on Raspberry Pi with systemd
 
-**Phase 2: First Product** — 🔄 In Progress
-- Marine sensors, Waypoint navigation, Mission planner
+### Future Roadmap
 
-**Phase 3: Ecosystem** — ⏳ Planned
-- ROS 2 bridge, Gazebo simulation, Community drivers
+For production fleets and advanced features, see [Future Roadmap](docs/FUTURE-ROADMAP.md):
+- **Phase 2:** Optional containers for ML/vision services
+- **Phase 3:** K3s orchestration for fleet management
+- **Phase 4:** ROS 2 bridge, advanced SLAM
+
+The K3s/container architecture is preserved in [docs/archive/future-state/](docs/archive/future-state/).
+
+---
+
+## Documentation
+
+### Getting Started
+- [Hardware Requirements](specs/hardware-requirements.md) — Supported platforms
+- [Robot Definition Language](specs/robot-definition-language.md) — RDL configuration
+
+### Architecture & Design
+- [Vision Analysis](docs/vision-analysis.md) — Strategic architecture assessment
+- [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
+- [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning
+
+### Future State
+- [Future Roadmap](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
+- [K3s Architecture](docs/archive/future-state/) — Preserved K3s/container designs
 
 ---
 
