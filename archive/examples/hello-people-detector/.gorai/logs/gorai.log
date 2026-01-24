@@ -1,0 +1,34 @@
+{"time":"2025-12-15T12:07:31.344136106-08:00","level":"INFO","msg":"Robot created","name":"hello-people-detector"}
+{"time":"2025-12-15T12:07:31.344222439-08:00","level":"INFO","msg":"Starting robot","name":"hello-people-detector"}
+{"time":"2025-12-15T12:07:31.346696137-08:00","level":"INFO","msg":"Connected to NATS","url":"nats://localhost:4222","name":"gorai-hello-people-detector"}
+{"time":"2025-12-15T12:07:31.346743118-08:00","level":"INFO","msg":"Connected to NATS","url":"nats://localhost:4222"}
+{"time":"2025-12-15T12:07:31.347023727-08:00","level":"INFO","msg":"Camera monitor started","cameras":1}
+{"time":"2025-12-15T12:07:31.347042874-08:00","level":"INFO","msg":"Dashboard started","listen":":8080"}
+{"time":"2025-12-15T12:07:31.347104485-08:00","level":"INFO","msg":"Dashboard server starting","addr":":8080"}
+{"time":"2025-12-15T12:07:31.34712867-08:00","level":"INFO","msg":"Detecting camera","name":"main_camera","device":"/dev/video0"}
+{"time":"2025-12-15T12:07:32.088764941-08:00","level":"INFO","msg":"Camera detected","name":"main_camera","device":"/dev/video0","device_name":"C270 HD WEBCAM","driver":""}
+{"time":"2025-12-15T12:07:32.088862347-08:00","level":"INFO","msg":"Selected format","format":"Motion-JPEG"}
+{"time":"2025-12-15T12:07:32.108877767-08:00","level":"INFO","msg":"Camera configured","device":"/dev/video0","width":640,"height":480,"format":"Motion-JPEG"}
+{"time":"2025-12-15T12:07:32.132830908-08:00","level":"INFO","msg":"Camera streaming started","device":"/dev/video0"}
+{"time":"2025-12-15T12:07:32.132863111-08:00","level":"INFO","msg":"Camera started","name":"main_camera","device":"/dev/video0","resolution":"640x480","fps":30,"topic":"gorai.hello-people-detector.main_camera.data"}
+{"time":"2025-12-15T12:07:32.132878222-08:00","level":"INFO","msg":"Initializing internal service","name":"dashboard","type":"dashboard"}
+{"time":"2025-12-15T12:07:32.132884185-08:00","level":"ERROR","msg":"Failed to start external service","name":"person_detector","error":"external service person_detector has no command configured"}
+{"time":"2025-12-15T12:07:32.13292037-08:00","level":"INFO","msg":"Robot started","components":1,"services":2}
+{"time":"2025-12-15T12:07:32.134258376-08:00","level":"INFO","msg":"Robot started","name":"hello-people-detector"}
+{"time":"2025-12-15T12:07:32.134270728-08:00","level":"INFO","msg":"Starting external services","count":1}
+{"time":"2025-12-15T12:07:32.134277061-08:00","level":"INFO","msg":"Starting external service","name":"person_detector"}
+{"time":"2025-12-15T12:07:33.802681259-08:00","level":"INFO","msg":"External service started","name":"person_detector"}
+{"time":"2025-12-15T12:07:33.802733611-08:00","level":"INFO","msg":"Robot running","name":"hello-people-detector"}
+2025/12/15 12:07:39 "GET http://rpi1:8080/models HTTP/1.1" from 192.168.4.30:62072 - 200 549B in 556.995µs
+2025/12/15 12:07:39 "GET http://rpi1:8080/static/js/models.js HTTP/1.1" from 192.168.4.30:62074 - 200 1949B in 4.585808ms
+2025/12/15 12:07:39 "GET http://rpi1:8080/static/css/main.css HTTP/1.1" from 192.168.4.30:62072 - 200 2067B in 5.650742ms
+2025/12/15 12:07:44 "GET http://rpi1:8080/cameras HTTP/1.1" from 192.168.4.30:62072 - 200 678B in 2.937453ms
+2025/12/15 12:07:44 "GET http://rpi1:8080/models/person_detector/stream HTTP/1.1" from 192.168.4.30:62073 - 200 203188B in 4.645051482s
+2025/12/15 12:07:44 "GET http://rpi1:8080/ws/models HTTP/1.1" from 192.168.4.30:62075 - 101 0B in 4.633951107s
+2025/12/15 12:07:44 "GET http://rpi1:8080/static/css/main.css HTTP/1.1" from 192.168.4.30:62072 - 200 2067B in 548.051µs
+2025/12/15 12:07:44 "GET http://rpi1:8080/static/js/cameras.js HTTP/1.1" from 192.168.4.30:62072 - 200 1833B in 778.307µs
+2025/12/15 12:08:47 "GET http://rpi1:8080/models HTTP/1.1" from 192.168.4.30:62072 - 200 549B in 6.877194ms
+2025/12/15 12:08:47 "GET http://rpi1:8080/cameras/main_camera/stream HTTP/1.1" from 192.168.4.30:62074 - 200 26694897B in 1m2.699608081s
+2025/12/15 12:08:47 "GET http://rpi1:8080/ws/cameras HTTP/1.1" from 192.168.4.30:62078 - 101 0B in 1m2.69635763s
+2025/12/15 12:08:47 "GET http://rpi1:8080/static/css/main.css HTTP/1.1" from 192.168.4.30:62072 - 200 2067B in 649.79µs
+2025/12/15 12:08:47 "GET http://rpi1:8080/static/js/models.js HTTP/1.1" from 192.168.4.30:62124 - 200 1949B in 810.326µs

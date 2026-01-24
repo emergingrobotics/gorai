@@ -64,3 +64,9 @@ mem.out
 *.local.json
 config.local.*
 .aider*
+
+# Theoretical design documents
+docs/li-*
+
+# Personal Cursor Rules
+.cursor/rules/

@@ -1,0 +1,164 @@
+syntax = "proto3";
+
+package gorai.telemetry;
+
+option go_package = "github.com/gorai/gorai/api/gen/gorai/telemetry";
+
+import "gorai/std/std.proto";
+
+// TelemetryFrame is a consolidated telemetry message.
+message TelemetryFrame {
+    gorai.std.Header header = 1;
+    
+    // Sensor data (included if available)
+    ImuData imu = 2;
+    GpsData gps = 3;
+    BatteryData battery = 4;
+    
+    // Motor states
+    repeated MotorData motors = 5;
+    
+    // Generic sensor readings (name -> value)
+    map<string, double> readings = 6;
+    
+    // System statistics
+    SystemStats system = 7;
+    
+    // Source health
+    repeated SourceStatus sources = 8;
+}
+
+// ImuData is a simplified IMU data structure for telemetry.
+message ImuData {
+    bool available = 1;
+    bool stale = 2;
+    int64 age_ms = 3;
+    
+    // Acceleration (m/s²)
+    double accel_x = 4;
+    double accel_y = 5;
+    double accel_z = 6;
+    
+    // Angular velocity (rad/s)
+    double gyro_x = 7;
+    double gyro_y = 8;
+    double gyro_z = 9;
+    
+    // Orientation (quaternion)
+    double orientation_x = 10;
+    double orientation_y = 11;
+    double orientation_z = 12;
+    double orientation_w = 13;
+}
+
+// GpsData is a simplified GPS data structure for telemetry.
+message GpsData {
+    bool available = 1;
+    bool stale = 2;
+    int64 age_ms = 3;
+    
+    double latitude = 4;
+    double longitude = 5;
+    double altitude = 6;
+    
+    int32 fix_status = 7;      // -1=NO_FIX, 0=FIX, 1=SBAS_FIX, 2=GBAS_FIX
+    uint32 satellites = 8;     // Number of satellites (if available)
+}
+
+// BatteryData is a simplified battery data structure for telemetry.
+message BatteryData {
+    bool available = 1;
+    bool stale = 2;
+    int64 age_ms = 3;
+    
+    double voltage = 4;        // Volts
+    double current = 5;        // Amps
+    double percentage = 6;     // 0-100
+    double temperature_c = 7;  // Battery temperature
+    
+    uint32 status = 8;         // Power supply status
+}
+
+// MotorData represents the state of a motor.
+message MotorData {
+    string name = 1;
+    bool enabled = 2;
+    double angle = 3;          // For angle servos (degrees)
+    double speed = 4;          // For continuous servos (-1 to 1)
+    double pulse_us = 5;       // PWM pulse width
+}
+
+// SystemStats contains system health metrics.
+message SystemStats {
+    bool available = 1;
+    
+    double cpu_percent = 2;        // CPU usage (0-100)
+    double memory_percent = 3;     // Memory usage (0-100)
+    double disk_percent = 4;       // Disk usage (0-100)
+    double temperature_c = 5;      // CPU/SoC temperature
+    
+    int64 uptime_seconds = 6;      // System uptime
+    double load_average_1m = 7;    // 1-minute load average
+}
+
+// SourceStatus reports the health of a data source.
+message SourceStatus {
+    string name = 1;
+    string type = 2;
+    bool connected = 3;
+    bool stale = 4;
+    int64 age_ms = 5;
+    uint64 messages_received = 6;
+    uint64 messages_dropped = 7;
+    double actual_rate_hz = 8;
+}
+
+// TelemetryState reports the current service state.
+message TelemetryState {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    enum State {
+        STATE_UNSPECIFIED = 0;
+        STATE_STOPPED = 1;
+        STATE_STARTING = 2;
+        STATE_RUNNING = 3;
+        STATE_DEGRADED = 4;
+        STATE_ERROR = 5;
+    }
+    State state = 3;
+    
+    // Configuration
+    double publish_rate_hz = 4;
+    uint32 source_count = 5;
+    uint32 connected_sources = 6;
+    
+    // Statistics
+    uint64 frames_published = 7;
+    double actual_rate_hz = 8;
+}
+
+// TelemetryStatus reports the service health.
+message TelemetryStatus {
+    gorai.std.Header header = 1;
+    string name = 2;
+    
+    enum Health {
+        HEALTH_UNSPECIFIED = 0;
+        HEALTH_OK = 1;
+        HEALTH_DEGRADED = 2;
+        HEALTH_ERROR = 3;
+    }
+    Health health = 3;
+    
+    string error_message = 4;
+    
+    // Per-source status
+    repeated SourceStatus sources = 5;
+    
+    // Statistics
+    uint64 frames_published = 6;
+    double actual_rate_hz = 7;
+    uint64 total_messages_received = 8;
+}
+
