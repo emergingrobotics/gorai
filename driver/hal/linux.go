@@ -10,6 +10,7 @@ import (
 	"github.com/gorai/gorai/driver/i2c"
 	i2clinux "github.com/gorai/gorai/driver/i2c/linux"
 	"github.com/gorai/gorai/driver/pwm"
+	pwmlinux "github.com/gorai/gorai/driver/pwm/linux"
 	"github.com/gorai/gorai/driver/serial"
 	"github.com/gorai/gorai/driver/spi"
 )
@@ -32,10 +33,9 @@ func createSPIBus(bus int) (spi.Bus, error) {
 	return nil, fmt.Errorf("%w: SPI not yet implemented", ErrFeatureNotSupported)
 }
 
-// createPWMChip creates a hardware PWM chip.
+// createPWMChip creates a hardware PWM chip via sysfs.
 func createPWMChip(chip int) (pwm.Chip, error) {
-	// TODO: Implement hardware PWM chip creation
-	return nil, fmt.Errorf("%w: hardware PWM not yet implemented", ErrFeatureNotSupported)
+	return pwmlinux.OpenChip(chip)
 }
 
 // createSoftwarePWM creates a software PWM channel.

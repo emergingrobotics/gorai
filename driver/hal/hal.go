@@ -57,6 +57,12 @@ type HAL interface {
 	// Accepts int, float64, or string values.
 	ResolvePinFromAny(v any) (int, error)
 
+	// GetPWMMapping returns the hardware PWM chip and channel for a GPIO pin.
+	// Returns ok=false if the pin doesn't support hardware PWM.
+	// This allows components to check if hardware PWM is available before
+	// falling back to software PWM.
+	GetPWMMapping(gpio int) (chip, channel int, ok bool)
+
 	// Close releases all hardware resources.
 	Close(ctx context.Context) error
 }
@@ -325,6 +331,12 @@ func (h *linuxHAL) ResolvePinFromAny(v any) (int, error) {
 		return 0, err
 	}
 	return h.ResolvePin(ref)
+}
+
+// GetPWMMapping returns the hardware PWM chip and channel for a GPIO pin.
+// Returns ok=false if the pin doesn't support hardware PWM.
+func (h *linuxHAL) GetPWMMapping(gpio int) (chip, channel int, ok bool) {
+	return GetPWMPinMapping(h.board, gpio)
 }
 
 // Close releases all resources.

@@ -25,10 +25,13 @@ const (
 	// BoardRaspberryPi3 is Raspberry Pi 3.
 	BoardRaspberryPi3 Board = "rpi3"
 
-	// BoardOrangePi5B is Orange Pi 5B.
+	// BoardOrangePi5Plus is Orange Pi 5 Plus (40-pin header).
+	BoardOrangePi5Plus Board = "opi5plus"
+
+	// BoardOrangePi5B is Orange Pi 5B (26-pin header).
 	BoardOrangePi5B Board = "opi5b"
 
-	// BoardOrangePi5 is Orange Pi 5.
+	// BoardOrangePi5 is Orange Pi 5 (26-pin header).
 	BoardOrangePi5 Board = "opi5"
 
 	// BoardGenericLinux is a generic Linux system.
@@ -52,7 +55,7 @@ func (b Board) IsRaspberryPi() bool {
 // IsOrangePi returns true for any Orange Pi board.
 func (b Board) IsOrangePi() bool {
 	switch b {
-	case BoardOrangePi5B, BoardOrangePi5:
+	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
 		return true
 	}
 	return false
@@ -64,6 +67,7 @@ func SupportedBoards() []Board {
 		BoardRaspberryPi5,
 		BoardRaspberryPi4,
 		BoardRaspberryPi3,
+		BoardOrangePi5Plus,
 		BoardOrangePi5B,
 		BoardOrangePi5,
 		BoardGenericLinux,
@@ -94,6 +98,8 @@ func Detect() Board {
 			return BoardRaspberryPi4
 		case strings.Contains(modelStr, "raspberry pi 3"):
 			return BoardRaspberryPi3
+		case strings.Contains(modelStr, "orange pi 5 plus"):
+			return BoardOrangePi5Plus
 		case strings.Contains(modelStr, "orange pi 5b"):
 			return BoardOrangePi5B
 		case strings.Contains(modelStr, "orange pi 5"):
@@ -113,9 +119,13 @@ func Detect() Board {
 		case strings.Contains(compatStr, "brcm,bcm2837"):
 			return BoardRaspberryPi3
 		case strings.Contains(compatStr, "rockchip,rk3588"):
-			// Could be OPi5 or 5B, check more specifically
+			// Could be OPi5, 5B, or 5 Plus - check more specifically
 			if model, _ := os.ReadFile("/proc/device-tree/model"); model != nil {
-				if strings.Contains(strings.ToLower(string(model)), "5b") {
+				modelLower := strings.ToLower(string(model))
+				if strings.Contains(modelLower, "5 plus") || strings.Contains(modelLower, "5plus") {
+					return BoardOrangePi5Plus
+				}
+				if strings.Contains(modelLower, "5b") {
 					return BoardOrangePi5B
 				}
 			}
@@ -217,7 +227,7 @@ func DefaultGPIOChip(board Board) int {
 		return 4 // RP1 chip
 	case BoardRaspberryPi4, BoardRaspberryPi3:
 		return 0 // BCM chip
-	case BoardOrangePi5B, BoardOrangePi5:
+	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
 		return 0 // RK3588 main GPIO
 	default:
 		return 0
@@ -229,7 +239,7 @@ func DefaultI2CBus(board Board) int {
 	switch board {
 	case BoardRaspberryPi5, BoardRaspberryPi4, BoardRaspberryPi3:
 		return 1 // User-accessible I2C bus
-	case BoardOrangePi5B, BoardOrangePi5:
+	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
 		return 2 // Commonly used I2C bus
 	default:
 		return 1
@@ -243,7 +253,7 @@ func DefaultPWMChip(board Board) int {
 		return 2
 	case BoardRaspberryPi4, BoardRaspberryPi3:
 		return 0
-	case BoardOrangePi5B, BoardOrangePi5:
+	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
 		return 0
 	default:
 		return 0

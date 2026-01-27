@@ -1,8 +1,8 @@
 # Hardware Abstraction Layer Design
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Draft
-**Last Updated:** 2025-01-24
+**Last Updated:** 2026-01-27
 
 ## 1. Overview
 
@@ -22,6 +22,7 @@ This document defines the hardware abstraction architecture for Gorai, enabling 
 |-------|-----------|-----|-----|-----|------|
 | Raspberry Pi 5 | `/dev/gpiochip4` (RP1) | Yes | Yes | Yes | Yes |
 | Raspberry Pi 4 | `/dev/gpiochip0` (BCM2711) | Yes | Yes | Yes | Yes |
+| Orange Pi 5 Plus | `/dev/gpiochip0` (RK3588) | Yes | Yes | Yes | Yes |
 | Orange Pi 5B | `/dev/gpiochip0` (RK3588S) | Yes | Yes | Yes | Yes |
 | Generic Linux | `/dev/gpiochip0` | Yes | Yes | Software | Yes |
 
@@ -163,13 +164,14 @@ type HAL interface {
 type Board string
 
 const (
-    BoardUnknown      Board = "unknown"
-    BoardRaspberryPi5 Board = "rpi5"
-    BoardRaspberryPi4 Board = "rpi4"
-    BoardRaspberryPi3 Board = "rpi3"
-    BoardOrangePi5B   Board = "opi5b"
-    BoardOrangePi5    Board = "opi5"
-    BoardGenericLinux Board = "linux"
+    BoardUnknown       Board = "unknown"
+    BoardRaspberryPi5  Board = "rpi5"
+    BoardRaspberryPi4  Board = "rpi4"
+    BoardRaspberryPi3  Board = "rpi3"
+    BoardOrangePi5Plus Board = "opi5plus"
+    BoardOrangePi5B    Board = "opi5b"
+    BoardOrangePi5     Board = "opi5"
+    BoardGenericLinux  Board = "linux"
 )
 ```
 
@@ -2608,9 +2610,1463 @@ When migrating a component to HAL:
 
 ---
 
-## 14. Appendix: Board-Specific Details
+## 14. Hardware PWM Driver Design
 
-### 14.1 Raspberry Pi 5
+This section provides the design for hardware PWM support via the Linux sysfs interface, enabling precise PWM output on dedicated hardware pins for both Raspberry Pi and Orange Pi boards.
+
+### 14.1 Overview
+
+Hardware PWM provides significantly better timing accuracy than software PWM:
+
+| Feature | Software PWM | Hardware PWM |
+|---------|--------------|--------------|
+| Timing accuracy | ~10-50µs jitter | <1µs jitter |
+| CPU usage | High (dedicated goroutine) | Near zero |
+| Max frequency | ~1 kHz practical | 100+ kHz |
+| Channels | Any GPIO | Dedicated pins only |
+| Use cases | Servos, LEDs | Motors, audio, precision |
+
+### 14.2 Linux sysfs PWM Interface
+
+All supported boards use the standard Linux PWM sysfs interface at `/sys/class/pwm/`. The interface provides:
+
+```
+/sys/class/pwm/
+├── pwmchip0/                    # PWM controller 0
+│   ├── npwm                     # Number of channels (read-only)
+│   ├── export                   # Write channel number to export
+│   ├── unexport                 # Write channel number to unexport
+│   └── pwm0/                    # Exported channel 0
+│       ├── period               # Period in nanoseconds
+│       ├── duty_cycle           # Duty cycle in nanoseconds
+│       ├── polarity             # "normal" or "inversed"
+│       └── enable               # "0" or "1"
+├── pwmchip2/                    # PWM controller 2 (RPi5)
+│   └── ...
+```
+
+**Sysfs Operation Sequence:**
+1. Export channel: `echo 0 > /sys/class/pwm/pwmchip0/export`
+2. Set period: `echo 20000000 > /sys/class/pwm/pwmchip0/pwm0/period`
+3. Set duty: `echo 1500000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle`
+4. Enable: `echo 1 > /sys/class/pwm/pwmchip0/pwm0/enable`
+5. Unexport on close: `echo 0 > /sys/class/pwm/pwmchip0/unexport`
+
+### 14.3 Board-Specific PWM Hardware
+
+#### Raspberry Pi PWM Controllers
+
+| Board | PWM Chip | Channels | Clock Source | Max Frequency |
+|-------|----------|----------|--------------|---------------|
+| RPi 5 | pwmchip2 | 4 | RP1 peripheral | 50 MHz |
+| RPi 4 | pwmchip0 | 2 | BCM2711 | 25 MHz |
+| RPi 3 | pwmchip0 | 2 | BCM2837 | 19.2 MHz |
+
+**Raspberry Pi PWM Pin Mapping:**
+
+| GPIO | Physical Pin | PWM Chip | Channel | Alt Function |
+|------|--------------|----------|---------|--------------|
+| 12 | 32 | pwmchip0/2 | 0 | ALT0 |
+| 13 | 33 | pwmchip0/2 | 1 | ALT0 |
+| 18 | 12 | pwmchip0/2 | 0 | ALT5 |
+| 19 | 35 | pwmchip0/2 | 1 | ALT5 |
+
+Note: GPIO 12/18 share channel 0, GPIO 13/19 share channel 1. Only one GPIO per channel can be active.
+
+#### Orange Pi 5 Plus PWM Controllers
+
+The Orange Pi 5 Plus has a 40-pin header similar to Raspberry Pi, with 4 PWM pins available:
+
+| PWM Controller | Channels | Chip Path | Notes |
+|----------------|----------|-----------|-------|
+| PWM0-3 | 4 | pwmchip0 | PWM0/1 on 40-pin header |
+| PWM4-7 | 4 | pwmchip1 | Muxed with GPIO |
+| PWM8-11 | 4 | pwmchip2 | Muxed with GPIO |
+| PWM12-15 | 4 | pwmchip3 | PWM13/14 on 40-pin header |
+
+**Orange Pi 5 Plus 40-pin Header PWM Pins:**
+
+| Physical Pin | GPIO | PWM Channel | Chip | Notes |
+|--------------|------|-------------|------|-------|
+| 12 | GPIO1_B2 (42) | PWM14 | pwmchip3 | Primary PWM pin |
+| 13 | GPIO4_C6 (150) | PWM13 | pwmchip3 | Muxed with GPIO |
+| 32 | GPIO1_B5 (45) | PWM1 | pwmchip0 | Secondary PWM |
+| 33 | GPIO1_B4 (44) | PWM0 | pwmchip0 | Secondary PWM |
+
+#### Orange Pi 5/5B PWM Controllers
+
+The RK3588 SoC provides 16 PWM channels across multiple controllers:
+
+| PWM Controller | Channels | Chip Path | Notes |
+|----------------|----------|-----------|-------|
+| PWM0-3 | 4 | pwmchip0 | Dedicated PWM pins |
+| PWM4-7 | 4 | pwmchip1 | Muxed with GPIO |
+| PWM8-11 | 4 | pwmchip2 | Muxed with GPIO |
+| PWM12-15 | 4 | pwmchip3 | Muxed with GPIO |
+
+**Orange Pi 5B 26-pin Header PWM Pins:**
+
+| Physical Pin | GPIO | PWM Channel | Chip | Notes |
+|--------------|------|-------------|------|-------|
+| 12 | GPIO1_B2 (42) | PWM14 | pwmchip3 | Primary PWM pin |
+| 13 | GPIO4_C6 (150) | PWM13 | pwmchip3 | Muxed with GPIO |
+
+Note: The Orange Pi 5B has a 26-pin header (not 40-pin like Raspberry Pi). Additional PWM channels may be available on other connectors.
+
+### 14.4 Driver Implementation
+
+#### File Structure
+
+```
+driver/pwm/
+├── pwm.go                 # PWM interfaces (existing)
+└── linux/
+    ├── sysfs.go           # Hardware PWM via sysfs
+    ├── sysfs_chip.go      # PWM chip implementation
+    ├── sysfs_channel.go   # PWM channel implementation
+    └── software.go        # Software PWM via GPIO (existing)
+```
+
+#### driver/pwm/linux/sysfs.go
+
+```go
+//go:build linux
+
+// Package linux provides Linux PWM implementations.
+package linux
+
+import (
+    "context"
+    "errors"
+    "fmt"
+    "os"
+    "path/filepath"
+    "strconv"
+    "strings"
+    "sync"
+    "time"
+
+    "github.com/gorai/gorai/driver/pwm"
+)
+
+// Common errors
+var (
+    ErrChipNotFound     = errors.New("PWM chip not found")
+    ErrChannelNotFound  = errors.New("PWM channel not found")
+    ErrExportFailed     = errors.New("failed to export PWM channel")
+    ErrChannelBusy      = errors.New("PWM channel is in use")
+    ErrInvalidPeriod    = errors.New("invalid period value")
+    ErrInvalidDuty      = errors.New("duty cycle exceeds period")
+)
+
+const (
+    // sysfsBasePath is the root of the PWM sysfs interface
+    sysfsBasePath = "/sys/class/pwm"
+
+    // Timing constants
+    exportRetryDelay  = 10 * time.Millisecond
+    exportMaxRetries  = 10
+    sysfsWriteDelay   = 1 * time.Millisecond
+)
+
+// OpenChip opens a hardware PWM chip by number.
+// Returns ErrChipNotFound if the chip doesn't exist.
+func OpenChip(chipNum int) (pwm.Chip, error) {
+    chipPath := filepath.Join(sysfsBasePath, fmt.Sprintf("pwmchip%d", chipNum))
+
+    // Verify chip exists
+    if _, err := os.Stat(chipPath); os.IsNotExist(err) {
+        return nil, fmt.Errorf("%w: pwmchip%d", ErrChipNotFound, chipNum)
+    }
+
+    // Read number of channels
+    npwmPath := filepath.Join(chipPath, "npwm")
+    data, err := os.ReadFile(npwmPath)
+    if err != nil {
+        return nil, fmt.Errorf("failed to read npwm: %w", err)
+    }
+
+    npwm, err := strconv.Atoi(strings.TrimSpace(string(data)))
+    if err != nil {
+        return nil, fmt.Errorf("invalid npwm value: %w", err)
+    }
+
+    return &sysfsChip{
+        num:      chipNum,
+        path:     chipPath,
+        npwm:     npwm,
+        channels: make(map[int]*sysfsChannel),
+    }, nil
+}
+
+// AvailableChips returns a list of available PWM chip numbers.
+func AvailableChips() ([]int, error) {
+    entries, err := os.ReadDir(sysfsBasePath)
+    if err != nil {
+        if os.IsNotExist(err) {
+            return nil, nil // No PWM support
+        }
+        return nil, err
+    }
+
+    var chips []int
+    for _, entry := range entries {
+        name := entry.Name()
+        if strings.HasPrefix(name, "pwmchip") {
+            var num int
+            if _, err := fmt.Sscanf(name, "pwmchip%d", &num); err == nil {
+                chips = append(chips, num)
+            }
+        }
+    }
+    return chips, nil
+}
+```
+
+#### driver/pwm/linux/sysfs_chip.go
+
+```go
+//go:build linux
+
+package linux
+
+import (
+    "context"
+    "fmt"
+    "os"
+    "path/filepath"
+    "sync"
+    "time"
+
+    "github.com/gorai/gorai/driver/pwm"
+)
+
+// sysfsChip implements pwm.Chip for Linux sysfs PWM.
+type sysfsChip struct {
+    num      int
+    path     string
+    npwm     int
+    mu       sync.Mutex
+    channels map[int]*sysfsChannel
+    closed   bool
+}
+
+// Name implements driver.Driver.
+func (c *sysfsChip) Name() string {
+    return fmt.Sprintf("pwm:sysfs:chip%d", c.num)
+}
+
+// Channels returns the number of PWM channels on this chip.
+func (c *sysfsChip) Channels() int {
+    return c.npwm
+}
+
+// Channel returns a PWM channel, exporting it if necessary.
+func (c *sysfsChip) Channel(n int) (pwm.Channel, error) {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+
+    if c.closed {
+        return nil, fmt.Errorf("chip is closed")
+    }
+
+    if n < 0 || n >= c.npwm {
+        return nil, fmt.Errorf("%w: channel %d (chip has %d channels)",
+            ErrChannelNotFound, n, c.npwm)
+    }
+
+    // Return cached channel if already exported
+    if ch, ok := c.channels[n]; ok {
+        return ch, nil
+    }
+
+    // Export the channel
+    ch, err := c.exportChannel(n)
+    if err != nil {
+        return nil, err
+    }
+
+    c.channels[n] = ch
+    return ch, nil
+}
+
+// exportChannel exports a PWM channel via sysfs.
+func (c *sysfsChip) exportChannel(n int) (*sysfsChannel, error) {
+    channelPath := filepath.Join(c.path, fmt.Sprintf("pwm%d", n))
+
+    // Check if already exported
+    if _, err := os.Stat(channelPath); err == nil {
+        // Already exported, try to use it
+        return newSysfsChannel(c, n, channelPath)
+    }
+
+    // Export the channel
+    exportPath := filepath.Join(c.path, "export")
+    if err := os.WriteFile(exportPath, []byte(fmt.Sprintf("%d", n)), 0644); err != nil {
+        // Check if it's because it's already exported
+        if _, statErr := os.Stat(channelPath); statErr == nil {
+            return newSysfsChannel(c, n, channelPath)
+        }
+        return nil, fmt.Errorf("%w: channel %d: %v", ErrExportFailed, n, err)
+    }
+
+    // Wait for sysfs to create the channel directory
+    for i := 0; i < exportMaxRetries; i++ {
+        if _, err := os.Stat(channelPath); err == nil {
+            break
+        }
+        time.Sleep(exportRetryDelay)
+    }
+
+    // Verify export succeeded
+    if _, err := os.Stat(channelPath); err != nil {
+        return nil, fmt.Errorf("%w: channel directory not created", ErrExportFailed)
+    }
+
+    return newSysfsChannel(c, n, channelPath)
+}
+
+// unexportChannel unexports a PWM channel.
+func (c *sysfsChip) unexportChannel(n int) error {
+    unexportPath := filepath.Join(c.path, "unexport")
+    return os.WriteFile(unexportPath, []byte(fmt.Sprintf("%d", n)), 0644)
+}
+
+// Close releases all PWM channels and closes the chip.
+func (c *sysfsChip) Close(ctx context.Context) error {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+
+    if c.closed {
+        return nil
+    }
+    c.closed = true
+
+    var errs []error
+
+    // Disable and unexport all channels
+    for n, ch := range c.channels {
+        // Disable first
+        if ch.enabled {
+            if err := ch.Disable(ctx); err != nil {
+                errs = append(errs, fmt.Errorf("disable channel %d: %w", n, err))
+            }
+        }
+
+        // Unexport
+        if err := c.unexportChannel(n); err != nil {
+            errs = append(errs, fmt.Errorf("unexport channel %d: %w", n, err))
+        }
+    }
+
+    c.channels = nil
+
+    if len(errs) > 0 {
+        return fmt.Errorf("errors closing chip: %v", errs)
+    }
+    return nil
+}
+
+// Verify interface compliance
+var _ pwm.Chip = (*sysfsChip)(nil)
+```
+
+#### driver/pwm/linux/sysfs_channel.go
+
+```go
+//go:build linux
+
+package linux
+
+import (
+    "context"
+    "fmt"
+    "os"
+    "path/filepath"
+    "strconv"
+    "strings"
+    "sync"
+    "time"
+
+    "github.com/gorai/gorai/driver/pwm"
+)
+
+// sysfsChannel implements pwm.Channel for Linux sysfs PWM.
+type sysfsChannel struct {
+    chip     *sysfsChip
+    num      int
+    path     string
+    mu       sync.RWMutex
+
+    // Cached state
+    period   uint64  // nanoseconds
+    duty     uint64  // nanoseconds
+    enabled  bool
+    inverted bool
+}
+
+// newSysfsChannel creates a channel wrapper for an exported PWM channel.
+func newSysfsChannel(chip *sysfsChip, num int, path string) (*sysfsChannel, error) {
+    ch := &sysfsChannel{
+        chip: chip,
+        num:  num,
+        path: path,
+    }
+
+    // Read current state from sysfs
+    if err := ch.syncState(); err != nil {
+        return nil, fmt.Errorf("failed to read channel state: %w", err)
+    }
+
+    return ch, nil
+}
+
+// syncState reads current values from sysfs files.
+func (ch *sysfsChannel) syncState() error {
+    // Read period
+    if data, err := os.ReadFile(filepath.Join(ch.path, "period")); err == nil {
+        if v, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64); err == nil {
+            ch.period = v
+        }
+    }
+
+    // Read duty_cycle
+    if data, err := os.ReadFile(filepath.Join(ch.path, "duty_cycle")); err == nil {
+        if v, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64); err == nil {
+            ch.duty = v
+        }
+    }
+
+    // Read enable
+    if data, err := os.ReadFile(filepath.Join(ch.path, "enable")); err == nil {
+        ch.enabled = strings.TrimSpace(string(data)) == "1"
+    }
+
+    // Read polarity (may not be supported on all systems)
+    if data, err := os.ReadFile(filepath.Join(ch.path, "polarity")); err == nil {
+        ch.inverted = strings.TrimSpace(string(data)) == "inversed"
+    }
+
+    return nil
+}
+
+// writeFile writes a value to a sysfs file with retry logic.
+func (ch *sysfsChannel) writeFile(name string, value string) error {
+    path := filepath.Join(ch.path, name)
+
+    // Small delay to ensure previous writes are complete
+    time.Sleep(sysfsWriteDelay)
+
+    if err := os.WriteFile(path, []byte(value), 0644); err != nil {
+        return fmt.Errorf("write %s=%s: %w", name, value, err)
+    }
+    return nil
+}
+
+// Enable starts PWM signal generation.
+func (ch *sysfsChannel) Enable(ctx context.Context) error {
+    ch.mu.Lock()
+    defer ch.mu.Unlock()
+
+    if ch.enabled {
+        return nil
+    }
+
+    if err := ch.writeFile("enable", "1"); err != nil {
+        return err
+    }
+
+    ch.enabled = true
+    return nil
+}
+
+// Disable stops PWM signal generation.
+func (ch *sysfsChannel) Disable(ctx context.Context) error {
+    ch.mu.Lock()
+    defer ch.mu.Unlock()
+
+    if !ch.enabled {
+        return nil
+    }
+
+    if err := ch.writeFile("enable", "0"); err != nil {
+        return err
+    }
+
+    ch.enabled = false
+    return nil
+}
+
+// Enabled returns whether PWM output is currently enabled.
+func (ch *sysfsChannel) Enabled() bool {
+    ch.mu.RLock()
+    defer ch.mu.RUnlock()
+    return ch.enabled
+}
+
+// SetPeriod sets the PWM period in nanoseconds.
+// Note: Period must be set before duty_cycle, and duty_cycle must be <= period.
+func (ch *sysfsChannel) SetPeriod(ctx context.Context, ns uint64) error {
+    ch.mu.Lock()
+    defer ch.mu.Unlock()
+
+    if ns == 0 {
+        return ErrInvalidPeriod
+    }
+
+    // If new period is smaller than current duty, adjust duty first
+    if ns < ch.duty {
+        if err := ch.writeFile("duty_cycle", "0"); err != nil {
+            return err
+        }
+        ch.duty = 0
+    }
+
+    if err := ch.writeFile("period", strconv.FormatUint(ns, 10)); err != nil {
+        return err
+    }
+
+    ch.period = ns
+    return nil
+}
+
+// Period returns the current period in nanoseconds.
+func (ch *sysfsChannel) Period() uint64 {
+    ch.mu.RLock()
+    defer ch.mu.RUnlock()
+    return ch.period
+}
+
+// SetDuty sets the duty cycle (high time) in nanoseconds.
+func (ch *sysfsChannel) SetDuty(ctx context.Context, ns uint64) error {
+    ch.mu.Lock()
+    defer ch.mu.Unlock()
+
+    if ns > ch.period {
+        return fmt.Errorf("%w: duty %d > period %d", ErrInvalidDuty, ns, ch.period)
+    }
+
+    if err := ch.writeFile("duty_cycle", strconv.FormatUint(ns, 10)); err != nil {
+        return err
+    }
+
+    ch.duty = ns
+    return nil
+}
+
+// Duty returns the current duty in nanoseconds.
+func (ch *sysfsChannel) Duty() uint64 {
+    ch.mu.RLock()
+    defer ch.mu.RUnlock()
+    return ch.duty
+}
+
+// SetDutyCycle sets the duty cycle as a fraction (0.0 to 1.0).
+func (ch *sysfsChannel) SetDutyCycle(ctx context.Context, duty float64) error {
+    if duty < 0.0 || duty > 1.0 {
+        return fmt.Errorf("duty cycle must be 0.0-1.0, got %f", duty)
+    }
+
+    ch.mu.RLock()
+    period := ch.period
+    ch.mu.RUnlock()
+
+    if period == 0 {
+        return fmt.Errorf("period must be set before duty cycle")
+    }
+
+    ns := uint64(float64(period) * duty)
+    return ch.SetDuty(ctx, ns)
+}
+
+// DutyCycle returns the duty cycle as a fraction (0.0 to 1.0).
+func (ch *sysfsChannel) DutyCycle() float64 {
+    ch.mu.RLock()
+    defer ch.mu.RUnlock()
+
+    if ch.period == 0 {
+        return 0.0
+    }
+    return float64(ch.duty) / float64(ch.period)
+}
+
+// SetFrequency sets the PWM frequency in Hz.
+func (ch *sysfsChannel) SetFrequency(ctx context.Context, hz float64) error {
+    if hz <= 0 {
+        return fmt.Errorf("frequency must be positive, got %f", hz)
+    }
+
+    // Convert frequency to period in nanoseconds
+    // period_ns = 1e9 / frequency_hz
+    periodNs := uint64(1e9 / hz)
+
+    // Preserve duty cycle ratio
+    ch.mu.RLock()
+    oldPeriod := ch.period
+    oldDuty := ch.duty
+    ch.mu.RUnlock()
+
+    var newDuty uint64
+    if oldPeriod > 0 {
+        ratio := float64(oldDuty) / float64(oldPeriod)
+        newDuty = uint64(float64(periodNs) * ratio)
+    }
+
+    // Set new period
+    if err := ch.SetPeriod(ctx, periodNs); err != nil {
+        return err
+    }
+
+    // Restore duty cycle ratio
+    if newDuty > 0 {
+        if err := ch.SetDuty(ctx, newDuty); err != nil {
+            return err
+        }
+    }
+
+    return nil
+}
+
+// Frequency returns the current frequency in Hz.
+func (ch *sysfsChannel) Frequency() float64 {
+    ch.mu.RLock()
+    defer ch.mu.RUnlock()
+
+    if ch.period == 0 {
+        return 0.0
+    }
+    return 1e9 / float64(ch.period)
+}
+
+// SetPolarity sets the output polarity.
+func (ch *sysfsChannel) SetPolarity(ctx context.Context, inverted bool) error {
+    ch.mu.Lock()
+    defer ch.mu.Unlock()
+
+    // Polarity can only be changed when disabled
+    wasEnabled := ch.enabled
+    if wasEnabled {
+        if err := ch.writeFile("enable", "0"); err != nil {
+            return err
+        }
+    }
+
+    polarity := "normal"
+    if inverted {
+        polarity = "inversed"
+    }
+
+    if err := ch.writeFile("polarity", polarity); err != nil {
+        // Polarity may not be supported, ignore error
+        if wasEnabled {
+            ch.writeFile("enable", "1")
+        }
+        return nil // Don't fail if polarity not supported
+    }
+
+    ch.inverted = inverted
+
+    if wasEnabled {
+        if err := ch.writeFile("enable", "1"); err != nil {
+            return err
+        }
+    }
+
+    return nil
+}
+
+// Polarity returns true if output is inverted.
+func (ch *sysfsChannel) Polarity() bool {
+    ch.mu.RLock()
+    defer ch.mu.RUnlock()
+    return ch.inverted
+}
+
+// Verify interface compliance
+var _ pwm.Channel = (*sysfsChannel)(nil)
+```
+
+### 14.5 HAL Integration
+
+The HAL's `PWM()` method now returns hardware PWM chips:
+
+```go
+// In driver/hal/linux.go
+
+// createPWMChip creates a hardware PWM chip.
+func (h *hal) createPWMChip(chip int) (pwm.Chip, error) {
+    return pwmlinux.OpenChip(chip)
+}
+```
+
+**Default PWM Chips by Board:**
+
+```go
+// DefaultPWMChip returns the default hardware PWM chip for a board.
+func DefaultPWMChip(board Board) int {
+    switch board {
+    case BoardRaspberryPi5:
+        return 2  // RP1 PWM controller
+    case BoardRaspberryPi4, BoardRaspberryPi3:
+        return 0  // BCM PWM controller
+    case BoardOrangePi5B, BoardOrangePi5:
+        return 0  // RK3588 PWM0-3
+    default:
+        return 0
+    }
+}
+```
+
+### 14.6 GPIO to PWM Channel Mapping
+
+Components need to map GPIO pins to PWM chip/channel pairs. This is board-specific:
+
+```go
+// PWMPinMap maps GPIO numbers to PWM chip and channel.
+type PWMPinMap struct {
+    Chip    int
+    Channel int
+}
+
+// Raspberry Pi 3/4 GPIO to PWM mapping
+var rpiPWMPins = map[int]PWMPinMap{
+    12: {Chip: 0, Channel: 0},  // PWM0 on ALT0, Physical Pin 32
+    13: {Chip: 0, Channel: 1},  // PWM1 on ALT0, Physical Pin 33
+    18: {Chip: 0, Channel: 0},  // PWM0 on ALT5, Physical Pin 12
+    19: {Chip: 0, Channel: 1},  // PWM1 on ALT5, Physical Pin 35
+}
+
+// Raspberry Pi 5 uses pwmchip2
+var rpi5PWMPins = map[int]PWMPinMap{
+    12: {Chip: 2, Channel: 0},  // PWM0, Physical Pin 32
+    13: {Chip: 2, Channel: 1},  // PWM1, Physical Pin 33
+    18: {Chip: 2, Channel: 2},  // PWM2, Physical Pin 12
+    19: {Chip: 2, Channel: 3},  // PWM3, Physical Pin 35
+}
+
+// Orange Pi 5 Plus GPIO to PWM mapping (40-pin header)
+var opi5PlusPWMPins = map[int]PWMPinMap{
+    44:  {Chip: 0, Channel: 0},  // PWM0 (GPIO1_B4), Physical Pin 33
+    45:  {Chip: 0, Channel: 1},  // PWM1 (GPIO1_B5), Physical Pin 32
+    42:  {Chip: 3, Channel: 2},  // PWM14 (GPIO1_B2), Physical Pin 12
+    150: {Chip: 3, Channel: 1},  // PWM13 (GPIO4_C6), Physical Pin 13
+}
+
+// Orange Pi 5/5B GPIO to PWM mapping (26-pin header)
+var opi5PWMPins = map[int]PWMPinMap{
+    42:  {Chip: 3, Channel: 2},  // PWM14 (GPIO1_B2), Physical Pin 12
+    150: {Chip: 3, Channel: 1},  // PWM13 (GPIO4_C6), Physical Pin 13
+}
+
+// GetPWMMapping returns the PWM chip and channel for a GPIO pin.
+// Returns ok=false if the pin doesn't support hardware PWM.
+func (h *hal) GetPWMMapping(gpio int) (chip, channel int, ok bool) {
+    var mapping map[int]PWMPinMap
+
+    switch h.board {
+    case BoardRaspberryPi5:
+        mapping = rpi5PWMPins
+    case BoardRaspberryPi4, BoardRaspberryPi3:
+        mapping = rpiPWMPins
+    case BoardOrangePi5Plus:
+        mapping = opi5PlusPWMPins
+    case BoardOrangePi5B, BoardOrangePi5:
+        mapping = opi5PWMPins
+    default:
+        return 0, 0, false
+    }
+
+    if m, ok := mapping[gpio]; ok {
+        return m.Chip, m.Channel, true
+    }
+    return 0, 0, false
+}
+```
+
+**Hardware PWM Pin Summary:**
+
+| Board | GPIO | Physical Pin | PWM Chip | Channel | Notes |
+|-------|------|--------------|----------|---------|-------|
+| RPi 5 | 12 | 32 | pwmchip2 | 0 | PWM0 |
+| RPi 5 | 13 | 33 | pwmchip2 | 1 | PWM1 |
+| RPi 5 | 18 | 12 | pwmchip2 | 2 | PWM2 |
+| RPi 5 | 19 | 35 | pwmchip2 | 3 | PWM3 |
+| RPi 3/4 | 12 | 32 | pwmchip0 | 0 | Shares channel with GPIO 18 |
+| RPi 3/4 | 13 | 33 | pwmchip0 | 1 | Shares channel with GPIO 19 |
+| RPi 3/4 | 18 | 12 | pwmchip0 | 0 | Shares channel with GPIO 12 |
+| RPi 3/4 | 19 | 35 | pwmchip0 | 1 | Shares channel with GPIO 13 |
+| OPi 5 Plus | 44 | 33 | pwmchip0 | 0 | PWM0 (GPIO1_B4) |
+| OPi 5 Plus | 45 | 32 | pwmchip0 | 1 | PWM1 (GPIO1_B5) |
+| OPi 5 Plus | 42 | 12 | pwmchip3 | 2 | PWM14 (GPIO1_B2) |
+| OPi 5 Plus | 150 | 13 | pwmchip3 | 1 | PWM13 (GPIO4_C6) |
+| OPi 5/5B | 42 | 12 | pwmchip3 | 2 | PWM14 (GPIO1_B2) |
+| OPi 5/5B | 150 | 13 | pwmchip3 | 1 | PWM13 (GPIO4_C6) |
+
+### 14.7 Recommended Pin Allocation for Robotics
+
+This section provides recommended pin allocations for typical robotics applications requiring:
+- 2 hardware PWM channels (motor/servo control)
+- 2 I2C buses (sensors, displays)
+- 2 SPI buses (high-speed sensors, displays)
+- 2 serial UARTs (GPS, Lidar, debug)
+- 8+ general-purpose GPIO (buttons, LEDs, limit switches)
+
+#### Raspberry Pi 3/4/5 (40-pin Header)
+
+**Recommended Pin Allocation:**
+
+| Function | Physical Pins | GPIO | Device | Notes |
+|----------|---------------|------|--------|-------|
+| **PWM0** | 32 | GPIO12 | pwmchip0/2 ch0 | Motor/servo control |
+| **PWM1** | 33 | GPIO13 | pwmchip0/2 ch1 | Motor/servo control |
+| **I2C1** | 3, 5 | GPIO2, GPIO3 | /dev/i2c-1 | Primary I2C (always enabled) |
+| **I2C3** | 7, 29 | GPIO4, GPIO5 | /dev/i2c-3 | Secondary I2C (via overlay) |
+| **SPI0** | 19, 21, 23, 24, 26 | GPIO10, 9, 11, 8, 7 | /dev/spidev0.0 | Primary SPI (MOSI, MISO, SCLK, CE0, CE1) |
+| **SPI1** | 35, 38, 40 | GPIO19, 20, 21 | /dev/spidev1.0 | Secondary SPI (via overlay) |
+| **UART0** | 8, 10 | GPIO14, GPIO15 | /dev/ttyAMA0 | Primary serial (TX, RX) |
+| **UART3** | 7, 29 | GPIO4, GPIO5 | /dev/ttyAMA1 | Secondary serial - **conflicts with I2C3** |
+| **GPIO** | 11, 13, 15, 16, 18, 22, 36, 37 | GPIO17, 27, 22, 23, 24, 25, 16, 26 | gpiochip0/4 | 8 general purpose pins |
+
+**Conflict Resolution:**
+
+UART3 and I2C3 both use GPIO4/5 (pins 7, 29). Choose one based on your needs:
+- **Option A (2 I2C + 1 UART):** Use I2C3 overlay, use USB-serial adapter for second UART
+- **Option B (1 I2C + 2 UART):** Use UART3 overlay, use software I2C or I2C multiplexer for second I2C
+
+**Power and Ground Pins:**
+
+| Type | Physical Pins | Max Current | Notes |
+|------|---------------|-------------|-------|
+| **+5V** | 2, 4 | ~1.5A total | Direct from power supply, shared with board |
+| **+3.3V** | 1, 17 | ~500mA total | Regulated, for 3.3V logic devices |
+| **GND** | 6, 9, 14, 20, 25, 30, 34, 39 | — | 8 ground pins available |
+
+**Physical Pin Layout:**
+
+```
+        Raspberry Pi 40-Pin Header (active pins for Gorai)
+        ═══════════════════════════════════════════════════
+                   +3.3V [1]  [2]  +5V
+           I2C1 SDA [3]  [4]  +5V
+           I2C1 SCL [5]  [6]  GND
+     I2C3 SDA/UART3 [7]  [8]  UART0 TX
+                GND [9]  [10] UART0 RX
+              GPIO17 [11] [12] ---
+              GPIO27 [13] [14] GND
+              GPIO22 [15] [16] GPIO23
+               +3.3V [17] [18] GPIO24
+          SPI0 MOSI [19] [20] GND
+          SPI0 MISO [21] [22] GPIO25
+          SPI0 SCLK [23] [24] SPI0 CE0
+                GND [25] [26] SPI0 CE1
+              EEPROM [27] [28] EEPROM
+    I2C3 SCL/UART3 [29] [30] GND
+                --- [31] [32] PWM0
+               PWM1 [33] [34] GND
+          SPI1 MISO [35] [36] GPIO16
+              GPIO26 [37] [38] SPI1 MOSI
+                GND [39] [40] SPI1 SCLK
+        ═══════════════════════════════════════════════════
+        Power: +5V (pins 2,4), +3.3V (pins 1,17)
+        Ground: pins 6,9,14,20,25,30,34,39
+```
+
+#### Orange Pi 5 Plus (40-pin Header)
+
+The Orange Pi 5 Plus has a 40-pin header similar to Raspberry Pi, providing more I/O options than the OPi5/5B.
+
+**Recommended Pin Allocation:**
+
+| Function | Physical Pins | GPIO (RK3588) | Device | Notes |
+|----------|---------------|---------------|--------|-------|
+| **PWM0** | 33 | GPIO1_B4 (44) | pwmchip0 ch0 | Motor/servo control |
+| **PWM1** | 32 | GPIO1_B5 (45) | pwmchip0 ch1 | Motor/servo control |
+| **I2C2** | 3, 5 | GPIO4_B3 (139), GPIO4_B4 (140) | /dev/i2c-2 | Primary I2C |
+| **I2C5** | 27, 28 | GPIO4_B5 (141), GPIO4_B6 (142) | /dev/i2c-5 | Secondary I2C |
+| **SPI4** | 19, 21, 23, 24, 26 | GPIO1_A1 (33), GPIO1_A0 (32), GPIO1_A2 (34), GPIO1_A3 (35), GPIO1_A4 (36) | /dev/spidev4.0 | Primary SPI (MOSI, MISO, CLK, CS0, CS1) |
+| **UART2** | 8, 10 | GPIO0_B5 (13), GPIO0_B6 (14) | /dev/ttyS2 | Primary serial |
+| **GPIO** | 7, 11, 15, 16, 18, 22, 29, 31, 35, 36, 37, 38, 40 | GPIO1_A4 (36), GPIO1_A3 (35), GPIO1_D7 (63), GPIO1_D6 (62), GPIO1_B3 (43), GPIO1_D5 (61), GPIO1_B0 (40), GPIO1_A7 (39), GPIO4_C1 (145), GPIO4_C0 (144), GPIO4_A7 (135), GPIO4_C2 (146), GPIO4_B0 (136) | gpiochip0-4 | 13 general purpose pins |
+
+**Additional PWM Options:**
+- PWM14 on pin 12 (GPIO1_B2/42) and PWM13 on pin 13 (GPIO4_C6/150) are also available
+- Choose PWM0/1 (pins 32/33) or PWM13/14 (pins 12/13) based on your GPIO needs
+
+**Power and Ground Pins:**
+
+| Type | Physical Pins | Max Current | Notes |
+|------|---------------|-------------|-------|
+| **+5V** | 2, 4 | ~3A total | Direct from power supply |
+| **+3.3V** | 1, 17 | ~500mA total | Regulated 3.3V output |
+| **GND** | 6, 9, 14, 20, 25, 30, 34, 39 | — | 8 ground pins available |
+
+**Physical Pin Layout:**
+
+```
+        Orange Pi 5 Plus 40-Pin Header (active pins for Gorai)
+        ═══════════════════════════════════════════════════
+                   +3.3V [1]  [2]  +5V
+           I2C2 SDA [3]  [4]  +5V
+           I2C2 SCL [5]  [6]  GND
+              GPIO36 [7]  [8]  UART2 TX
+                GND [9]  [10] UART2 RX
+              GPIO35 [11] [12] PWM14*
+              PWM13* [13] [14] GND
+              GPIO63 [15] [16] GPIO62
+               +3.3V [17] [18] GPIO43
+         SPI4 MOSI [19] [20] GND
+         SPI4 MISO [21] [22] GPIO61
+         SPI4 SCLK [23] [24] SPI4 CS0
+                GND [25] [26] SPI4 CS1
+          I2C5 SDA [27] [28] I2C5 SCL
+              GPIO40 [29] [30] GND
+              GPIO39 [31] [32] PWM1
+                PWM0 [33] [34] GND
+             GPIO145 [35] [36] GPIO144
+             GPIO135 [37] [38] GPIO146
+                GND [39] [40] GPIO136
+        ═══════════════════════════════════════════════════
+        Power: +5V (pins 2,4), +3.3V (pins 1,17)
+        Ground: pins 6,9,14,20,25,30,34,39
+        *PWM13/14 available as alternative to PWM0/1
+```
+
+#### Orange Pi 5/5B (26-pin Header)
+
+The Orange Pi 5B has a smaller 26-pin header with more limited peripheral options.
+
+**Recommended Pin Allocation:**
+
+| Function | Physical Pins | GPIO (RK3588) | Device | Notes |
+|----------|---------------|---------------|--------|-------|
+| **PWM14** | 12 | GPIO1_B2 (42) | pwmchip3 ch2 | Motor/servo control |
+| **PWM13** | 13 | GPIO4_C6 (150) | pwmchip3 ch1 | Motor/servo control |
+| **I2C2** | 3, 5 | GPIO4_B3 (139), GPIO4_B4 (140) | /dev/i2c-2 | Primary I2C |
+| **I2C5** | 16, 18 | GPIO4_B2 (138), GPIO1_B3 (43) | /dev/i2c-5 | Secondary I2C (via overlay) |
+| **SPI0** | 19, 21, 23, 24 | GPIO4_B2, GPIO1_B1, GPIO1_B4, GPIO1_B2 | /dev/spidev0.0 | Primary SPI |
+| **UART2** | 8, 10 | GPIO0_B5 (13), GPIO0_B6 (14) | /dev/ttyS2 | Primary serial |
+| **UART4** | — | — | /dev/ttyS4 | Via expansion connector (if available) |
+| **GPIO** | 7, 11, 15, 22, 26 | GPIO1_A4 (36), GPIO1_A3 (35), GPIO1_D7 (63), GPIO1_B3 (43), GPIO4_C5 (149) | gpiochip0-4 | 5 general purpose pins |
+
+**Limitations:**
+- Only 26 pins available (vs 40 on RPi)
+- Second SPI not available on standard header
+- Second UART may require expansion connector
+- Fewer GPIO pins available after allocating peripherals
+
+**Power and Ground Pins:**
+
+| Type | Physical Pins | Max Current | Notes |
+|------|---------------|-------------|-------|
+| **+5V** | 2, 4 | ~2A total | Direct from power supply |
+| **+3.3V** | 1, 17 | ~500mA total | Regulated 3.3V output |
+| **GND** | 6, 9, 14, 20, 25 | — | 5 ground pins available |
+
+**Physical Pin Layout:**
+
+```
+        Orange Pi 5/5B 26-Pin Header (active pins for Gorai)
+        ═══════════════════════════════════════════════════
+                   +3.3V [1]  [2]  +5V
+           I2C2 SDA [3]  [4]  +5V
+           I2C2 SCL [5]  [6]  GND
+              GPIO36 [7]  [8]  UART2 TX
+                GND [9]  [10] UART2 RX
+              GPIO35 [11] [12] PWM14
+               PWM13 [13] [14] GND
+              GPIO63 [15] [16] I2C5 SDA
+               +3.3V [17] [18] I2C5 SCL
+          SPI0 MOSI [19] [20] GND
+          SPI0 MISO [21] [22] GPIO43
+          SPI0 SCLK [23] [24] SPI0 CS0
+                GND [25] [26] GPIO149
+        ═══════════════════════════════════════════════════
+        Power: +5V (pins 2,4), +3.3V (pins 1,17)
+        Ground: pins 6,9,14,20,25
+```
+
+### 14.8 Device Tree Configuration
+
+**Important:** Most peripherals require device tree configuration before they become available. Without proper configuration, the corresponding `/dev/` or `/sys/` entries won't exist.
+
+This section provides the complete device tree configuration needed to enable the recommended pin allocation from Section 14.7.
+
+#### Raspberry Pi 3/4 Complete Configuration
+
+Edit `/boot/config.txt` (or `/boot/firmware/config.txt` on newer OS versions):
+
+```ini
+# =============================================================================
+# Gorai Recommended Configuration for Raspberry Pi 3/4
+# Enables: 2 PWM, 2 I2C, 2 SPI, 1-2 UART, plus GPIO
+# =============================================================================
+
+# --- Core Settings ---
+# Disable Bluetooth on UART0 to free up /dev/ttyAMA0 for general use
+dtoverlay=disable-bt
+
+# --- PWM (2 channels on GPIO12 and GPIO13) ---
+# Using pins 32 and 33 to avoid conflicts with SPI1
+dtoverlay=pwm,pin=12,func=4
+dtoverlay=pwm,pin=13,func=4
+
+# --- I2C ---
+# I2C1 is enabled by default on pins 3/5 (GPIO2/3)
+# Enable I2C3 on pins 7/29 (GPIO4/5) for second I2C bus
+dtoverlay=i2c3,pins_7_29
+
+# --- SPI ---
+# SPI0 is enabled by default on pins 19/21/23/24/26
+dtparam=spi=on
+# Enable SPI1 on pins 35/38/40 (GPIO19/20/21)
+dtoverlay=spi1-3cs
+
+# --- UART ---
+# UART0 (/dev/ttyAMA0) on pins 8/10 (GPIO14/15) - enabled by disable-bt above
+# For second UART, choose ONE of the following:
+
+# Option A: UART3 on pins 7/29 - CONFLICTS WITH I2C3, comment out i2c3 above
+#dtoverlay=uart3
+
+# Option B: Use USB-serial adapter instead (no overlay needed)
+
+# --- Audio (disabled to free GPIO for other uses) ---
+dtparam=audio=off
+```
+
+**Configuration Summary:**
+
+| Peripheral | Device Path | Physical Pins | Status |
+|------------|-------------|---------------|--------|
+| PWM0 | /sys/class/pwm/pwmchip0/pwm0 | 32 (GPIO12) | Via overlay |
+| PWM1 | /sys/class/pwm/pwmchip0/pwm1 | 33 (GPIO13) | Via overlay |
+| I2C1 | /dev/i2c-1 | 3, 5 | Default enabled |
+| I2C3 | /dev/i2c-3 | 7, 29 | Via overlay |
+| SPI0 | /dev/spidev0.0, 0.1 | 19, 21, 23, 24, 26 | Via dtparam |
+| SPI1 | /dev/spidev1.0, 1.1, 1.2 | 35, 38, 40 | Via overlay |
+| UART0 | /dev/ttyAMA0 | 8, 10 | Via disable-bt |
+| GPIO | /dev/gpiochip0 | 11, 13, 15, 16, 18, 22, 36, 37 | Always available |
+
+#### Raspberry Pi 5 Complete Configuration
+
+Edit `/boot/firmware/config.txt`:
+
+```ini
+# =============================================================================
+# Gorai Recommended Configuration for Raspberry Pi 5
+# Enables: 2 PWM, 2 I2C, 2 SPI, 1-2 UART, plus GPIO
+# Note: RPi5 uses RP1 chip with different overlay names
+# =============================================================================
+
+# --- Core Settings ---
+dtoverlay=disable-bt
+
+# --- PWM (4 channels available on RP1, using 2) ---
+# PWM on GPIO12 and GPIO13 (pins 32 and 33)
+dtoverlay=pwm,pin=12,func=4
+dtoverlay=pwm,pin=13,func=4
+
+# --- I2C ---
+# I2C1 enabled by default on pins 3/5
+# Enable I2C3 on pins 7/29 for second I2C bus
+dtoverlay=i2c3,pins_7_29
+
+# --- SPI ---
+dtparam=spi=on
+dtoverlay=spi1-3cs
+
+# --- UART ---
+# UART0 available via disable-bt
+# UART3 available but conflicts with I2C3
+
+# --- Audio ---
+dtparam=audio=off
+```
+
+**Verification Commands:**
+```bash
+# Verify all peripherals are available
+ls /sys/class/pwm/           # Should show pwmchip0 and/or pwmchip2
+ls /dev/i2c-*                # Should show i2c-1, i2c-3
+ls /dev/spidev*              # Should show spidev0.0, spidev0.1, spidev1.*
+ls /dev/ttyAMA*              # Should show ttyAMA0
+ls /dev/gpiochip*            # Should show gpiochip0 (RPi3/4) or gpiochip4 (RPi5)
+```
+
+#### Orange Pi 5 Plus Complete Configuration
+
+The Orange Pi 5 Plus uses Armbian or official Orange Pi OS. Edit `/boot/orangepiEnv.txt` (or `/boot/armbianEnv.txt` for Armbian):
+
+```ini
+# =============================================================================
+# Gorai Recommended Configuration for Orange Pi 5 Plus
+# Enables: 2 PWM, 2 I2C, 1 SPI, 1 UART, plus GPIO
+# Note: 40-pin header provides more options than OPi5/5B
+# =============================================================================
+
+verbosity=1
+bootlogo=false
+console=serial
+
+# --- Device Tree Overlays ---
+# Space-separated list of overlays to enable
+overlays=pwm0-m1 pwm1-m1 i2c5-m0 spi4-m0-cs0-spidev uart2-m0
+
+# --- Explanation ---
+# pwm0-m1     : PWM0 on GPIO1_B4 (pin 33)
+# pwm1-m1     : PWM1 on GPIO1_B5 (pin 32)
+# i2c5-m0     : I2C5 on pins 27/28 (second I2C bus)
+# spi4-m0-cs0-spidev : SPI4 with CS0 as spidev
+# uart2-m0    : UART2 on pins 8/10
+```
+
+**Alternative overlays for PWM13/14:**
+```ini
+# Use PWM13/14 instead of PWM0/1 if you need pins 32/33 for GPIO
+overlays=pwm13-m2 pwm14-m0 i2c5-m0 spi4-m0-cs0-spidev uart2-m0
+```
+
+**Alternative for Armbian:**
+
+Edit `/boot/armbianEnv.txt`:
+```ini
+overlays=rk3588-pwm0-m1 rk3588-pwm1-m1 rk3588-i2c5-m0 rk3588-spi4-m0-cs0-spidev rk3588-uart2-m0
+```
+
+**Configuration Summary:**
+
+| Peripheral | Device Path | Physical Pins | Overlay |
+|------------|-------------|---------------|---------|
+| PWM0 | /sys/class/pwm/pwmchip0/pwm0 | 33 | pwm0-m1 |
+| PWM1 | /sys/class/pwm/pwmchip0/pwm1 | 32 | pwm1-m1 |
+| I2C2 | /dev/i2c-2 | 3, 5 | Default |
+| I2C5 | /dev/i2c-5 | 27, 28 | i2c5-m0 |
+| SPI4 | /dev/spidev4.0 | 19, 21, 23, 24, 26 | spi4-m0-cs0-spidev |
+| UART2 | /dev/ttyS2 | 8, 10 | uart2-m0 |
+| GPIO | /dev/gpiochip0-4 | 7, 11, 15, 16, 18, 22, 29, 31, 35-40 | Always available |
+
+**Verification Commands:**
+```bash
+# Verify all peripherals on Orange Pi 5 Plus
+ls /sys/class/pwm/pwmchip*/     # Check PWM chips (pwmchip0, pwmchip3)
+ls /dev/i2c-*                   # Should show i2c-2, i2c-5
+ls /dev/spidev*                 # Should show spidev4.0
+ls /dev/ttyS*                   # Should show ttyS2
+cat /sys/kernel/debug/gpio      # Show GPIO status (requires root)
+```
+
+#### Orange Pi 5/5B Complete Configuration
+
+The Orange Pi uses Armbian or official Orange Pi OS. Edit `/boot/orangepiEnv.txt` (or `/boot/armbianEnv.txt` for Armbian):
+
+```ini
+# =============================================================================
+# Gorai Recommended Configuration for Orange Pi 5/5B
+# Enables: 2 PWM, 2 I2C, 1 SPI, 1 UART, plus GPIO
+# Note: 26-pin header has more limited options than RPi
+# =============================================================================
+
+verbosity=1
+bootlogo=false
+console=serial
+
+# --- Device Tree Overlays ---
+# Space-separated list of overlays to enable
+overlays=pwm13-m0 pwm14-m0 i2c5-m3 spi0-m2-cs0-spidev uart2-m0
+
+# --- Explanation ---
+# pwm13-m0    : PWM13 on GPIO4_C6 (pin 13)
+# pwm14-m0    : PWM14 on GPIO1_B2 (pin 12)
+# i2c5-m3     : I2C5 on pins 16/18 (second I2C bus)
+# spi0-m2-cs0-spidev : SPI0 with CS0 as spidev
+# uart2-m0    : UART2 on pins 8/10
+```
+
+**Alternative for Armbian:**
+
+Edit `/boot/armbianEnv.txt`:
+```ini
+overlays=rk3588-pwm13-m0 rk3588-pwm14-m0 rk3588-i2c5-m3 rk3588-spi0-m2-cs0-spidev rk3588-uart2-m0
+```
+
+**Configuration Summary:**
+
+| Peripheral | Device Path | Physical Pins | Overlay |
+|------------|-------------|---------------|---------|
+| PWM13 | /sys/class/pwm/pwmchip3/pwm1 | 13 | pwm13-m0 |
+| PWM14 | /sys/class/pwm/pwmchip3/pwm2 | 12 | pwm14-m0 |
+| I2C2 | /dev/i2c-2 | 3, 5 | Default |
+| I2C5 | /dev/i2c-5 | 16, 18 | i2c5-m3 |
+| SPI0 | /dev/spidev0.0 | 19, 21, 23, 24 | spi0-m2-cs0-spidev |
+| UART2 | /dev/ttyS2 | 8, 10 | uart2-m0 |
+| GPIO | /dev/gpiochip0-4 | 7, 11, 15, 22, 26 | Always available |
+
+**Finding Available Overlays:**
+```bash
+# List available overlays on Orange Pi
+ls /boot/dtb/rockchip/overlay/
+
+# Or on Armbian
+ls /boot/dtb/rockchip/overlay/ | grep rk3588
+```
+
+**Verification Commands:**
+```bash
+# Verify all peripherals
+ls /sys/class/pwm/pwmchip*/     # Check PWM chips
+ls /dev/i2c-*                   # Should show i2c-2, i2c-5
+ls /dev/spidev*                 # Should show spidev0.0
+ls /dev/ttyS*                   # Should show ttyS2
+cat /sys/kernel/debug/gpio      # Show GPIO status (requires root)
+```
+
+#### Quick Setup Scripts
+
+**Raspberry Pi Setup Script:**
+```bash
+#!/bin/bash
+# setup-gorai-rpi.sh - Configure Raspberry Pi for Gorai
+
+CONFIG="/boot/config.txt"
+[ -f "/boot/firmware/config.txt" ] && CONFIG="/boot/firmware/config.txt"
+
+echo "Backing up $CONFIG to ${CONFIG}.backup"
+sudo cp "$CONFIG" "${CONFIG}.backup"
+
+echo "Adding Gorai configuration..."
+sudo tee -a "$CONFIG" > /dev/null << 'EOF'
+
+# --- Gorai Robotics Configuration ---
+dtoverlay=disable-bt
+dtoverlay=pwm,pin=12,func=4
+dtoverlay=pwm,pin=13,func=4
+dtoverlay=i2c3,pins_7_29
+dtparam=spi=on
+dtoverlay=spi1-3cs
+dtparam=audio=off
+EOF
+
+echo "Configuration added. Please reboot to apply changes."
+echo "Run: sudo reboot"
+```
+
+**Orange Pi 5 Plus Setup Script:**
+```bash
+#!/bin/bash
+# setup-gorai-opi5plus.sh - Configure Orange Pi 5 Plus for Gorai
+
+CONFIG="/boot/orangepiEnv.txt"
+[ -f "/boot/armbianEnv.txt" ] && CONFIG="/boot/armbianEnv.txt"
+
+echo "Backing up $CONFIG to ${CONFIG}.backup"
+sudo cp "$CONFIG" "${CONFIG}.backup"
+
+# Add or update overlays line for Orange Pi 5 Plus (40-pin header)
+if grep -q "^overlays=" "$CONFIG"; then
+    echo "Updating existing overlays line..."
+    sudo sed -i 's/^overlays=.*/overlays=pwm0-m1 pwm1-m1 i2c5-m0 spi4-m0-cs0-spidev uart2-m0/' "$CONFIG"
+else
+    echo "Adding overlays line..."
+    echo "overlays=pwm0-m1 pwm1-m1 i2c5-m0 spi4-m0-cs0-spidev uart2-m0" | sudo tee -a "$CONFIG"
+fi
+
+echo "Configuration updated. Please reboot to apply changes."
+echo "Run: sudo reboot"
+```
+
+**Orange Pi 5/5B Setup Script:**
+```bash
+#!/bin/bash
+# setup-gorai-opi5b.sh - Configure Orange Pi 5/5B for Gorai
+
+CONFIG="/boot/orangepiEnv.txt"
+[ -f "/boot/armbianEnv.txt" ] && CONFIG="/boot/armbianEnv.txt"
+
+echo "Backing up $CONFIG to ${CONFIG}.backup"
+sudo cp "$CONFIG" "${CONFIG}.backup"
+
+# Add or update overlays line for Orange Pi 5/5B (26-pin header)
+if grep -q "^overlays=" "$CONFIG"; then
+    echo "Updating existing overlays line..."
+    sudo sed -i 's/^overlays=.*/overlays=pwm13-m0 pwm14-m0 i2c5-m3 spi0-m2-cs0-spidev uart2-m0/' "$CONFIG"
+else
+    echo "Adding overlays line..."
+    echo "overlays=pwm13-m0 pwm14-m0 i2c5-m3 spi0-m2-cs0-spidev uart2-m0" | sudo tee -a "$CONFIG"
+fi
+
+echo "Configuration updated. Please reboot to apply changes."
+echo "Run: sudo reboot"
+```
+
+#### Troubleshooting
+
+**PWM: `/sys/class/pwm/` is empty or pwmchip doesn't exist**
+- Device tree overlay not loaded or incorrect
+- Reboot required after configuration changes
+- Check: `dmesg | grep -i pwm`
+
+**PWM: `export` fails with "Permission denied"**
+```bash
+sudo usermod -aG gpio $USER  # Add user to gpio group, then log out/in
+```
+
+**PWM: `export` fails with "Device or resource busy"**
+- Pin configured for different function (audio, etc.)
+- Check conflicts: `cat /sys/kernel/debug/pinctrl/*/pinmux-pins`
+
+**I2C: `/dev/i2c-X` doesn't exist**
+- Overlay not loaded or wrong bus number
+- Check: `dmesg | grep -i i2c`
+- Verify: `sudo i2cdetect -l`
+
+**SPI: `/dev/spidev*` doesn't exist**
+- SPI not enabled: add `dtparam=spi=on`
+- Overlay not loaded for SPI1
+- Check: `dmesg | grep -i spi`
+
+**UART: `/dev/ttyAMA0` not available or shows garbled data**
+- Bluetooth may be using UART: add `dtoverlay=disable-bt`
+- Serial console may be enabled: use `raspi-config` to disable
+- Check: `dmesg | grep -i serial`
+
+**GPIO: Permission denied**
+```bash
+sudo usermod -aG gpio $USER  # Add to gpio group
+# Or create udev rule for non-root access
+```
+
+#### Complete Verification Script
+
+```bash
+#!/bin/bash
+# verify-gorai-hw.sh - Verify all Gorai hardware peripherals
+
+echo "=== PWM Chips ==="
+for chip in /sys/class/pwm/pwmchip*; do
+    [ -d "$chip" ] && echo "$(basename $chip): $(cat $chip/npwm) channels"
+done
+
+echo -e "\n=== I2C Buses ==="
+ls /dev/i2c-* 2>/dev/null || echo "No I2C buses found"
+
+echo -e "\n=== SPI Devices ==="
+ls /dev/spidev* 2>/dev/null || echo "No SPI devices found"
+
+echo -e "\n=== Serial Ports ==="
+ls /dev/ttyAMA* /dev/ttyS* 2>/dev/null | head -5
+
+echo -e "\n=== GPIO Chips ==="
+for chip in /dev/gpiochip*; do
+    [ -c "$chip" ] && echo "$chip"
+done
+
+echo -e "\n=== Kernel Messages (errors) ==="
+dmesg | grep -iE "(pwm|i2c|spi|gpio|uart).*error" | tail -5
+```
+
+### 14.9 Component Usage Example
+
+Using hardware PWM in a motor controller component:
+
+```go
+func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) (any, error) {
+    cfg := parseConfig(conf)
+
+    // Get HAL
+    h, _ := deps.Get("hal")
+    hw := h.(hal.HAL)
+
+    // Resolve pin
+    gpio, _ := hw.ResolvePinFromAny(cfg.PWMPin)
+
+    // Check for hardware PWM support
+    if chip, channel, ok := hw.GetPWMMapping(gpio); ok {
+        // Use hardware PWM
+        pwmChip, err := hw.PWM(chip)
+        if err != nil {
+            return nil, fmt.Errorf("failed to open PWM chip: %w", err)
+        }
+
+        pwmChan, err := pwmChip.Channel(channel)
+        if err != nil {
+            return nil, fmt.Errorf("failed to get PWM channel: %w", err)
+        }
+
+        // Configure for motor control (high frequency)
+        pwmChan.SetFrequency(ctx, 20000) // 20 kHz
+
+        return &Motor{pwm: pwmChan, isHardware: true}, nil
+    }
+
+    // Fall back to software PWM
+    pwmChan, err := hw.SoftwarePWM(gpio)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create software PWM: %w", err)
+    }
+
+    pwmChan.SetFrequency(ctx, 1000) // 1 kHz max for software
+
+    return &Motor{pwm: pwmChan, isHardware: false}, nil
+}
+```
+
+### 14.10 Error Handling and Edge Cases
+
+The driver handles several edge cases:
+
+1. **Channel already exported**: If another process exported the channel, the driver attempts to use it. This allows sharing PWM between processes.
+
+2. **Period/Duty ordering**: Linux sysfs requires `duty_cycle <= period`. The driver handles this by setting duty to 0 before reducing period.
+
+3. **Polarity not supported**: Some PWM controllers don't support polarity inversion. The driver ignores errors when setting polarity.
+
+4. **Permission errors**: PWM sysfs files typically require root or membership in the `gpio` group. The driver returns clear permission errors.
+
+5. **Unexport on close**: Channels are unexported when the chip is closed, freeing them for other processes.
+
+### 14.11 Testing Hardware PWM
+
+Verify hardware PWM is working:
+
+```bash
+# Check available PWM chips
+ls /sys/class/pwm/
+
+# Export channel manually
+echo 0 > /sys/class/pwm/pwmchip0/export
+
+# Set 50Hz servo frequency (20ms period)
+echo 20000000 > /sys/class/pwm/pwmchip0/pwm0/period
+
+# Set 1.5ms pulse (center position)
+echo 1500000 > /sys/class/pwm/pwmchip0/pwm0/duty_cycle
+
+# Enable
+echo 1 > /sys/class/pwm/pwmchip0/pwm0/enable
+
+# Verify with oscilloscope or LED on PWM pin
+```
+
+### 14.12 Performance Characteristics
+
+| Metric | Software PWM | Hardware PWM |
+|--------|--------------|--------------|
+| CPU usage (50Hz) | ~2-5% | <0.1% |
+| Timing jitter | 10-100µs | <1µs |
+| Max frequency | ~1 kHz | 50+ MHz |
+| Resolution | ~1µs | ~10ns |
+| Channels | Any GPIO | 2-4 per board (RPi: 4, OPi5Plus: 4, OPi5B: 2) |
+
+Hardware PWM is essential for:
+- Motor control (requires 20+ kHz to avoid audible whine)
+- LED dimming (requires high frequency for flicker-free operation)
+- Audio generation (requires precise timing)
+- Encoder interfaces (requires high-speed capture)
+
+---
+
+## 15. Appendix: Board-Specific Details
+
+### 15.1 Raspberry Pi 5
 
 | Resource | Path/Value |
 |----------|------------|
@@ -2620,7 +4076,7 @@ When migrating a component to HAL:
 | Hardware PWM | `/sys/class/pwm/pwmchip2` (2 channels) |
 | UART | `/dev/ttyAMA0`, `/dev/ttyAMA10` |
 
-### 14.2 Raspberry Pi 4
+### 15.2 Raspberry Pi 4
 
 | Resource | Path/Value |
 |----------|------------|
@@ -2630,17 +4086,29 @@ When migrating a component to HAL:
 | Hardware PWM | `/sys/class/pwm/pwmchip0` (2 channels) |
 | UART | `/dev/ttyS0`, `/dev/ttyAMA0` |
 
-### 14.3 Orange Pi 5B
+### 15.3 Orange Pi 5 Plus
 
 | Resource | Path/Value |
 |----------|------------|
 | GPIO Chip | `/dev/gpiochip0` - `/dev/gpiochip4` (RK3588) |
-| I2C Buses | `/dev/i2c-0` through `/dev/i2c-6` |
-| SPI Bus | `/dev/spidev0.0` |
-| Hardware PWM | `/sys/class/pwm/pwmchip0` (multiple channels) |
-| UART | `/dev/ttyS0`, `/dev/ttyS2` |
+| I2C Buses | `/dev/i2c-2` (primary), `/dev/i2c-5` (via overlay) |
+| SPI Bus | `/dev/spidev4.0` (via overlay) |
+| Hardware PWM | `/sys/class/pwm/pwmchip0` (PWM0/1), `/sys/class/pwm/pwmchip3` (PWM13/14) |
+| UART | `/dev/ttyS2` |
+| Header | 40-pin (RPi compatible layout) |
 
-### 14.4 GPIO Chip Selection by Board
+### 15.4 Orange Pi 5/5B
+
+| Resource | Path/Value |
+|----------|------------|
+| GPIO Chip | `/dev/gpiochip0` - `/dev/gpiochip4` (RK3588) |
+| I2C Buses | `/dev/i2c-2` (primary), `/dev/i2c-5` (via overlay) |
+| SPI Bus | `/dev/spidev0.0` |
+| Hardware PWM | `/sys/class/pwm/pwmchip3` (PWM13/14) |
+| UART | `/dev/ttyS2` |
+| Header | 26-pin (limited layout) |
+
+### 15.5 GPIO Chip Selection by Board
 
 ```go
 // Default GPIO chip for each board
@@ -2650,7 +4118,7 @@ func defaultGPIOChip(board Board) int {
         return 4  // RP1 chip
     case BoardRaspberryPi4, BoardRaspberryPi3:
         return 0  // BCM chip
-    case BoardOrangePi5B, BoardOrangePi5:
+    case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
         return 0  // Main RK3588 GPIO controller
     default:
         return 0
