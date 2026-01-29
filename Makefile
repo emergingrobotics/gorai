@@ -504,6 +504,27 @@ hooks-uninstall:
 	@echo "==> Git hooks removed"
 
 # ============================================================================
+# Tools
+# ============================================================================
+
+# Serial port for PWM controller (default: /dev/ttyACM0)
+PWM_PORT ?= /dev/ttyACM0
+
+.PHONY: build-tools
+build-tools: build-pwm-ramp-test ## Build all tools
+
+.PHONY: build-pwm-ramp-test
+build-pwm-ramp-test: $(BIN_DIR) ## Build pwm-ramp-test tool
+	@echo "==> Building pwm-ramp-test..."
+	cd tools/pwm-ramp-test && $(GOBUILD) -o ../../$(BIN_DIR)/pwm-ramp-test .
+	@echo "==> Binary ready: $(BIN_DIR)/pwm-ramp-test"
+
+.PHONY: pwm-ramp-test
+pwm-ramp-test: build-pwm-ramp-test ## Run PWM ramp test (use PWM_PORT to set serial port)
+	@echo "==> Running PWM ramp test on $(PWM_PORT)..."
+	$(BIN_DIR)/pwm-ramp-test $(PWM_PORT)
+
+# ============================================================================
 # TinyGo
 # ============================================================================
 
