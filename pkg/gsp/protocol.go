@@ -1,15 +1,20 @@
 package gsp
 
+// Protocol version.
+const Version = "v0.0.1"
+
 // Protocol commands (NATS-like).
 const (
-	CmdPUB   = "PUB"
-	CmdSUB   = "SUB"
-	CmdUNSUB = "UNSUB"
-	CmdMSG   = "MSG"
-	CmdPING  = "PING"
-	CmdPONG  = "PONG"
-	CmdOK    = "+OK"
-	CmdERR   = "-ERR"
+	CmdPUB     = "PUB"
+	CmdSUB     = "SUB"
+	CmdUNSUB   = "UNSUB"
+	CmdMSG     = "MSG"
+	CmdPING    = "PING"
+	CmdPONG    = "PONG"
+	CmdVER     = "VER"
+	CmdVERSION = "VERSION"
+	CmdOK      = "+OK"
+	CmdERR     = "-ERR"
 )
 
 // Message represents a parsed GSP protocol message.
@@ -29,6 +34,8 @@ type Message struct {
 //	MSG <subject> <id> <len>\r\n<payload>
 //	PING\r\n
 //	PONG\r\n
+//	VER\r\n
+//	VERSION <version>\r\n
 func ParseMessage(payload []byte) (*Message, error) {
 	if len(payload) == 0 {
 		return nil, ErrMalformedMsg
@@ -52,6 +59,12 @@ func ParseMessage(payload []byte) (*Message, error) {
 
 	case CmdPONG:
 		return &Message{Command: CmdPONG}, nil
+
+	case CmdVER:
+		return &Message{Command: CmdVER}, nil
+
+	case CmdVERSION:
+		return parseVersion(rest)
 
 	case CmdPUB:
 		return parsePub(rest)
@@ -280,6 +293,39 @@ func FormatPing() []byte {
 // FormatPong creates a PONG response payload.
 func FormatPong() []byte {
 	return []byte("PONG\r\n")
+}
+
+// FormatVer creates a VER request payload.
+func FormatVer() []byte {
+	return []byte("VER\r\n")
+}
+
+// FormatVersion creates a VERSION response payload.
+func FormatVersion(version string) []byte {
+	return []byte("VERSION " + version + "\r\n")
+}
+
+// parseVersion parses: " <version>\r\n"
+func parseVersion(data []byte) (*Message, error) {
+	// Skip leading space
+	if len(data) == 0 || data[0] != ' ' {
+		return nil, ErrMalformedMsg
+	}
+	data = data[1:]
+
+	// Find version string (until \r\n or end)
+	verEnd := 0
+	for verEnd < len(data) && data[verEnd] != '\r' && data[verEnd] != '\n' {
+		verEnd++
+	}
+	if verEnd == 0 {
+		return nil, ErrMalformedMsg
+	}
+
+	return &Message{
+		Command: CmdVERSION,
+		Payload: data[:verEnd],
+	}, nil
 }
 
 // FormatOK creates an +OK response payload.

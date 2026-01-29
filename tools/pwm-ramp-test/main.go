@@ -2,9 +2,9 @@
 //
 // This program:
 //   1. Enables all 16 channels and sets them to 1500us
-//   2. Ramps down to 1000us in steps of 50 every 1s
-//   3. Ramps up to 2000us in steps of 50 every 1s
-//   4. Ramps down to 1500us in steps of 50 every 1s
+//   2. Ramps down to 1000us in steps of 50 every 250ms (all channels at once)
+//   3. Ramps up to 2000us in steps of 50 every 250ms (all channels at once)
+//   4. Ramps down to 1500us in steps of 50 every 250ms (all channels at once)
 //   5. Holds for 5 seconds
 //   6. Repeats
 //
@@ -33,9 +33,14 @@ const (
 	robotID       = "gorai"
 	numChannels   = 16
 	stepSize      = 50
-	stepInterval  = 1 * time.Second
+	stepInterval  = 250 * time.Millisecond
 	holdDuration  = 5 * time.Second
 	keepAliveRate = 200 * time.Millisecond
+
+	// Buffer sizes: 50% larger than longest expected line.
+	// Longest batch command (16 channels) is ~480 bytes, so 480 * 1.5 = 720.
+	maxCommandSize = 480
+	bufferSize     = maxCommandSize + maxCommandSize/2 // 720
 )
 
 var (
@@ -172,9 +177,25 @@ func NewClient(portName string) (*Client, error) {
 		return nil, err
 	}
 
+	// Clear any stale data in serial buffers by sending sync bytes.
+	// The firmware parser ignores non-STX bytes when waiting for frame start.
+	syncBytes := make([]byte, 16)
+	port.Write(syncBytes)
+	time.Sleep(50 * time.Millisecond)
+
+	// Drain any pending input
+	port.SetReadTimeout(100)
+	discardBuf := make([]byte, 1024)
+	for {
+		n, _ := port.Read(discardBuf)
+		if n == 0 {
+			break
+		}
+	}
+
 	return &Client{
 		port:   port,
-		parser: gsp.NewParser(2048),
+		parser: gsp.NewParser(bufferSize),
 	}, nil
 }
 
@@ -183,7 +204,7 @@ func (c *Client) Close() {
 }
 
 func (c *Client) readLoop() {
-	buf := make([]byte, 1024)
+	buf := make([]byte, bufferSize)
 	for {
 		c.port.SetReadTimeout(100)
 		n, err := c.port.Read(buf)
@@ -263,12 +284,17 @@ func (c *Client) sendPing() {
 		fmt.Printf("  TX frame [%d bytes]: %s\n", len(frame), hex.EncodeToString(frame))
 	}
 	c.port.Write(frame)
+	time.Sleep(50 * time.Millisecond) // Allow firmware to process before next command
 }
 
 func (c *Client) sendPub(subject string, payload string) {
 	fullSubject := robotID + ".mcu." + subject
 	msg := gsp.FormatPub(fullSubject, []byte(payload))
-	frame, _ := gsp.BuildFrame(msg)
+	frame, err := gsp.BuildFrame(msg)
+	if err != nil {
+		fmt.Printf("  TX BuildFrame error: %v (msg len=%d)\n", err, len(msg))
+		return
+	}
 
 	if verbose {
 		// Truncate payload for display if too long
@@ -299,24 +325,31 @@ func (c *Client) enableAll(enabled bool) {
 }
 
 func (c *Client) setAllChannels(pulseUs int) {
-	// Send individual commands for each channel (more reliable than batch)
-	if verbose && !debug {
-		fmt.Printf("  TX [pwm.command]: all channels -> %dus\n", pulseUs)
-	}
-	for i := 0; i < numChannels; i++ {
-		payload := fmt.Sprintf(`{"channel":%d,"pulse_us":%d,"enabled":true}`, i, pulseUs)
-		c.sendPubQuiet("pwm.command", payload)
-		time.Sleep(5 * time.Millisecond) // Small delay between commands
-	}
+	// Send batch command for all channels at once
+	payload := c.buildBatchCommand(pulseUs)
+	c.sendPub("pwm.command", payload)
+	time.Sleep(50 * time.Millisecond) // Allow firmware to process before next command
 }
 
 func (c *Client) setAllChannelsQuiet(pulseUs int) {
-	// Send individual commands without verbose output (for keep-alive)
+	// Send batch command without verbose output (for keep-alive)
+	payload := c.buildBatchCommand(pulseUs)
+	c.sendPubQuiet("pwm.command", payload)
+	time.Sleep(50 * time.Millisecond) // Allow firmware to process before next command
+}
+
+func (c *Client) buildBatchCommand(pulseUs int) string {
+	// Build batch command for all 16 channels
+	var b strings.Builder
+	b.WriteString(`{"channels":[`)
 	for i := 0; i < numChannels; i++ {
-		payload := fmt.Sprintf(`{"channel":%d,"pulse_us":%d,"enabled":true}`, i, pulseUs)
-		c.sendPubQuiet("pwm.command", payload)
-		time.Sleep(5 * time.Millisecond)
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		fmt.Fprintf(&b, `{"ch":%d,"pulse_us":%d}`, i, pulseUs)
 	}
+	b.WriteString(`]}`)
+	return b.String()
 }
 
 func (c *Client) sendPubQuiet(subject string, payload string) {

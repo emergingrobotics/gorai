@@ -5,7 +5,9 @@ const (
 	STX = 0x02 // Start of frame
 	ETX = 0x03 // End of frame
 
-	MaxPayloadSize = 1024
+	// MaxPayloadSize is 50% larger than the longest expected command.
+	// A 16-channel batch command is ~480 bytes, so 480 * 1.5 = 720.
+	MaxPayloadSize = 720
 	MinFrameSize   = 6 // STX + LEN(2) + CRC(2) + ETX
 )
 
@@ -86,6 +88,8 @@ func (p *Parser) Reset() {
 
 // Feed processes incoming bytes and returns complete frames.
 // Returns nil if no complete frame is available yet.
+// Note: This only returns the first complete frame. Use FeedAll to process
+// multiple frames from a single buffer.
 func (p *Parser) Feed(data []byte) (*Frame, error) {
 	for _, b := range data {
 		frame, err := p.feedByte(b)
@@ -98,6 +102,23 @@ func (p *Parser) Feed(data []byte) (*Frame, error) {
 		}
 	}
 	return nil, nil
+}
+
+// FeedAll processes incoming bytes and returns the first complete frame
+// along with the number of bytes consumed. This allows the caller to
+// process remaining bytes for additional frames.
+func (p *Parser) FeedAll(data []byte) (*Frame, int, error) {
+	for i, b := range data {
+		frame, err := p.feedByte(b)
+		if err != nil {
+			p.Reset()
+			return nil, i + 1, err
+		}
+		if frame != nil {
+			return frame, i + 1, nil
+		}
+	}
+	return nil, len(data), nil
 }
 
 func (p *Parser) feedByte(b byte) (*Frame, error) {
