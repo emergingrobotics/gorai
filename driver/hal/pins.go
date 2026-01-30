@@ -108,16 +108,6 @@ func GetPinMapper(board Board) PinMapper {
 	switch board {
 	case BoardRaspberryPi5:
 		return &rpi5PinMapper{}
-	case BoardRaspberryPi4:
-		return &rpi4PinMapper{}
-	case BoardRaspberryPi3:
-		return &rpi3PinMapper{}
-	case BoardOrangePi5Plus:
-		return &opi5PlusPinMapper{}
-	case BoardOrangePi5B:
-		return &opi5bPinMapper{}
-	case BoardOrangePi5:
-		return &opi5PinMapper{}
 	default:
 		return &genericPinMapper{}
 	}

@@ -1,30 +1,28 @@
 # Hardware Abstraction Layer Design
 
-**Version:** 1.1
+**Version:** 2.0
 **Status:** Draft
 **Last Updated:** 2026-01-27
 
 ## 1. Overview
 
-This document defines the hardware abstraction architecture for Gorai, enabling consistent APIs across different single-board computers (SBCs). All board support is included in the main `gorai` module—no separate satellite modules are needed.
+This document defines the hardware abstraction architecture for Gorai, targeting the **Raspberry Pi 5** as the primary and only supported platform. The HAL provides consistent APIs for GPIO, I2C, SPI, PWM, and serial interfaces.
+
+> **Note:** Orange Pi and earlier Raspberry Pi models have been deferred. See `docs/orange-pi-future-support.md` for future expansion plans.
 
 ### 1.1 Goals
 
-1. **Consistent API**: Robot code works unchanged across Raspberry Pi, Orange Pi, and other boards
-2. **Single module**: All board support included in `gorai`—just import and go
+1. **Simple API**: Clean, well-documented hardware access for Raspberry Pi 5
+2. **Single module**: All support included in `gorai`—just import and go
 3. **RDL integration**: Hardware selection is driven by robot configuration
-4. **Auto-detection**: Board is detected automatically, or can be specified in RDL
-5. **Unified Linux drivers**: All boards use the same Linux kernel interfaces (gpiod, i2c-dev, spidev)
+4. **Standard Linux interfaces**: Uses gpiod, /dev/i2c-*, /dev/spidev*, /sys/class/pwm
 
 ### 1.2 Supported Boards
 
 | Board | GPIO Chip | I2C | SPI | PWM | UART |
 |-------|-----------|-----|-----|-----|------|
-| Raspberry Pi 5 | `/dev/gpiochip4` (RP1) | Yes | Yes | Yes | Yes |
-| Raspberry Pi 4 | `/dev/gpiochip0` (BCM2711) | Yes | Yes | Yes | Yes |
-| Orange Pi 5 Plus | `/dev/gpiochip0` (RK3588) | Yes | Yes | Yes | Yes |
-| Orange Pi 5B | `/dev/gpiochip0` (RK3588S) | Yes | Yes | Yes | Yes |
-| Generic Linux | `/dev/gpiochip0` | Yes | Yes | Software | Yes |
+| Raspberry Pi 5 | `/dev/gpiochip4` (RP1) | Yes | Yes | Yes (4 channels) | Yes |
+| Generic Linux | `/dev/gpiochip0` | Yes | Yes | Software only | Yes |
 
 ### 1.3 Design Principles
 
@@ -88,7 +86,6 @@ gorai/driver/
 │   ├── detect.go               # Board detection from /proc/device-tree
 │   ├── pins.go                 # Pin reference parsing
 │   ├── pins_rpi.go             # Raspberry Pi pin mappings
-│   ├── pins_opi.go             # Orange Pi pin mappings
 │   ├── errors.go               # HAL-specific errors
 │   └── linux.go                # Linux driver factory functions
 ├── gpio/
@@ -164,14 +161,9 @@ type HAL interface {
 type Board string
 
 const (
-    BoardUnknown       Board = "unknown"
-    BoardRaspberryPi5  Board = "rpi5"
-    BoardRaspberryPi4  Board = "rpi4"
-    BoardRaspberryPi3  Board = "rpi3"
-    BoardOrangePi5Plus Board = "opi5plus"
-    BoardOrangePi5B    Board = "opi5b"
-    BoardOrangePi5     Board = "opi5"
-    BoardGenericLinux  Board = "linux"
+    BoardUnknown      Board = "unknown"
+    BoardRaspberryPi5 Board = "rpi5"
+    BoardGenericLinux Board = "linux"
 )
 ```
 
@@ -260,17 +252,8 @@ func Detect() Board {
     if model, err := os.ReadFile("/proc/device-tree/model"); err == nil {
         modelStr := strings.ToLower(string(model))
 
-        switch {
-        case strings.Contains(modelStr, "raspberry pi 5"):
+        if strings.Contains(modelStr, "raspberry pi 5") {
             return BoardRaspberryPi5
-        case strings.Contains(modelStr, "raspberry pi 4"):
-            return BoardRaspberryPi4
-        case strings.Contains(modelStr, "raspberry pi 3"):
-            return BoardRaspberryPi3
-        case strings.Contains(modelStr, "orange pi 5b"):
-            return BoardOrangePi5B
-        case strings.Contains(modelStr, "orange pi 5"):
-            return BoardOrangePi5
         }
     }
 
@@ -278,13 +261,8 @@ func Detect() Board {
     if compat, err := os.ReadFile("/proc/device-tree/compatible"); err == nil {
         compatStr := strings.ToLower(string(compat))
 
-        switch {
-        case strings.Contains(compatStr, "brcm,bcm2712"):
+        if strings.Contains(compatStr, "brcm,bcm2712") {
             return BoardRaspberryPi5
-        case strings.Contains(compatStr, "brcm,bcm2711"):
-            return BoardRaspberryPi4
-        case strings.Contains(compatStr, "rockchip,rk3588"):
-            return BoardOrangePi5B // Could be OPi5 or 5B
         }
     }
 
@@ -421,40 +399,6 @@ var rpiNamedPins = map[string]int{
 }
 ```
 
-```go
-// driver/hal/pins_opi.go
-package hal
-
-// Orange Pi 5B physical pin to RK3588 GPIO mapping
-var opi5PhysicalPins = map[int]int{
-    // Physical pin -> RK3588 GPIO bank*32 + line
-    3:  139, // GPIO4_B3 / I2C2_SDA
-    5:  140, // GPIO4_B4 / I2C2_SCL
-    7:  36,  // GPIO1_A4
-    8:  13,  // GPIO0_B5 / UART2_TX
-    10: 14,  // GPIO0_B6 / UART2_RX
-    11: 35,  // GPIO1_A3
-    12: 42,  // GPIO1_B2 / PWM14
-    13: 150, // GPIO4_C6
-    // ... etc
-}
-
-// OPi named pins
-var opiNamedPins = map[string]int{
-    "SDA2": 139, "SCL2": 140, "SDA": 139, "SCL": 140,
-    "UART2_TX": 13, "UART2_RX": 14, "TX": 13, "RX": 14,
-    "PWM14": 42,
-}
-
-// GPIO bank calculations for RK3588
-// GPIO0_A0 = 0, GPIO0_A7 = 7
-// GPIO0_B0 = 8, GPIO0_B7 = 15
-// GPIO1_A0 = 32, etc.
-func rk3588Pin(bank, group, line int) int {
-    return bank*32 + group*8 + line
-}
-```
-
 ---
 
 ## 5. PWM Interface
@@ -540,9 +484,7 @@ The only board-specific configuration is the chip number and available channels:
 
 | Board | PWM Chip | Channels | Hardware PWM Pins |
 |-------|----------|----------|-------------------|
-| Raspberry Pi 5 | `pwmchip2` | 2 | GPIO12, GPIO13, GPIO18, GPIO19 |
-| Raspberry Pi 4 | `pwmchip0` | 2 | GPIO12, GPIO13, GPIO18, GPIO19 |
-| Orange Pi 5B | `pwmchip0` | Multiple | PWM0-3 dedicated, PWM4-15 muxed |
+| Raspberry Pi 5 | `pwmchip2` | 4 | GPIO12, GPIO13, GPIO18, GPIO19 |
 
 ```go
 // driver/pwm/linux/sysfs.go - works on all boards
@@ -551,8 +493,6 @@ package linux
 // Chip paths by board
 var defaultPWMChip = map[hal.Board]int{
     hal.BoardRaspberryPi5: 2,
-    hal.BoardRaspberryPi4: 0,
-    hal.BoardOrangePi5B:   0,
 }
 ```
 
@@ -596,7 +536,7 @@ The RDL `platform` section drives HAL selection:
     "properties": {
       "board": {
         "type": "string",
-        "enum": ["rpi5", "rpi4", "rpi3", "opi5b", "opi5", "linux", "auto"],
+        "enum": ["rpi5", "linux", "auto"],
         "default": "auto",
         "description": "Target board (auto-detected if not specified)"
       },
@@ -766,13 +706,10 @@ The only board-specific elements are **configuration values**, not code:
 // Default GPIO chip number
 var defaultGPIOChip = map[Board]int{
     BoardRaspberryPi5: 4,   // RP1 chip
-    BoardRaspberryPi4: 0,   // BCM2711
-    BoardOrangePi5B:   0,   // RK3588
 }
 
 // Physical pin to GPIO mappings
 var rpi5Pins = map[int]int{3: 2, 5: 3, 7: 4, 8: 14, ...}
-var opi5Pins = map[int]int{3: 139, 5: 140, 7: 36, ...}
 ```
 
 ### 7.3 Benefits of Single Module
@@ -959,7 +896,6 @@ aliases := map[string]int{
    - `detect.go` - Board detection
    - `pins.go` - Pin reference parsing
    - `pins_rpi.go` - Raspberry Pi pin mappings
-   - `pins_opi.go` - Orange Pi pin mappings
    - `errors.go` - Error types
    - `linux.go` - Linux driver factories
 
@@ -987,9 +923,7 @@ aliases := map[string]int{
 ### Phase 5: Testing
 
 1. Test on Raspberry Pi 5
-2. Test on Raspberry Pi 4
-3. Test on Orange Pi 5B
-4. Test auto-detection on each board
+2. Test auto-detection
 
 ---
 
@@ -1512,10 +1446,6 @@ func (h *hal) defaultGPIOChip() int {
     switch h.board {
     case BoardRaspberryPi5:
         return 4 // RP1 chip
-    case BoardRaspberryPi4, BoardRaspberryPi3:
-        return 0 // BCM chip
-    case BoardOrangePi5B, BoardOrangePi5:
-        return 0 // RK3588 main GPIO
     default:
         return 0
     }
@@ -1534,10 +1464,6 @@ package hal
 func SupportedBoards() []Board {
     return []Board{
         BoardRaspberryPi5,
-        BoardRaspberryPi4,
-        BoardRaspberryPi3,
-        BoardOrangePi5B,
-        BoardOrangePi5,
         BoardGenericLinux,
     }
 }
@@ -1616,10 +1542,6 @@ const (
     BoardUnknown      Board = "unknown"
     BoardAuto         Board = "auto"
     BoardRaspberryPi5 Board = "rpi5"
-    BoardRaspberryPi4 Board = "rpi4"
-    BoardRaspberryPi3 Board = "rpi3"
-    BoardOrangePi5B   Board = "opi5b"
-    BoardOrangePi5    Board = "opi5"
     BoardGenericLinux Board = "linux"
 )
 
@@ -1630,20 +1552,7 @@ func (b Board) String() string {
 
 // IsRaspberryPi returns true for any Raspberry Pi board.
 func (b Board) IsRaspberryPi() bool {
-    switch b {
-    case BoardRaspberryPi5, BoardRaspberryPi4, BoardRaspberryPi3:
-        return true
-    }
-    return false
-}
-
-// IsOrangePi returns true for any Orange Pi board.
-func (b Board) IsOrangePi() bool {
-    switch b {
-    case BoardOrangePi5B, BoardOrangePi5:
-        return true
-    }
-    return false
+    return b == BoardRaspberryPi5
 }
 
 // Detect attempts to identify the current board.
@@ -1653,17 +1562,8 @@ func Detect() Board {
     if model, err := os.ReadFile("/proc/device-tree/model"); err == nil {
         modelStr := strings.ToLower(strings.TrimRight(string(model), "\x00\n"))
 
-        switch {
-        case strings.Contains(modelStr, "raspberry pi 5"):
+        if strings.Contains(modelStr, "raspberry pi 5") {
             return BoardRaspberryPi5
-        case strings.Contains(modelStr, "raspberry pi 4"):
-            return BoardRaspberryPi4
-        case strings.Contains(modelStr, "raspberry pi 3"):
-            return BoardRaspberryPi3
-        case strings.Contains(modelStr, "orange pi 5b"):
-            return BoardOrangePi5B
-        case strings.Contains(modelStr, "orange pi 5"):
-            return BoardOrangePi5
         }
     }
 
@@ -1671,21 +1571,8 @@ func Detect() Board {
     if compat, err := os.ReadFile("/proc/device-tree/compatible"); err == nil {
         compatStr := strings.ToLower(string(compat))
 
-        switch {
-        case strings.Contains(compatStr, "brcm,bcm2712"):
+        if strings.Contains(compatStr, "brcm,bcm2712") {
             return BoardRaspberryPi5
-        case strings.Contains(compatStr, "brcm,bcm2711"):
-            return BoardRaspberryPi4
-        case strings.Contains(compatStr, "brcm,bcm2837"):
-            return BoardRaspberryPi3
-        case strings.Contains(compatStr, "rockchip,rk3588"):
-            // Could be OPi5 or 5B, check more specifically
-            if model, _ := os.ReadFile("/proc/device-tree/model"); model != nil {
-                if strings.Contains(strings.ToLower(string(model)), "5b") {
-                    return BoardOrangePi5B
-                }
-            }
-            return BoardOrangePi5
         }
     }
 
@@ -1881,10 +1768,6 @@ func GetPinMapper(board Board) PinMapper {
     switch board {
     case BoardRaspberryPi5:
         return &rpi5PinMapper{}
-    case BoardRaspberryPi4, BoardRaspberryPi3:
-        return &rpi4PinMapper{}
-    case BoardOrangePi5B, BoardOrangePi5:
-        return &opi5PinMapper{}
     default:
         return &genericPinMapper{}
     }
@@ -1942,57 +1825,6 @@ func (m *rpi5PinMapper) NameToGPIO(name string) (int, error) {
         return n, nil
     }
     return 0, fmt.Errorf("unknown pin name %q for Raspberry Pi 5", name)
-}
-
-// Raspberry Pi 4/3 pin mapper (same as Pi 5 for BCM)
-type rpi4PinMapper struct {
-    rpi5PinMapper
-}
-
-// Orange Pi 5 pin mapper
-type opi5PinMapper struct{}
-
-// OPi5 physical pin to RK3588 GPIO mapping
-// GPIO number = bank*32 + group*8 + line
-var opi5PhysicalPins = map[int]int{
-    3: 139, 5: 140, 7: 36, 8: 13, 10: 14,
-    11: 35, 12: 42, 13: 150, 15: 63, 16: 138,
-    18: 43, 19: 138, 21: 41, 22: 43, 23: 44,
-    24: 42, 26: 149, 27: 140, 28: 141, 29: 133,
-    31: 134, 32: 135, 33: 150, 35: 36, 36: 149,
-    37: 44, 38: 37, 40: 38,
-}
-
-// OPi5 named pins
-var opi5NamedPins = map[string]int{
-    "SDA2": 139, "SCL2": 140, "SDA": 139, "SCL": 140,
-    "UART2_TX": 13, "UART2_RX": 14, "TX": 13, "RX": 14,
-    "PWM14": 42,
-}
-
-func (m *opi5PinMapper) Resolve(ref PinRef) (int, error) {
-    if ref.Physical > 0 {
-        return m.PhysicalToGPIO(ref.Physical)
-    }
-    if ref.Name != "" {
-        return m.NameToGPIO(ref.Name)
-    }
-    return ref.GPIO, nil
-}
-
-func (m *opi5PinMapper) PhysicalToGPIO(physical int) (int, error) {
-    if gpio, ok := opi5PhysicalPins[physical]; ok {
-        return gpio, nil
-    }
-    return 0, fmt.Errorf("invalid physical pin %d for Orange Pi 5", physical)
-}
-
-func (m *opi5PinMapper) NameToGPIO(name string) (int, error) {
-    upper := strings.ToUpper(name)
-    if gpio, ok := opi5NamedPins[upper]; ok {
-        return gpio, nil
-    }
-    return 0, fmt.Errorf("unknown pin name %q for Orange Pi 5", name)
 }
 
 // Generic pin mapper (pass-through)
@@ -2588,9 +2420,8 @@ When migrating a component to HAL:
 2. `driver/hal/detect.go` - Board detection
 3. `driver/hal/pins.go` - Pin reference parsing and resolution
 4. `driver/hal/pins_rpi.go` - Raspberry Pi pin mappings
-5. `driver/hal/pins_opi.go` - Orange Pi pin mappings
-6. `driver/hal/errors.go` - Error types
-7. `driver/hal/linux.go` - Linux driver factory functions
+5. `driver/hal/errors.go` - Error types
+6. `driver/hal/linux.go` - Linux driver factory functions
 
 **Phase 2: Driver Implementations**
 1. `driver/pwm/pwm.go` - PWM interfaces
@@ -2612,7 +2443,7 @@ When migrating a component to HAL:
 
 ## 14. Hardware PWM Driver Design
 
-This section provides the design for hardware PWM support via the Linux sysfs interface, enabling precise PWM output on dedicated hardware pins for both Raspberry Pi and Orange Pi boards.
+This section provides the design for hardware PWM support via the Linux sysfs interface, enabling precise PWM output on dedicated hardware pins for Raspberry Pi 5.
 
 ### 14.1 Overview
 
@@ -2654,64 +2485,22 @@ All supported boards use the standard Linux PWM sysfs interface at `/sys/class/p
 
 ### 14.3 Board-Specific PWM Hardware
 
-#### Raspberry Pi PWM Controllers
+#### Raspberry Pi 5 PWM Controller
 
 | Board | PWM Chip | Channels | Clock Source | Max Frequency |
 |-------|----------|----------|--------------|---------------|
 | RPi 5 | pwmchip2 | 4 | RP1 peripheral | 50 MHz |
-| RPi 4 | pwmchip0 | 2 | BCM2711 | 25 MHz |
-| RPi 3 | pwmchip0 | 2 | BCM2837 | 19.2 MHz |
 
-**Raspberry Pi PWM Pin Mapping:**
+**Raspberry Pi 5 PWM Pin Mapping:**
 
 | GPIO | Physical Pin | PWM Chip | Channel | Alt Function |
 |------|--------------|----------|---------|--------------|
-| 12 | 32 | pwmchip0/2 | 0 | ALT0 |
-| 13 | 33 | pwmchip0/2 | 1 | ALT0 |
-| 18 | 12 | pwmchip0/2 | 0 | ALT5 |
-| 19 | 35 | pwmchip0/2 | 1 | ALT5 |
+| 12 | 32 | pwmchip2 | 0 | ALT0 |
+| 13 | 33 | pwmchip2 | 1 | ALT0 |
+| 18 | 12 | pwmchip2 | 2 | ALT5 |
+| 19 | 35 | pwmchip2 | 3 | ALT5 |
 
-Note: GPIO 12/18 share channel 0, GPIO 13/19 share channel 1. Only one GPIO per channel can be active.
-
-#### Orange Pi 5 Plus PWM Controllers
-
-The Orange Pi 5 Plus has a 40-pin header similar to Raspberry Pi, with 4 PWM pins available:
-
-| PWM Controller | Channels | Chip Path | Notes |
-|----------------|----------|-----------|-------|
-| PWM0-3 | 4 | pwmchip0 | PWM0/1 on 40-pin header |
-| PWM4-7 | 4 | pwmchip1 | Muxed with GPIO |
-| PWM8-11 | 4 | pwmchip2 | Muxed with GPIO |
-| PWM12-15 | 4 | pwmchip3 | PWM13/14 on 40-pin header |
-
-**Orange Pi 5 Plus 40-pin Header PWM Pins:**
-
-| Physical Pin | GPIO | PWM Channel | Chip | Notes |
-|--------------|------|-------------|------|-------|
-| 12 | GPIO1_B2 (42) | PWM14 | pwmchip3 | Primary PWM pin |
-| 13 | GPIO4_C6 (150) | PWM13 | pwmchip3 | Muxed with GPIO |
-| 32 | GPIO1_B5 (45) | PWM1 | pwmchip0 | Secondary PWM |
-| 33 | GPIO1_B4 (44) | PWM0 | pwmchip0 | Secondary PWM |
-
-#### Orange Pi 5/5B PWM Controllers
-
-The RK3588 SoC provides 16 PWM channels across multiple controllers:
-
-| PWM Controller | Channels | Chip Path | Notes |
-|----------------|----------|-----------|-------|
-| PWM0-3 | 4 | pwmchip0 | Dedicated PWM pins |
-| PWM4-7 | 4 | pwmchip1 | Muxed with GPIO |
-| PWM8-11 | 4 | pwmchip2 | Muxed with GPIO |
-| PWM12-15 | 4 | pwmchip3 | Muxed with GPIO |
-
-**Orange Pi 5B 26-pin Header PWM Pins:**
-
-| Physical Pin | GPIO | PWM Channel | Chip | Notes |
-|--------------|------|-------------|------|-------|
-| 12 | GPIO1_B2 (42) | PWM14 | pwmchip3 | Primary PWM pin |
-| 13 | GPIO4_C6 (150) | PWM13 | pwmchip3 | Muxed with GPIO |
-
-Note: The Orange Pi 5B has a 26-pin header (not 40-pin like Raspberry Pi). Additional PWM channels may be available on other connectors.
+Note: RPi 5 has 4 independent PWM channels via the RP1 chip.
 
 ### 14.4 Driver Implementation
 
@@ -3307,10 +3096,6 @@ func DefaultPWMChip(board Board) int {
     switch board {
     case BoardRaspberryPi5:
         return 2  // RP1 PWM controller
-    case BoardRaspberryPi4, BoardRaspberryPi3:
-        return 0  // BCM PWM controller
-    case BoardOrangePi5B, BoardOrangePi5:
-        return 0  // RK3588 PWM0-3
     default:
         return 0
     }
@@ -3319,7 +3104,7 @@ func DefaultPWMChip(board Board) int {
 
 ### 14.6 GPIO to PWM Channel Mapping
 
-Components need to map GPIO pins to PWM chip/channel pairs. This is board-specific:
+Components need to map GPIO pins to PWM chip/channel pairs:
 
 ```go
 // PWMPinMap maps GPIO numbers to PWM chip and channel.
@@ -3328,15 +3113,7 @@ type PWMPinMap struct {
     Channel int
 }
 
-// Raspberry Pi 3/4 GPIO to PWM mapping
-var rpiPWMPins = map[int]PWMPinMap{
-    12: {Chip: 0, Channel: 0},  // PWM0 on ALT0, Physical Pin 32
-    13: {Chip: 0, Channel: 1},  // PWM1 on ALT0, Physical Pin 33
-    18: {Chip: 0, Channel: 0},  // PWM0 on ALT5, Physical Pin 12
-    19: {Chip: 0, Channel: 1},  // PWM1 on ALT5, Physical Pin 35
-}
-
-// Raspberry Pi 5 uses pwmchip2
+// Raspberry Pi 5 uses pwmchip2 (RP1 PWM controller)
 var rpi5PWMPins = map[int]PWMPinMap{
     12: {Chip: 2, Channel: 0},  // PWM0, Physical Pin 32
     13: {Chip: 2, Channel: 1},  // PWM1, Physical Pin 33
@@ -3344,63 +3121,28 @@ var rpi5PWMPins = map[int]PWMPinMap{
     19: {Chip: 2, Channel: 3},  // PWM3, Physical Pin 35
 }
 
-// Orange Pi 5 Plus GPIO to PWM mapping (40-pin header)
-var opi5PlusPWMPins = map[int]PWMPinMap{
-    44:  {Chip: 0, Channel: 0},  // PWM0 (GPIO1_B4), Physical Pin 33
-    45:  {Chip: 0, Channel: 1},  // PWM1 (GPIO1_B5), Physical Pin 32
-    42:  {Chip: 3, Channel: 2},  // PWM14 (GPIO1_B2), Physical Pin 12
-    150: {Chip: 3, Channel: 1},  // PWM13 (GPIO4_C6), Physical Pin 13
-}
-
-// Orange Pi 5/5B GPIO to PWM mapping (26-pin header)
-var opi5PWMPins = map[int]PWMPinMap{
-    42:  {Chip: 3, Channel: 2},  // PWM14 (GPIO1_B2), Physical Pin 12
-    150: {Chip: 3, Channel: 1},  // PWM13 (GPIO4_C6), Physical Pin 13
-}
-
 // GetPWMMapping returns the PWM chip and channel for a GPIO pin.
 // Returns ok=false if the pin doesn't support hardware PWM.
 func (h *hal) GetPWMMapping(gpio int) (chip, channel int, ok bool) {
-    var mapping map[int]PWMPinMap
-
-    switch h.board {
-    case BoardRaspberryPi5:
-        mapping = rpi5PWMPins
-    case BoardRaspberryPi4, BoardRaspberryPi3:
-        mapping = rpiPWMPins
-    case BoardOrangePi5Plus:
-        mapping = opi5PlusPWMPins
-    case BoardOrangePi5B, BoardOrangePi5:
-        mapping = opi5PWMPins
-    default:
+    if h.board != BoardRaspberryPi5 {
         return 0, 0, false
     }
 
-    if m, ok := mapping[gpio]; ok {
+    if m, ok := rpi5PWMPins[gpio]; ok {
         return m.Chip, m.Channel, true
     }
     return 0, 0, false
 }
 ```
 
-**Hardware PWM Pin Summary:**
+**Raspberry Pi 5 Hardware PWM Pins:**
 
-| Board | GPIO | Physical Pin | PWM Chip | Channel | Notes |
-|-------|------|--------------|----------|---------|-------|
-| RPi 5 | 12 | 32 | pwmchip2 | 0 | PWM0 |
-| RPi 5 | 13 | 33 | pwmchip2 | 1 | PWM1 |
-| RPi 5 | 18 | 12 | pwmchip2 | 2 | PWM2 |
-| RPi 5 | 19 | 35 | pwmchip2 | 3 | PWM3 |
-| RPi 3/4 | 12 | 32 | pwmchip0 | 0 | Shares channel with GPIO 18 |
-| RPi 3/4 | 13 | 33 | pwmchip0 | 1 | Shares channel with GPIO 19 |
-| RPi 3/4 | 18 | 12 | pwmchip0 | 0 | Shares channel with GPIO 12 |
-| RPi 3/4 | 19 | 35 | pwmchip0 | 1 | Shares channel with GPIO 13 |
-| OPi 5 Plus | 44 | 33 | pwmchip0 | 0 | PWM0 (GPIO1_B4) |
-| OPi 5 Plus | 45 | 32 | pwmchip0 | 1 | PWM1 (GPIO1_B5) |
-| OPi 5 Plus | 42 | 12 | pwmchip3 | 2 | PWM14 (GPIO1_B2) |
-| OPi 5 Plus | 150 | 13 | pwmchip3 | 1 | PWM13 (GPIO4_C6) |
-| OPi 5/5B | 42 | 12 | pwmchip3 | 2 | PWM14 (GPIO1_B2) |
-| OPi 5/5B | 150 | 13 | pwmchip3 | 1 | PWM13 (GPIO4_C6) |
+| GPIO | Physical Pin | PWM Chip | Channel | Notes |
+|------|--------------|----------|---------|-------|
+| 12 | 32 | pwmchip2 | 0 | PWM0 |
+| 13 | 33 | pwmchip2 | 1 | PWM1 |
+| 18 | 12 | pwmchip2 | 2 | PWM2 |
+| 19 | 35 | pwmchip2 | 3 | PWM3 |
 
 ### 14.7 Recommended Pin Allocation for Robotics
 
@@ -3411,14 +3153,14 @@ This section provides recommended pin allocations for typical robotics applicati
 - 2 serial UARTs (GPS, Lidar, debug)
 - 8+ general-purpose GPIO (buttons, LEDs, limit switches)
 
-#### Raspberry Pi 3/4/5 (40-pin Header)
+#### Raspberry Pi 5 (40-pin Header)
 
 **Recommended Pin Allocation:**
 
 | Function | Physical Pins | GPIO | Device | Notes |
 |----------|---------------|------|--------|-------|
-| **PWM0** | 32 | GPIO12 | pwmchip0/2 ch0 | Motor/servo control |
-| **PWM1** | 33 | GPIO13 | pwmchip0/2 ch1 | Motor/servo control |
+| **PWM0** | 32 | GPIO12 | pwmchip2 ch0 | Motor/servo control |
+| **PWM1** | 33 | GPIO13 | pwmchip2 ch1 | Motor/servo control |
 | **I2C1** | 3, 5 | GPIO2, GPIO3 | /dev/i2c-1 | Primary I2C (always enabled) |
 | **I2C3** | 7, 29 | GPIO4, GPIO5 | /dev/i2c-3 | Secondary I2C (via overlay) |
 | **SPI0** | 19, 21, 23, 24, 26 | GPIO10, 9, 11, 8, 7 | /dev/spidev0.0 | Primary SPI (MOSI, MISO, SCLK, CE0, CE1) |
@@ -3471,182 +3213,13 @@ UART3 and I2C3 both use GPIO4/5 (pins 7, 29). Choose one based on your needs:
         Ground: pins 6,9,14,20,25,30,34,39
 ```
 
-#### Orange Pi 5 Plus (40-pin Header)
-
-The Orange Pi 5 Plus has a 40-pin header similar to Raspberry Pi, providing more I/O options than the OPi5/5B.
-
-**Recommended Pin Allocation:**
-
-| Function | Physical Pins | GPIO (RK3588) | Device | Notes |
-|----------|---------------|---------------|--------|-------|
-| **PWM0** | 33 | GPIO1_B4 (44) | pwmchip0 ch0 | Motor/servo control |
-| **PWM1** | 32 | GPIO1_B5 (45) | pwmchip0 ch1 | Motor/servo control |
-| **I2C2** | 3, 5 | GPIO4_B3 (139), GPIO4_B4 (140) | /dev/i2c-2 | Primary I2C |
-| **I2C5** | 27, 28 | GPIO4_B5 (141), GPIO4_B6 (142) | /dev/i2c-5 | Secondary I2C |
-| **SPI4** | 19, 21, 23, 24, 26 | GPIO1_A1 (33), GPIO1_A0 (32), GPIO1_A2 (34), GPIO1_A3 (35), GPIO1_A4 (36) | /dev/spidev4.0 | Primary SPI (MOSI, MISO, CLK, CS0, CS1) |
-| **UART2** | 8, 10 | GPIO0_B5 (13), GPIO0_B6 (14) | /dev/ttyS2 | Primary serial |
-| **GPIO** | 7, 11, 15, 16, 18, 22, 29, 31, 35, 36, 37, 38, 40 | GPIO1_A4 (36), GPIO1_A3 (35), GPIO1_D7 (63), GPIO1_D6 (62), GPIO1_B3 (43), GPIO1_D5 (61), GPIO1_B0 (40), GPIO1_A7 (39), GPIO4_C1 (145), GPIO4_C0 (144), GPIO4_A7 (135), GPIO4_C2 (146), GPIO4_B0 (136) | gpiochip0-4 | 13 general purpose pins |
-
-**Additional PWM Options:**
-- PWM14 on pin 12 (GPIO1_B2/42) and PWM13 on pin 13 (GPIO4_C6/150) are also available
-- Choose PWM0/1 (pins 32/33) or PWM13/14 (pins 12/13) based on your GPIO needs
-
-**Power and Ground Pins:**
-
-| Type | Physical Pins | Max Current | Notes |
-|------|---------------|-------------|-------|
-| **+5V** | 2, 4 | ~3A total | Direct from power supply |
-| **+3.3V** | 1, 17 | ~500mA total | Regulated 3.3V output |
-| **GND** | 6, 9, 14, 20, 25, 30, 34, 39 | — | 8 ground pins available |
-
-**Physical Pin Layout:**
-
-```
-        Orange Pi 5 Plus 40-Pin Header (active pins for Gorai)
-        ═══════════════════════════════════════════════════
-                   +3.3V [1]  [2]  +5V
-           I2C2 SDA [3]  [4]  +5V
-           I2C2 SCL [5]  [6]  GND
-              GPIO36 [7]  [8]  UART2 TX
-                GND [9]  [10] UART2 RX
-              GPIO35 [11] [12] PWM14*
-              PWM13* [13] [14] GND
-              GPIO63 [15] [16] GPIO62
-               +3.3V [17] [18] GPIO43
-         SPI4 MOSI [19] [20] GND
-         SPI4 MISO [21] [22] GPIO61
-         SPI4 SCLK [23] [24] SPI4 CS0
-                GND [25] [26] SPI4 CS1
-          I2C5 SDA [27] [28] I2C5 SCL
-              GPIO40 [29] [30] GND
-              GPIO39 [31] [32] PWM1
-                PWM0 [33] [34] GND
-             GPIO145 [35] [36] GPIO144
-             GPIO135 [37] [38] GPIO146
-                GND [39] [40] GPIO136
-        ═══════════════════════════════════════════════════
-        Power: +5V (pins 2,4), +3.3V (pins 1,17)
-        Ground: pins 6,9,14,20,25,30,34,39
-        *PWM13/14 available as alternative to PWM0/1
-```
-
-#### Orange Pi 5/5B (26-pin Header)
-
-The Orange Pi 5B has a smaller 26-pin header with more limited peripheral options.
-
-**Recommended Pin Allocation:**
-
-| Function | Physical Pins | GPIO (RK3588) | Device | Notes |
-|----------|---------------|---------------|--------|-------|
-| **PWM14** | 12 | GPIO1_B2 (42) | pwmchip3 ch2 | Motor/servo control |
-| **PWM13** | 13 | GPIO4_C6 (150) | pwmchip3 ch1 | Motor/servo control |
-| **I2C2** | 3, 5 | GPIO4_B3 (139), GPIO4_B4 (140) | /dev/i2c-2 | Primary I2C |
-| **I2C5** | 16, 18 | GPIO4_B2 (138), GPIO1_B3 (43) | /dev/i2c-5 | Secondary I2C (via overlay) |
-| **SPI0** | 19, 21, 23, 24 | GPIO4_B2, GPIO1_B1, GPIO1_B4, GPIO1_B2 | /dev/spidev0.0 | Primary SPI |
-| **UART2** | 8, 10 | GPIO0_B5 (13), GPIO0_B6 (14) | /dev/ttyS2 | Primary serial |
-| **UART4** | — | — | /dev/ttyS4 | Via expansion connector (if available) |
-| **GPIO** | 7, 11, 15, 22, 26 | GPIO1_A4 (36), GPIO1_A3 (35), GPIO1_D7 (63), GPIO1_B3 (43), GPIO4_C5 (149) | gpiochip0-4 | 5 general purpose pins |
-
-**Limitations:**
-- Only 26 pins available (vs 40 on RPi)
-- Second SPI not available on standard header
-- Second UART may require expansion connector
-- Fewer GPIO pins available after allocating peripherals
-
-**Power and Ground Pins:**
-
-| Type | Physical Pins | Max Current | Notes |
-|------|---------------|-------------|-------|
-| **+5V** | 2, 4 | ~2A total | Direct from power supply |
-| **+3.3V** | 1, 17 | ~500mA total | Regulated 3.3V output |
-| **GND** | 6, 9, 14, 20, 25 | — | 5 ground pins available |
-
-**Physical Pin Layout:**
-
-```
-        Orange Pi 5/5B 26-Pin Header (active pins for Gorai)
-        ═══════════════════════════════════════════════════
-                   +3.3V [1]  [2]  +5V
-           I2C2 SDA [3]  [4]  +5V
-           I2C2 SCL [5]  [6]  GND
-              GPIO36 [7]  [8]  UART2 TX
-                GND [9]  [10] UART2 RX
-              GPIO35 [11] [12] PWM14
-               PWM13 [13] [14] GND
-              GPIO63 [15] [16] I2C5 SDA
-               +3.3V [17] [18] I2C5 SCL
-          SPI0 MOSI [19] [20] GND
-          SPI0 MISO [21] [22] GPIO43
-          SPI0 SCLK [23] [24] SPI0 CS0
-                GND [25] [26] GPIO149
-        ═══════════════════════════════════════════════════
-        Power: +5V (pins 2,4), +3.3V (pins 1,17)
-        Ground: pins 6,9,14,20,25
-```
-
 ### 14.8 Device Tree Configuration
 
 **Important:** Most peripherals require device tree configuration before they become available. Without proper configuration, the corresponding `/dev/` or `/sys/` entries won't exist.
 
 This section provides the complete device tree configuration needed to enable the recommended pin allocation from Section 14.7.
 
-#### Raspberry Pi 3/4 Complete Configuration
-
-Edit `/boot/config.txt` (or `/boot/firmware/config.txt` on newer OS versions):
-
-```ini
-# =============================================================================
-# Gorai Recommended Configuration for Raspberry Pi 3/4
-# Enables: 2 PWM, 2 I2C, 2 SPI, 1-2 UART, plus GPIO
-# =============================================================================
-
-# --- Core Settings ---
-# Disable Bluetooth on UART0 to free up /dev/ttyAMA0 for general use
-dtoverlay=disable-bt
-
-# --- PWM (2 channels on GPIO12 and GPIO13) ---
-# Using pins 32 and 33 to avoid conflicts with SPI1
-dtoverlay=pwm,pin=12,func=4
-dtoverlay=pwm,pin=13,func=4
-
-# --- I2C ---
-# I2C1 is enabled by default on pins 3/5 (GPIO2/3)
-# Enable I2C3 on pins 7/29 (GPIO4/5) for second I2C bus
-dtoverlay=i2c3,pins_7_29
-
-# --- SPI ---
-# SPI0 is enabled by default on pins 19/21/23/24/26
-dtparam=spi=on
-# Enable SPI1 on pins 35/38/40 (GPIO19/20/21)
-dtoverlay=spi1-3cs
-
-# --- UART ---
-# UART0 (/dev/ttyAMA0) on pins 8/10 (GPIO14/15) - enabled by disable-bt above
-# For second UART, choose ONE of the following:
-
-# Option A: UART3 on pins 7/29 - CONFLICTS WITH I2C3, comment out i2c3 above
-#dtoverlay=uart3
-
-# Option B: Use USB-serial adapter instead (no overlay needed)
-
-# --- Audio (disabled to free GPIO for other uses) ---
-dtparam=audio=off
-```
-
-**Configuration Summary:**
-
-| Peripheral | Device Path | Physical Pins | Status |
-|------------|-------------|---------------|--------|
-| PWM0 | /sys/class/pwm/pwmchip0/pwm0 | 32 (GPIO12) | Via overlay |
-| PWM1 | /sys/class/pwm/pwmchip0/pwm1 | 33 (GPIO13) | Via overlay |
-| I2C1 | /dev/i2c-1 | 3, 5 | Default enabled |
-| I2C3 | /dev/i2c-3 | 7, 29 | Via overlay |
-| SPI0 | /dev/spidev0.0, 0.1 | 19, 21, 23, 24, 26 | Via dtparam |
-| SPI1 | /dev/spidev1.0, 1.1, 1.2 | 35, 38, 40 | Via overlay |
-| UART0 | /dev/ttyAMA0 | 8, 10 | Via disable-bt |
-| GPIO | /dev/gpiochip0 | 11, 13, 15, 16, 18, 22, 36, 37 | Always available |
-
-#### Raspberry Pi 5 Complete Configuration
+#### Raspberry Pi 5 Configuration
 
 Edit `/boot/firmware/config.txt`:
 
@@ -3692,133 +3265,6 @@ ls /dev/ttyAMA*              # Should show ttyAMA0
 ls /dev/gpiochip*            # Should show gpiochip0 (RPi3/4) or gpiochip4 (RPi5)
 ```
 
-#### Orange Pi 5 Plus Complete Configuration
-
-The Orange Pi 5 Plus uses Armbian or official Orange Pi OS. Edit `/boot/orangepiEnv.txt` (or `/boot/armbianEnv.txt` for Armbian):
-
-```ini
-# =============================================================================
-# Gorai Recommended Configuration for Orange Pi 5 Plus
-# Enables: 2 PWM, 2 I2C, 1 SPI, 1 UART, plus GPIO
-# Note: 40-pin header provides more options than OPi5/5B
-# =============================================================================
-
-verbosity=1
-bootlogo=false
-console=serial
-
-# --- Device Tree Overlays ---
-# Space-separated list of overlays to enable
-overlays=pwm0-m1 pwm1-m1 i2c5-m0 spi4-m0-cs0-spidev uart2-m0
-
-# --- Explanation ---
-# pwm0-m1     : PWM0 on GPIO1_B4 (pin 33)
-# pwm1-m1     : PWM1 on GPIO1_B5 (pin 32)
-# i2c5-m0     : I2C5 on pins 27/28 (second I2C bus)
-# spi4-m0-cs0-spidev : SPI4 with CS0 as spidev
-# uart2-m0    : UART2 on pins 8/10
-```
-
-**Alternative overlays for PWM13/14:**
-```ini
-# Use PWM13/14 instead of PWM0/1 if you need pins 32/33 for GPIO
-overlays=pwm13-m2 pwm14-m0 i2c5-m0 spi4-m0-cs0-spidev uart2-m0
-```
-
-**Alternative for Armbian:**
-
-Edit `/boot/armbianEnv.txt`:
-```ini
-overlays=rk3588-pwm0-m1 rk3588-pwm1-m1 rk3588-i2c5-m0 rk3588-spi4-m0-cs0-spidev rk3588-uart2-m0
-```
-
-**Configuration Summary:**
-
-| Peripheral | Device Path | Physical Pins | Overlay |
-|------------|-------------|---------------|---------|
-| PWM0 | /sys/class/pwm/pwmchip0/pwm0 | 33 | pwm0-m1 |
-| PWM1 | /sys/class/pwm/pwmchip0/pwm1 | 32 | pwm1-m1 |
-| I2C2 | /dev/i2c-2 | 3, 5 | Default |
-| I2C5 | /dev/i2c-5 | 27, 28 | i2c5-m0 |
-| SPI4 | /dev/spidev4.0 | 19, 21, 23, 24, 26 | spi4-m0-cs0-spidev |
-| UART2 | /dev/ttyS2 | 8, 10 | uart2-m0 |
-| GPIO | /dev/gpiochip0-4 | 7, 11, 15, 16, 18, 22, 29, 31, 35-40 | Always available |
-
-**Verification Commands:**
-```bash
-# Verify all peripherals on Orange Pi 5 Plus
-ls /sys/class/pwm/pwmchip*/     # Check PWM chips (pwmchip0, pwmchip3)
-ls /dev/i2c-*                   # Should show i2c-2, i2c-5
-ls /dev/spidev*                 # Should show spidev4.0
-ls /dev/ttyS*                   # Should show ttyS2
-cat /sys/kernel/debug/gpio      # Show GPIO status (requires root)
-```
-
-#### Orange Pi 5/5B Complete Configuration
-
-The Orange Pi uses Armbian or official Orange Pi OS. Edit `/boot/orangepiEnv.txt` (or `/boot/armbianEnv.txt` for Armbian):
-
-```ini
-# =============================================================================
-# Gorai Recommended Configuration for Orange Pi 5/5B
-# Enables: 2 PWM, 2 I2C, 1 SPI, 1 UART, plus GPIO
-# Note: 26-pin header has more limited options than RPi
-# =============================================================================
-
-verbosity=1
-bootlogo=false
-console=serial
-
-# --- Device Tree Overlays ---
-# Space-separated list of overlays to enable
-overlays=pwm13-m0 pwm14-m0 i2c5-m3 spi0-m2-cs0-spidev uart2-m0
-
-# --- Explanation ---
-# pwm13-m0    : PWM13 on GPIO4_C6 (pin 13)
-# pwm14-m0    : PWM14 on GPIO1_B2 (pin 12)
-# i2c5-m3     : I2C5 on pins 16/18 (second I2C bus)
-# spi0-m2-cs0-spidev : SPI0 with CS0 as spidev
-# uart2-m0    : UART2 on pins 8/10
-```
-
-**Alternative for Armbian:**
-
-Edit `/boot/armbianEnv.txt`:
-```ini
-overlays=rk3588-pwm13-m0 rk3588-pwm14-m0 rk3588-i2c5-m3 rk3588-spi0-m2-cs0-spidev rk3588-uart2-m0
-```
-
-**Configuration Summary:**
-
-| Peripheral | Device Path | Physical Pins | Overlay |
-|------------|-------------|---------------|---------|
-| PWM13 | /sys/class/pwm/pwmchip3/pwm1 | 13 | pwm13-m0 |
-| PWM14 | /sys/class/pwm/pwmchip3/pwm2 | 12 | pwm14-m0 |
-| I2C2 | /dev/i2c-2 | 3, 5 | Default |
-| I2C5 | /dev/i2c-5 | 16, 18 | i2c5-m3 |
-| SPI0 | /dev/spidev0.0 | 19, 21, 23, 24 | spi0-m2-cs0-spidev |
-| UART2 | /dev/ttyS2 | 8, 10 | uart2-m0 |
-| GPIO | /dev/gpiochip0-4 | 7, 11, 15, 22, 26 | Always available |
-
-**Finding Available Overlays:**
-```bash
-# List available overlays on Orange Pi
-ls /boot/dtb/rockchip/overlay/
-
-# Or on Armbian
-ls /boot/dtb/rockchip/overlay/ | grep rk3588
-```
-
-**Verification Commands:**
-```bash
-# Verify all peripherals
-ls /sys/class/pwm/pwmchip*/     # Check PWM chips
-ls /dev/i2c-*                   # Should show i2c-2, i2c-5
-ls /dev/spidev*                 # Should show spidev0.0
-ls /dev/ttyS*                   # Should show ttyS2
-cat /sys/kernel/debug/gpio      # Show GPIO status (requires root)
-```
-
 #### Quick Setup Scripts
 
 **Raspberry Pi Setup Script:**
@@ -3846,54 +3292,6 @@ dtparam=audio=off
 EOF
 
 echo "Configuration added. Please reboot to apply changes."
-echo "Run: sudo reboot"
-```
-
-**Orange Pi 5 Plus Setup Script:**
-```bash
-#!/bin/bash
-# setup-gorai-opi5plus.sh - Configure Orange Pi 5 Plus for Gorai
-
-CONFIG="/boot/orangepiEnv.txt"
-[ -f "/boot/armbianEnv.txt" ] && CONFIG="/boot/armbianEnv.txt"
-
-echo "Backing up $CONFIG to ${CONFIG}.backup"
-sudo cp "$CONFIG" "${CONFIG}.backup"
-
-# Add or update overlays line for Orange Pi 5 Plus (40-pin header)
-if grep -q "^overlays=" "$CONFIG"; then
-    echo "Updating existing overlays line..."
-    sudo sed -i 's/^overlays=.*/overlays=pwm0-m1 pwm1-m1 i2c5-m0 spi4-m0-cs0-spidev uart2-m0/' "$CONFIG"
-else
-    echo "Adding overlays line..."
-    echo "overlays=pwm0-m1 pwm1-m1 i2c5-m0 spi4-m0-cs0-spidev uart2-m0" | sudo tee -a "$CONFIG"
-fi
-
-echo "Configuration updated. Please reboot to apply changes."
-echo "Run: sudo reboot"
-```
-
-**Orange Pi 5/5B Setup Script:**
-```bash
-#!/bin/bash
-# setup-gorai-opi5b.sh - Configure Orange Pi 5/5B for Gorai
-
-CONFIG="/boot/orangepiEnv.txt"
-[ -f "/boot/armbianEnv.txt" ] && CONFIG="/boot/armbianEnv.txt"
-
-echo "Backing up $CONFIG to ${CONFIG}.backup"
-sudo cp "$CONFIG" "${CONFIG}.backup"
-
-# Add or update overlays line for Orange Pi 5/5B (26-pin header)
-if grep -q "^overlays=" "$CONFIG"; then
-    echo "Updating existing overlays line..."
-    sudo sed -i 's/^overlays=.*/overlays=pwm13-m0 pwm14-m0 i2c5-m3 spi0-m2-cs0-spidev uart2-m0/' "$CONFIG"
-else
-    echo "Adding overlays line..."
-    echo "overlays=pwm13-m0 pwm14-m0 i2c5-m3 spi0-m2-cs0-spidev uart2-m0" | sudo tee -a "$CONFIG"
-fi
-
-echo "Configuration updated. Please reboot to apply changes."
 echo "Run: sudo reboot"
 ```
 
@@ -4054,7 +3452,7 @@ echo 1 > /sys/class/pwm/pwmchip0/pwm0/enable
 | Timing jitter | 10-100µs | <1µs |
 | Max frequency | ~1 kHz | 50+ MHz |
 | Resolution | ~1µs | ~10ns |
-| Channels | Any GPIO | 2-4 per board (RPi: 4, OPi5Plus: 4, OPi5B: 2) |
+| Channels | Any GPIO | 4 channels on Raspberry Pi 5 |
 
 Hardware PWM is essential for:
 - Motor control (requires 20+ kHz to avoid audible whine)
@@ -4076,39 +3474,7 @@ Hardware PWM is essential for:
 | Hardware PWM | `/sys/class/pwm/pwmchip2` (2 channels) |
 | UART | `/dev/ttyAMA0`, `/dev/ttyAMA10` |
 
-### 15.2 Raspberry Pi 4
-
-| Resource | Path/Value |
-|----------|------------|
-| GPIO Chip | `/dev/gpiochip0` (BCM2711) |
-| I2C Buses | `/dev/i2c-1` (user) |
-| SPI Bus | `/dev/spidev0.0`, `/dev/spidev0.1` |
-| Hardware PWM | `/sys/class/pwm/pwmchip0` (2 channels) |
-| UART | `/dev/ttyS0`, `/dev/ttyAMA0` |
-
-### 15.3 Orange Pi 5 Plus
-
-| Resource | Path/Value |
-|----------|------------|
-| GPIO Chip | `/dev/gpiochip0` - `/dev/gpiochip4` (RK3588) |
-| I2C Buses | `/dev/i2c-2` (primary), `/dev/i2c-5` (via overlay) |
-| SPI Bus | `/dev/spidev4.0` (via overlay) |
-| Hardware PWM | `/sys/class/pwm/pwmchip0` (PWM0/1), `/sys/class/pwm/pwmchip3` (PWM13/14) |
-| UART | `/dev/ttyS2` |
-| Header | 40-pin (RPi compatible layout) |
-
-### 15.4 Orange Pi 5/5B
-
-| Resource | Path/Value |
-|----------|------------|
-| GPIO Chip | `/dev/gpiochip0` - `/dev/gpiochip4` (RK3588) |
-| I2C Buses | `/dev/i2c-2` (primary), `/dev/i2c-5` (via overlay) |
-| SPI Bus | `/dev/spidev0.0` |
-| Hardware PWM | `/sys/class/pwm/pwmchip3` (PWM13/14) |
-| UART | `/dev/ttyS2` |
-| Header | 26-pin (limited layout) |
-
-### 15.5 GPIO Chip Selection by Board
+### 15.2 GPIO Chip Selection by Board
 
 ```go
 // Default GPIO chip for each board
@@ -4116,10 +3482,6 @@ func defaultGPIOChip(board Board) int {
     switch board {
     case BoardRaspberryPi5:
         return 4  // RP1 chip
-    case BoardRaspberryPi4, BoardRaspberryPi3:
-        return 0  // BCM chip
-    case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
-        return 0  // Main RK3588 GPIO controller
     default:
         return 0
     }

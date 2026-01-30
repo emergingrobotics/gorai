@@ -19,21 +19,6 @@ const (
 	// BoardRaspberryPi5 is Raspberry Pi 5.
 	BoardRaspberryPi5 Board = "rpi5"
 
-	// BoardRaspberryPi4 is Raspberry Pi 4.
-	BoardRaspberryPi4 Board = "rpi4"
-
-	// BoardRaspberryPi3 is Raspberry Pi 3.
-	BoardRaspberryPi3 Board = "rpi3"
-
-	// BoardOrangePi5Plus is Orange Pi 5 Plus (40-pin header).
-	BoardOrangePi5Plus Board = "opi5plus"
-
-	// BoardOrangePi5B is Orange Pi 5B (26-pin header).
-	BoardOrangePi5B Board = "opi5b"
-
-	// BoardOrangePi5 is Orange Pi 5 (26-pin header).
-	BoardOrangePi5 Board = "opi5"
-
 	// BoardGenericLinux is a generic Linux system.
 	BoardGenericLinux Board = "linux"
 )
@@ -45,31 +30,13 @@ func (b Board) String() string {
 
 // IsRaspberryPi returns true for any Raspberry Pi board.
 func (b Board) IsRaspberryPi() bool {
-	switch b {
-	case BoardRaspberryPi5, BoardRaspberryPi4, BoardRaspberryPi3:
-		return true
-	}
-	return false
-}
-
-// IsOrangePi returns true for any Orange Pi board.
-func (b Board) IsOrangePi() bool {
-	switch b {
-	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
-		return true
-	}
-	return false
+	return b == BoardRaspberryPi5
 }
 
 // SupportedBoards returns all boards with built-in support.
 func SupportedBoards() []Board {
 	return []Board{
 		BoardRaspberryPi5,
-		BoardRaspberryPi4,
-		BoardRaspberryPi3,
-		BoardOrangePi5Plus,
-		BoardOrangePi5B,
-		BoardOrangePi5,
 		BoardGenericLinux,
 	}
 }
@@ -91,19 +58,8 @@ func Detect() Board {
 	if model, err := os.ReadFile("/proc/device-tree/model"); err == nil {
 		modelStr := strings.ToLower(strings.TrimRight(string(model), "\x00\n"))
 
-		switch {
-		case strings.Contains(modelStr, "raspberry pi 5"):
+		if strings.Contains(modelStr, "raspberry pi 5") {
 			return BoardRaspberryPi5
-		case strings.Contains(modelStr, "raspberry pi 4"):
-			return BoardRaspberryPi4
-		case strings.Contains(modelStr, "raspberry pi 3"):
-			return BoardRaspberryPi3
-		case strings.Contains(modelStr, "orange pi 5 plus"):
-			return BoardOrangePi5Plus
-		case strings.Contains(modelStr, "orange pi 5b"):
-			return BoardOrangePi5B
-		case strings.Contains(modelStr, "orange pi 5"):
-			return BoardOrangePi5
 		}
 	}
 
@@ -111,25 +67,8 @@ func Detect() Board {
 	if compat, err := os.ReadFile("/proc/device-tree/compatible"); err == nil {
 		compatStr := strings.ToLower(string(compat))
 
-		switch {
-		case strings.Contains(compatStr, "brcm,bcm2712"):
+		if strings.Contains(compatStr, "brcm,bcm2712") {
 			return BoardRaspberryPi5
-		case strings.Contains(compatStr, "brcm,bcm2711"):
-			return BoardRaspberryPi4
-		case strings.Contains(compatStr, "brcm,bcm2837"):
-			return BoardRaspberryPi3
-		case strings.Contains(compatStr, "rockchip,rk3588"):
-			// Could be OPi5, 5B, or 5 Plus - check more specifically
-			if model, _ := os.ReadFile("/proc/device-tree/model"); model != nil {
-				modelLower := strings.ToLower(string(model))
-				if strings.Contains(modelLower, "5 plus") || strings.Contains(modelLower, "5plus") {
-					return BoardOrangePi5Plus
-				}
-				if strings.Contains(modelLower, "5b") {
-					return BoardOrangePi5B
-				}
-			}
-			return BoardOrangePi5
 		}
 	}
 
@@ -225,10 +164,6 @@ func DefaultGPIOChip(board Board) int {
 	switch board {
 	case BoardRaspberryPi5:
 		return 4 // RP1 chip
-	case BoardRaspberryPi4, BoardRaspberryPi3:
-		return 0 // BCM chip
-	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
-		return 0 // RK3588 main GPIO
 	default:
 		return 0
 	}
@@ -237,10 +172,8 @@ func DefaultGPIOChip(board Board) int {
 // DefaultI2CBus returns the default I2C bus number for a board.
 func DefaultI2CBus(board Board) int {
 	switch board {
-	case BoardRaspberryPi5, BoardRaspberryPi4, BoardRaspberryPi3:
+	case BoardRaspberryPi5:
 		return 1 // User-accessible I2C bus
-	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
-		return 2 // Commonly used I2C bus
 	default:
 		return 1
 	}
@@ -251,10 +184,6 @@ func DefaultPWMChip(board Board) int {
 	switch board {
 	case BoardRaspberryPi5:
 		return 2
-	case BoardRaspberryPi4, BoardRaspberryPi3:
-		return 0
-	case BoardOrangePi5Plus, BoardOrangePi5B, BoardOrangePi5:
-		return 0
 	default:
 		return 0
 	}
