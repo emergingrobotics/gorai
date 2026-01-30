@@ -24,9 +24,18 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Common workflows:"
-	@echo "  make build          Build the CLI"
-	@echo "  make test           Run unit tests"
-	@echo "  make check          Run all checks (fmt, vet, lint, test)"
+	@echo "  make build            Build the CLI"
+	@echo "  make build-examples   Build all example binaries"
+	@echo "  make validate-examples Validate all RDL example configs"
+	@echo "  make test             Run unit tests"
+	@echo "  make check            Run all checks (fmt, vet, lint, test)"
+	@echo ""
+	@echo "Example targets:"
+	@echo "  make run-example-blinky        Run blinky LED example"
+	@echo "  make run-example-gps           Run GPS tracker example"
+	@echo "  make run-example-camera        Run camera streaming example"
+	@echo "  make run-example-hello-robot   Run hello-robot publisher"
+	@echo "  make run-example-pwm-controller Run PWM controller (gorai-gsp)"
 	@echo ""
 
 # Default target
@@ -441,26 +450,141 @@ docs-serve:
 	fi
 
 # ============================================================================
-# Hello Sensor Example
+# Examples
 # ============================================================================
 
-.PHONY: hello-run
-hello-run: build-hello nats-start
-	@echo "==> Running hello-sensor example..."
-	@echo "    Subscribe with: nats sub 'gorai.hello.cpu_temp.>'"
+# Example directories
+EXAMPLES_DIR := examples
+ARCHIVED_EXAMPLES_DIR := archive/examples
+
+# RDL-based examples (run via gorai CLI)
+EXAMPLE_BLINKY := $(EXAMPLES_DIR)/blinky
+EXAMPLE_GPS := $(EXAMPLES_DIR)/gps-tracker
+EXAMPLE_CAMERA := $(EXAMPLES_DIR)/hello-camera
+
+# Archived Go examples
+EXAMPLE_HELLO_ROBOT := $(ARCHIVED_EXAMPLES_DIR)/hello-robot
+EXAMPLE_HELLO_ROBOT_PROD := $(ARCHIVED_EXAMPLES_DIR)/hello-robot-production
+
+# Go examples in examples/
+EXAMPLE_PWM_CONTROLLER := $(EXAMPLES_DIR)/pwm-controller
+
+# --- Build All Examples ---
+
+.PHONY: build-examples
+build-examples: build-example-hello-robot build-example-hello-robot-prod build-example-pwm-controller ## Build all example binaries
+	@echo "==> All examples built"
+
+.PHONY: build-example-hello-robot
+build-example-hello-robot: $(BIN_DIR) ## Build hello-robot example (publisher/subscriber)
+	@echo "==> Building hello-robot publisher..."
+	cd $(EXAMPLE_HELLO_ROBOT)/publisher && $(GOBUILD) $(GOFLAGS) -o $(CURDIR)/$(BIN_DIR)/hello-robot-publisher .
+	@echo "==> Building hello-robot subscriber..."
+	cd $(EXAMPLE_HELLO_ROBOT)/subscriber && $(GOBUILD) $(GOFLAGS) -o $(CURDIR)/$(BIN_DIR)/hello-robot-subscriber .
+	@echo "==> Binaries ready: $(BIN_DIR)/hello-robot-publisher, $(BIN_DIR)/hello-robot-subscriber"
+
+.PHONY: build-example-hello-robot-prod
+build-example-hello-robot-prod: $(BIN_DIR) ## Build hello-robot-production example (with health checks)
+	@echo "==> Building hello-robot-production publisher..."
+	cd $(EXAMPLE_HELLO_ROBOT_PROD)/publisher && $(GOBUILD) $(GOFLAGS) -o $(CURDIR)/$(BIN_DIR)/hello-robot-prod-publisher .
+	@echo "==> Building hello-robot-production subscriber..."
+	cd $(EXAMPLE_HELLO_ROBOT_PROD)/subscriber && $(GOBUILD) $(GOFLAGS) -o $(CURDIR)/$(BIN_DIR)/hello-robot-prod-subscriber .
+	@echo "==> Binaries ready: $(BIN_DIR)/hello-robot-prod-publisher, $(BIN_DIR)/hello-robot-prod-subscriber"
+
+.PHONY: build-example-pwm-controller
+build-example-pwm-controller: $(BIN_DIR) ## Build pwm-controller example (uses gorai-gsp)
+	@echo "==> Building pwm-controller..."
+	cd $(EXAMPLE_PWM_CONTROLLER) && $(GOBUILD) $(GOFLAGS) -o $(CURDIR)/$(BIN_DIR)/pwm-controller .
+	@echo "==> Binary ready: $(BIN_DIR)/pwm-controller"
+
+# --- Validate Examples ---
+
+.PHONY: validate-examples
+validate-examples: build ## Validate all RDL example configurations
+	@echo "==> Validating all example configurations..."
+	$(BIN_DIR)/gorai validate $(EXAMPLE_BLINKY)/robot.json
+	$(BIN_DIR)/gorai validate $(EXAMPLE_GPS)/robot.json
+	$(BIN_DIR)/gorai validate $(EXAMPLE_CAMERA)/hello-camera.json
+	@echo "==> All examples validated successfully"
+
+.PHONY: validate-example-blinky
+validate-example-blinky: build ## Validate blinky example
+	$(BIN_DIR)/gorai validate $(EXAMPLE_BLINKY)/robot.json
+
+.PHONY: validate-example-gps
+validate-example-gps: build ## Validate gps-tracker example
+	$(BIN_DIR)/gorai validate $(EXAMPLE_GPS)/robot.json
+
+.PHONY: validate-example-camera
+validate-example-camera: build ## Validate hello-camera example
+	$(BIN_DIR)/gorai validate $(EXAMPLE_CAMERA)/hello-camera.json
+
+# --- Run Examples ---
+
+.PHONY: run-example-blinky
+run-example-blinky: build nats-start ## Run blinky example
+	@echo "==> Running blinky example..."
+	@echo "    Subscribe with: nats sub 'gorai.blinky.>'"
 	@echo ""
-	$(BIN_DIR)/hello-sensor --robot=hello --interval=1000
+	$(BIN_DIR)/gorai run $(EXAMPLE_BLINKY)/robot.json
 
-.PHONY: hello-test
-hello-test:
-	@echo "==> Testing hello-sensor example..."
-	$(GOTEST) ./examples/hello-sensor/...
-	$(GOTEST) $(COMPONENT_TAGS) ./examples/hello-sensor/...
+.PHONY: run-example-gps
+run-example-gps: build nats-start ## Run gps-tracker example
+	@echo "==> Running gps-tracker example..."
+	@echo "    Subscribe with: nats sub 'gorai.gps-tracker.>'"
+	@echo ""
+	$(BIN_DIR)/gorai run $(EXAMPLE_GPS)/robot.json
 
-.PHONY: hello-sub
-hello-sub:
-	@echo "==> Subscribing to hello-sensor topics..."
-	nats sub "gorai.hello.cpu_temp.>"
+.PHONY: run-example-camera
+run-example-camera: build nats-start ## Run hello-camera example
+	@echo "==> Running hello-camera example..."
+	@echo "    Dashboard: http://localhost:8080"
+	@echo ""
+	$(BIN_DIR)/gorai run $(EXAMPLE_CAMERA)/hello-camera.json
+
+.PHONY: run-example-hello-robot
+run-example-hello-robot: build-example-hello-robot nats-start ## Run hello-robot publisher (archived example)
+	@echo "==> Running hello-robot publisher..."
+	@echo "    Subscribe with: nats sub 'hello.messages'"
+	@echo ""
+	$(BIN_DIR)/hello-robot-publisher
+
+.PHONY: run-example-hello-robot-prod
+run-example-hello-robot-prod: build-example-hello-robot-prod nats-start ## Run hello-robot-production publisher (with health checks)
+	@echo "==> Running hello-robot-production publisher..."
+	@echo "    Subscribe with: nats sub 'hello.messages'"
+	@echo "    Health check: http://localhost:8080/healthz"
+	@echo ""
+	$(BIN_DIR)/hello-robot-prod-publisher
+
+.PHONY: run-example-pwm-controller
+run-example-pwm-controller: build-example-pwm-controller ## Run pwm-controller example (sweep mode)
+	@echo "==> Running pwm-controller example..."
+	@echo "    Connect RP2040 PWM controller to /dev/ttyACM0"
+	@echo ""
+	$(BIN_DIR)/pwm-controller
+
+# --- Subscribe to Example Topics ---
+
+.PHONY: sub-example-blinky
+sub-example-blinky: ## Subscribe to blinky topics
+	@echo "==> Subscribing to blinky topics..."
+	nats sub "gorai.blinky.>"
+
+.PHONY: sub-example-gps
+sub-example-gps: ## Subscribe to gps-tracker topics
+	@echo "==> Subscribing to gps-tracker topics..."
+	nats sub "gorai.gps-tracker.>"
+
+.PHONY: sub-example-hello-robot
+sub-example-hello-robot: build-example-hello-robot ## Run hello-robot subscriber
+	@echo "==> Running hello-robot subscriber..."
+	$(BIN_DIR)/hello-robot-subscriber
+
+.PHONY: sub-example-hello-robot-prod
+sub-example-hello-robot-prod: build-example-hello-robot-prod ## Run hello-robot-production subscriber (with health checks)
+	@echo "==> Running hello-robot-production subscriber..."
+	$(BIN_DIR)/hello-robot-prod-subscriber
 
 # ============================================================================
 # CI/CD
