@@ -31,6 +31,8 @@ const (
 	servoMax    = 2000 // Maximum pulse width (µs)
 )
 
+var verbose bool
+
 func main() {
 	// Parse command-line flags
 	port := flag.String("port", "/dev/ttyACM0", "Serial port for PWM controller")
@@ -38,13 +40,17 @@ func main() {
 	channel := flag.Int("channel", 0, "PWM channel to control (0-15)")
 	demo := flag.String("demo", "sweep", "Demo mode: sweep, center, or manual")
 	pulse := flag.Int("pulse", 1500, "Pulse width in µs (for manual mode)")
+	flag.BoolVar(&verbose, "v", false, "Verbose output")
+	flag.BoolVar(&verbose, "verbose", false, "Verbose output")
 	flag.Parse()
 
-	log.Printf("PWM Controller Example")
-	log.Printf("  Port:    %s", *port)
-	log.Printf("  Baud:    %d", *baud)
-	log.Printf("  Channel: %d", *channel)
-	log.Printf("  Mode:    %s", *demo)
+	if verbose {
+		log.Printf("PWM Controller Example")
+		log.Printf("  Port:    %s", *port)
+		log.Printf("  Baud:    %d", *baud)
+		log.Printf("  Channel: %d", *channel)
+		log.Printf("  Mode:    %s", *demo)
+	}
 
 	// Open serial port
 	serialPort, err := openSerial(*port, *baud)
@@ -53,7 +59,9 @@ func main() {
 	}
 	defer serialPort.Close()
 
-	log.Println("Serial port opened successfully")
+	if verbose {
+		log.Println("Serial port opened successfully")
+	}
 
 	// Create GSP client
 	t := transport.NewReadWriter(serialPort)
@@ -62,11 +70,15 @@ func main() {
 
 	// Set up message handlers
 	c.OnMessage(gsp.TypeHeartbeat, func(msg gsp.Message, hdr *gsp.Header) {
-		// Heartbeat received - controller is alive
-		log.Println("Heartbeat received")
+		if verbose {
+			log.Println("Heartbeat received")
+		}
 	})
 
 	c.OnMessage(gsp.TypePWMState, func(msg gsp.Message, hdr *gsp.Header) {
+		if !verbose {
+			return
+		}
 		if state, ok := msg.(*messages.PWMState); ok {
 			for _, ch := range state.Channels {
 				enabled := "disabled"
@@ -83,7 +95,9 @@ func main() {
 	})
 
 	c.OnError(func(err error) {
-		log.Printf("GSP error: %v", err)
+		if verbose {
+			log.Printf("GSP error: %v", err)
+		}
 	})
 
 	// Start the client's read loop
@@ -94,9 +108,13 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Enable the channel
-	log.Printf("Enabling channel %d...", *channel)
+	if verbose {
+		log.Printf("Enabling channel %d...", *channel)
+	}
 	if err := enableChannel(c, uint8(*channel), true); err != nil {
-		log.Printf("Warning: Failed to enable channel: %v", err)
+		if verbose {
+			log.Printf("Warning: Failed to enable channel: %v", err)
+		}
 	}
 
 	// Run the selected demo
@@ -119,12 +137,18 @@ func main() {
 	<-done
 
 	// Disable channel and cleanup
-	log.Printf("Disabling channel %d...", *channel)
+	if verbose {
+		log.Printf("Disabling channel %d...", *channel)
+	}
 	if err := enableChannel(c, uint8(*channel), false); err != nil {
-		log.Printf("Warning: Failed to disable channel: %v", err)
+		if verbose {
+			log.Printf("Warning: Failed to disable channel: %v", err)
+		}
 	}
 
-	log.Println("Shutting down...")
+	if verbose {
+		log.Println("Shutting down...")
+	}
 	c.Close()
 }
 
@@ -161,7 +185,9 @@ func enableChannel(c *client.Client, channel uint8, enabled bool) error {
 
 // runSweepDemo sweeps a servo back and forth through its range.
 func runSweepDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
-	log.Println("Running sweep demo (Ctrl+C to stop)...")
+	if verbose {
+		log.Println("Running sweep demo (Ctrl+C to stop)...")
+	}
 
 	ticker := time.NewTicker(20 * time.Millisecond) // 50Hz update rate
 	defer ticker.Stop()
@@ -174,7 +200,9 @@ func runSweepDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
 		select {
 		case <-ticker.C:
 			if err := setPWM(c, channel, uint16(pulse)); err != nil {
-				log.Printf("Error setting PWM: %v", err)
+				if verbose {
+					log.Printf("Error setting PWM: %v", err)
+				}
 			}
 
 			pulse += direction * step
@@ -183,15 +211,21 @@ func runSweepDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
 			if pulse >= servoMax {
 				pulse = servoMax
 				direction = -1
-				log.Printf("Sweep: max position (%d µs)", pulse)
+				if verbose {
+					log.Printf("Sweep: max position (%d µs)", pulse)
+				}
 			} else if pulse <= servoMin {
 				pulse = servoMin
 				direction = 1
-				log.Printf("Sweep: min position (%d µs)", pulse)
+				if verbose {
+					log.Printf("Sweep: min position (%d µs)", pulse)
+				}
 			}
 
 		case <-sigChan:
-			log.Println("Stopping sweep demo...")
+			if verbose {
+				log.Println("Stopping sweep demo...")
+			}
 			// Return to center
 			setPWM(c, channel, servoCenter)
 			return
@@ -201,14 +235,20 @@ func runSweepDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
 
 // runCenterDemo sets the servo to center position and holds it.
 func runCenterDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
-	log.Printf("Setting channel %d to center position (%d µs)...", channel, servoCenter)
+	if verbose {
+		log.Printf("Setting channel %d to center position (%d µs)...", channel, servoCenter)
+	}
 
 	if err := setPWM(c, channel, servoCenter); err != nil {
-		log.Printf("Error setting PWM: %v", err)
+		if verbose {
+			log.Printf("Error setting PWM: %v", err)
+		}
 		return
 	}
 
-	log.Println("Holding center position (Ctrl+C to stop)...")
+	if verbose {
+		log.Println("Holding center position (Ctrl+C to stop)...")
+	}
 
 	// Keep sending center position periodically to prevent failsafe
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -218,10 +258,14 @@ func runCenterDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
 		select {
 		case <-ticker.C:
 			if err := setPWM(c, channel, servoCenter); err != nil {
-				log.Printf("Error setting PWM: %v", err)
+				if verbose {
+					log.Printf("Error setting PWM: %v", err)
+				}
 			}
 		case <-sigChan:
-			log.Println("Stopping center demo...")
+			if verbose {
+				log.Println("Stopping center demo...")
+			}
 			return
 		}
 	}
@@ -229,14 +273,20 @@ func runCenterDemo(c *client.Client, channel uint8, sigChan chan os.Signal) {
 
 // runManualDemo sets the servo to a specified position.
 func runManualDemo(c *client.Client, channel uint8, pulseUS uint16, sigChan chan os.Signal) {
-	log.Printf("Setting channel %d to %d µs...", channel, pulseUS)
+	if verbose {
+		log.Printf("Setting channel %d to %d µs...", channel, pulseUS)
+	}
 
 	if err := setPWM(c, channel, pulseUS); err != nil {
-		log.Printf("Error setting PWM: %v", err)
+		if verbose {
+			log.Printf("Error setting PWM: %v", err)
+		}
 		return
 	}
 
-	log.Println("Holding position (Ctrl+C to stop)...")
+	if verbose {
+		log.Println("Holding position (Ctrl+C to stop)...")
+	}
 
 	// Keep sending position periodically to prevent failsafe
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -246,10 +296,14 @@ func runManualDemo(c *client.Client, channel uint8, pulseUS uint16, sigChan chan
 		select {
 		case <-ticker.C:
 			if err := setPWM(c, channel, pulseUS); err != nil {
-				log.Printf("Error setting PWM: %v", err)
+				if verbose {
+					log.Printf("Error setting PWM: %v", err)
+				}
 			}
 		case <-sigChan:
-			log.Println("Stopping manual demo...")
+			if verbose {
+				log.Println("Stopping manual demo...")
+			}
 			return
 		}
 	}
@@ -273,4 +327,5 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "  %s -demo center -channel 1  # Center servo on channel 1\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "  %s -demo manual -pulse 1200 # Set channel 0 to 1200 µs\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "  %s -port /dev/ttyUSB0       # Use different serial port\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  %s -v                       # Enable verbose output\n", os.Args[0])
 }

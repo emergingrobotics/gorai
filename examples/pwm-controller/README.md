@@ -62,6 +62,7 @@ Sets a specific pulse width:
 | `-channel` | `0` | PWM channel to control (0-15) |
 | `-demo` | `sweep` | Demo mode: `sweep`, `center`, or `manual` |
 | `-pulse` | `1500` | Pulse width in µs (for manual mode) |
+| `-v`, `-verbose` | `false` | Enable verbose output |
 
 ### Examples
 
