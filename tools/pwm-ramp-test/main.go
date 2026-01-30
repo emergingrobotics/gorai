@@ -2,9 +2,9 @@
 //
 // This program:
 //   1. Enables all 16 channels and sets them to 1500us
-//   2. Ramps down to 1000us in steps of 50 every 250ms (all channels at once)
-//   3. Ramps up to 2000us in steps of 50 every 250ms (all channels at once)
-//   4. Ramps down to 1500us in steps of 50 every 250ms (all channels at once)
+//   2. Ramps down to 1000us in steps of 50 every 250ms (all 16 channels updated together)
+//   3. Ramps up to 2000us in steps of 50 every 250ms (all 16 channels updated together)
+//   4. Ramps down to 1500us in steps of 50 every 250ms (all 16 channels updated together)
 //   5. Holds for 5 seconds
 //   6. Repeats
 //
@@ -325,31 +325,26 @@ func (c *Client) enableAll(enabled bool) {
 }
 
 func (c *Client) setAllChannels(pulseUs int) {
-	// Send batch command for all channels at once
-	payload := c.buildBatchCommand(pulseUs)
-	c.sendPub("pwm.command", payload)
-	time.Sleep(50 * time.Millisecond) // Allow firmware to process before next command
+	// Send individual commands for all channels in rapid succession.
+	// Batch commands have reliability issues, so we use individual commands
+	// sent quickly to achieve the same effect.
+	if verbose && !debug {
+		fmt.Printf("  TX [pwm.command]: all channels -> %dus\n", pulseUs)
+	}
+	for i := 0; i < numChannels; i++ {
+		payload := fmt.Sprintf(`{"channel":%d,"pulse_us":%d}`, i, pulseUs)
+		c.sendPubQuiet("pwm.command", payload)
+	}
+	time.Sleep(20 * time.Millisecond) // Allow firmware to process all commands
 }
 
 func (c *Client) setAllChannelsQuiet(pulseUs int) {
-	// Send batch command without verbose output (for keep-alive)
-	payload := c.buildBatchCommand(pulseUs)
-	c.sendPubQuiet("pwm.command", payload)
-	time.Sleep(50 * time.Millisecond) // Allow firmware to process before next command
-}
-
-func (c *Client) buildBatchCommand(pulseUs int) string {
-	// Build batch command for all 16 channels
-	var b strings.Builder
-	b.WriteString(`{"channels":[`)
+	// Send individual commands for all channels in rapid succession (for keep-alive)
 	for i := 0; i < numChannels; i++ {
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		fmt.Fprintf(&b, `{"ch":%d,"pulse_us":%d}`, i, pulseUs)
+		payload := fmt.Sprintf(`{"channel":%d,"pulse_us":%d}`, i, pulseUs)
+		c.sendPubQuiet("pwm.command", payload)
 	}
-	b.WriteString(`]}`)
-	return b.String()
+	time.Sleep(20 * time.Millisecond) // Allow firmware to process all commands
 }
 
 func (c *Client) sendPubQuiet(subject string, payload string) {
