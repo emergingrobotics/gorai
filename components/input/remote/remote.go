@@ -227,6 +227,13 @@ func (r *RemoteKeyboard) handleMessage(msg *nats.Msg) {
 		return
 	}
 
+	// Log received event
+	r.logger.Debug("received key event",
+		"key", keyMsg.Key,
+		"pressed", keyMsg.Pressed,
+		"seq", keyMsg.Seq,
+	)
+
 	// Convert to input.KeyEvent
 	event := input.KeyEvent{
 		Key:     keyMsg.Key,

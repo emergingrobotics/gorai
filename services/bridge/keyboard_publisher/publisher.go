@@ -52,13 +52,13 @@ func (s State) String() string {
 // KeyEventMessage is the message format published to NATS.
 // Uses a simple JSON-serializable struct for compatibility.
 type KeyEventMessage struct {
-	Timestamp int64           `json:"timestamp"`
-	Seq       uint64          `json:"seq"`
-	Key       string          `json:"key"`
-	Code      uint16          `json:"code"`
-	Pressed   bool            `json:"pressed"`
-	Repeat    bool            `json:"repeat"`
-	Modifiers ModifiersData   `json:"modifiers"`
+	Timestamp int64         `json:"timestamp"`
+	Seq       uint64        `json:"seq"`
+	Key       string        `json:"key"`
+	Code      uint16        `json:"code"`
+	Pressed   bool          `json:"pressed"`
+	Repeat    bool          `json:"repeat"`
+	Modifiers ModifiersData `json:"modifiers"`
 }
 
 // ModifiersData holds modifier key state.
@@ -124,10 +124,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	p := &Publisher{
 		name:         resource.NewServiceName("gorai", "bridge", name),
 		config:       cfg,
-		logger:       slog.Default().With("service", "keyboard_publisher", "name", name),
+		logger:       logger.With("service", "keyboard_publisher", "name", name),
 		publishTimes: make([]time.Time, 0, 100),
 		state:        StateStopped,
 		stopCh:       make(chan struct{}),
@@ -433,11 +441,11 @@ func (p *Publisher) DoCommand(ctx context.Context, cmd map[string]any) (map[stri
 
 	case "get_config":
 		return map[string]any{
-			"keyboard":             p.config.Keyboard,
-			"topic":                p.config.GetTopic(),
-			"publish_repeat":       p.config.PublishRepeat,
-			"heartbeat_interval":   p.config.HeartbeatIntervalMs,
-			"include_modifiers":    p.config.IncludeModifiers,
+			"keyboard":           p.config.Keyboard,
+			"topic":              p.config.GetTopic(),
+			"publish_repeat":     p.config.PublishRepeat,
+			"heartbeat_interval": p.config.HeartbeatIntervalMs,
+			"include_modifiers":  p.config.IncludeModifiers,
 		}, nil
 
 	default:
@@ -476,4 +484,3 @@ func encodeJSON(msg KeyEventMessage) ([]byte, error) {
 		msg.Modifiers.CapsLock, msg.Modifiers.NumLock,
 	)), nil
 }
-

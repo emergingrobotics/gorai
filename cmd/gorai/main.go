@@ -19,6 +19,9 @@ import (
 
 	// PWM components
 	_ "github.com/gorai/gorai/components/pwm/gpiod"
+
+	// Bridge services
+	_ "github.com/gorai/gorai/services/bridge/keyboard_publisher"
 )
 
 func main() {

@@ -200,7 +200,7 @@ func (r *RemoteCamera) start(ctx context.Context) error {
 
 // handleFrame processes incoming NATS messages containing JPEG frames.
 func (r *RemoteCamera) handleFrame(msg *nats.Msg) {
-	r.framesReceived.Add(1)
+	frameCount := r.framesReceived.Add(1)
 	r.updateReceiveFPS()
 
 	now := time.Now()
@@ -230,6 +230,15 @@ func (r *RemoteCamera) handleFrame(msg *nats.Msg) {
 		r.bufferOverflows.Add(1)
 	}
 	r.frameMu.Unlock()
+
+	// Log every 100 frames for visibility
+	if frameCount%100 == 0 {
+		r.logger.Debug("Remote camera frames received",
+			"frames", frameCount,
+			"topic", r.config.Topic,
+			"size_kb", len(msg.Data)/1024,
+		)
+	}
 
 	// Try to decode and send to stream channel (non-blocking)
 	r.sendToStream(msg.Data)

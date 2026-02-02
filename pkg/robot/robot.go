@@ -17,6 +17,7 @@ import (
 	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/registry"
+	"github.com/gorai/gorai/pkg/resource"
 	"github.com/gorai/gorai/pkg/topics"
 )
 
@@ -64,6 +65,10 @@ type Robot struct {
 	// Active components (from registry)
 	components   map[string]any
 	componentsMu sync.RWMutex
+
+	// Active internal services (from registry)
+	services   map[string]any
+	servicesMu sync.RWMutex
 
 	// External services (managed child processes)
 	externalServices   map[string]*ExternalService
@@ -115,6 +120,7 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 		topics:           topics.NewBuilder(cfg.Robot.Name),
 		cameras:          make(map[string]*v4l2.Camera),
 		components:       make(map[string]any),
+		services:         make(map[string]any),
 		externalServices: make(map[string]*ExternalService),
 		frameCounters:    make(map[string]uint64),
 	}
@@ -202,7 +208,10 @@ func (r *Robot) Start(ctx context.Context) error {
 			}
 		} else {
 			r.logger.Info("Initializing internal service", "name", svc.Name, "type", svc.Type)
-			// TODO: Actually initialize service from registry
+			if err := r.startInternalService(ctx, svc); err != nil {
+				r.logger.Error("Failed to start internal service", "name", svc.Name, "error", err)
+				// Don't fail robot startup for service failures
+			}
 		}
 	}
 
@@ -538,6 +547,140 @@ func (r *Robot) getNATSURL() string {
 	return "nats://localhost:4222"
 }
 
+// serviceDeps implements resource.Dependencies for services.
+// It provides access to robot components by name.
+type serviceDeps struct {
+	robot *Robot
+}
+
+func (d *serviceDeps) Get(name resource.Name) (resource.Resource, error) {
+	d.robot.componentsMu.RLock()
+	defer d.robot.componentsMu.RUnlock()
+
+	// Look up component by short name
+	comp, ok := d.robot.components[name.Name]
+	if !ok {
+		return nil, fmt.Errorf("component %q not found", name.Name)
+	}
+
+	// Check if it implements resource.Resource
+	if res, ok := comp.(resource.Resource); ok {
+		return res, nil
+	}
+
+	// For components that don't implement resource.Resource directly,
+	// wrap them in a simple adapter that returns the component
+	return &componentAdapter{name: name, component: comp}, nil
+}
+
+func (d *serviceDeps) GetByType(subtype string) ([]resource.Resource, error) {
+	d.robot.componentsMu.RLock()
+	defer d.robot.componentsMu.RUnlock()
+
+	var result []resource.Resource
+	for _, comp := range d.robot.components {
+		if res, ok := comp.(resource.Resource); ok {
+			if res.Name().Subtype == subtype {
+				result = append(result, res)
+			}
+		}
+	}
+	return result, nil
+}
+
+func (d *serviceDeps) All() []resource.Resource {
+	d.robot.componentsMu.RLock()
+	defer d.robot.componentsMu.RUnlock()
+
+	result := make([]resource.Resource, 0, len(d.robot.components))
+	for _, comp := range d.robot.components {
+		if res, ok := comp.(resource.Resource); ok {
+			result = append(result, res)
+		}
+	}
+	return result
+}
+
+// componentAdapter wraps a component that doesn't implement resource.Resource.
+type componentAdapter struct {
+	name      resource.Name
+	component any
+}
+
+func (a *componentAdapter) Name() resource.Name { return a.name }
+func (a *componentAdapter) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	return nil
+}
+func (a *componentAdapter) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
+	return nil, fmt.Errorf("DoCommand not supported")
+}
+func (a *componentAdapter) Close(ctx context.Context) error { return nil }
+
+// startInternalService creates and starts an internal service from the registry.
+func (r *Robot) startInternalService(ctx context.Context, svc config.ServiceConfig) error {
+	// Look up the constructor
+	ctor, err := registry.LookupService(svc.Type, svc.Model)
+	if err != nil {
+		r.logger.Warn("Service not found in registry", "name", svc.Name, "type", svc.Type, "model", svc.Model)
+		return nil
+	}
+
+	// Build config for constructor
+	conf := registry.Config{
+		"name":       svc.Name,
+		"type":       svc.Type,
+		"model":      svc.Model,
+		"nats_url":   r.getNATSURL(),
+		"namespace":  "gorai",
+		"robot_name": r.cfg.Robot.Name,
+	}
+	// Merge service attributes into conf
+	for k, v := range svc.Attributes {
+		conf[k] = v
+	}
+
+	// Build dependencies with NATS and logger for initial construction
+	deps := &robotDeps{deps: make(map[string]any)}
+	if r.nats != nil {
+		deps.deps["nats"] = r.nats.Conn()
+	}
+	if r.logger != nil {
+		deps.deps["logger"] = r.logger
+	}
+
+	// Create the service
+	service, err := ctor(ctx, deps, conf)
+	if err != nil {
+		return fmt.Errorf("failed to create service %s: %w", svc.Name, err)
+	}
+
+	// If service implements resource.Resource, call Reconfigure to wire up dependencies
+	if res, ok := service.(resource.Resource); ok {
+		svcDeps := &serviceDeps{robot: r}
+		resConf := resource.NewConfig(conf)
+		if err := res.Reconfigure(ctx, svcDeps, resConf); err != nil {
+			return fmt.Errorf("failed to configure service %s: %w", svc.Name, err)
+		}
+	}
+
+	// If service is startable, start it
+	if startable, ok := service.(Startable); ok {
+		if err := startable.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start service %s: %w", svc.Name, err)
+		}
+		r.logger.Info("Service started", "name", svc.Name, "type", svc.Type, "model", svc.Model)
+	} else {
+		r.logger.Info("Service initialized", "name", svc.Name, "type", svc.Type, "model", svc.Model)
+	}
+
+	// Track the service
+	r.servicesMu.Lock()
+	r.services[svc.Name] = service
+	r.servicesMu.Unlock()
+
+	return nil
+}
+
 // publishFrame publishes a camera frame to NATS.
 func (r *Robot) publishFrame(cameraName, topic string, jpeg []byte, timestamp time.Time) {
 	if r.nats == nil {
@@ -788,6 +931,19 @@ func (r *Robot) Stop(ctx context.Context) error {
 			r.logger.Warn("Error stopping dashboard", "error", err)
 		}
 	}
+
+	// Stop all internal services first (they may depend on components)
+	r.servicesMu.Lock()
+	for name, svc := range r.services {
+		r.logger.Info("Stopping service", "name", name)
+		if closeable, ok := svc.(Closeable); ok {
+			if err := closeable.Close(ctx); err != nil {
+				r.logger.Warn("Error closing service", "name", name, "error", err)
+			}
+		}
+	}
+	r.services = make(map[string]any)
+	r.servicesMu.Unlock()
 
 	// Stop all registry components
 	r.componentsMu.Lock()
