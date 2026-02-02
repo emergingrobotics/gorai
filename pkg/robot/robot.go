@@ -491,13 +491,16 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 		conf[k] = v
 	}
 
-	// Build dependencies with HAL and NATS
+	// Build dependencies with HAL, NATS, and logger
 	deps := &robotDeps{deps: make(map[string]any)}
 	if r.hal != nil {
 		deps.deps["hal"] = r.hal
 	}
 	if r.nats != nil {
 		deps.deps["nats"] = r.nats.Conn()
+	}
+	if r.logger != nil {
+		deps.deps["logger"] = r.logger
 	}
 
 	// Create the component

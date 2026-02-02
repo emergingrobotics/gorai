@@ -119,10 +119,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	r := &RemoteCamera{
 		name:         resource.NewComponentName("gorai", "camera", name),
 		config:       cfg,
-		logger:       slog.Default().With("component", "remote_camera", "name", name),
+		logger:       logger.With("component", "remote_camera", "name", name),
 		state:        StateClosed,
 		frames:       make([]Frame, cfg.BufferSize),
 		receiveTimes: make([]time.Time, 0, 100),

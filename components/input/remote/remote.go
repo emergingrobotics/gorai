@@ -128,10 +128,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	r := &RemoteKeyboard{
 		name:         resource.NewComponentName("gorai", "input", name),
 		config:       cfg,
-		logger:       slog.Default().With("component", "remote_keyboard", "name", name),
+		logger:       logger.With("component", "remote_keyboard", "name", name),
 		state:        StateClosed,
 		pressedKeys:  make(map[uint16]bool),
 		eventCh:      make(chan input.KeyEvent, cfg.BufferSize),
@@ -460,9 +468,9 @@ func (r *RemoteKeyboard) DoCommand(ctx context.Context, cmd map[string]any) (map
 
 	case "get_config":
 		return map[string]any{
-			"topic":                     r.config.Topic,
-			"buffer_size":               r.config.BufferSize,
-			"stale_threshold_ms":        r.config.StaleThresholdMs,
+			"topic":                      r.config.Topic,
+			"buffer_size":                r.config.BufferSize,
+			"stale_threshold_ms":         r.config.StaleThresholdMs,
 			"auto_release_on_disconnect": r.config.AutoReleaseOnDisconnect,
 		}, nil
 
@@ -565,4 +573,3 @@ func (r *RemoteKeyboard) GetStats() uint64 {
 
 // Verify interface compliance
 var _ input.Keyboard = (*RemoteKeyboard)(nil)
-

@@ -120,10 +120,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		return nil, fmt.Errorf("failed to open I2C bus %d: %w", cfg.Bus, err)
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	b := &Bridge{
 		name:         resource.NewComponentName("gorai", "link", name),
 		config:       cfg,
-		logger:       slog.Default().With("component", "i2c_bridge", "name", name),
+		logger:       logger.With("component", "i2c_bridge", "name", name),
 		hal:          h,
 		bus:          bus,
 		state:        StateClosed,
@@ -474,7 +482,7 @@ func (b *Bridge) IsConnected(ctx context.Context) (bool, error) {
 // GetStats returns link statistics.
 func (b *Bridge) GetStats(ctx context.Context) (*resource.LinkStats, error) {
 	return &resource.LinkStats{
-		BytesSent:     0, // I2C bridge doesn't track bytes sent
+		BytesSent:     0,                        // I2C bridge doesn't track bytes sent
 		BytesReceived: b.totalReads.Load() * 14, // Approximate
 		MessagesSent:  0,
 		MessagesRecv:  b.totalReads.Load(),
@@ -507,4 +515,3 @@ func (b *Bridge) GetDeviceStates() map[string]*DeviceState {
 func (b *Bridge) GetBusID() int {
 	return b.config.Bus
 }
-

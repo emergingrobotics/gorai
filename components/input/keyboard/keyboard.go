@@ -58,18 +58,18 @@ type Keyboard struct {
 	grabbed    bool
 	deviceName string
 
-	mu               sync.RWMutex
-	state            State
-	pressedKeys      map[uint16]bool
-	modifiers        input.Modifiers
-	leftShiftPressed bool
+	mu                sync.RWMutex
+	state             State
+	pressedKeys       map[uint16]bool
+	modifiers         input.Modifiers
+	leftShiftPressed  bool
 	rightShiftPressed bool
-	leftCtrlPressed  bool
-	rightCtrlPressed bool
-	leftAltPressed   bool
-	rightAltPressed  bool
-	leftMetaPressed  bool
-	rightMetaPressed bool
+	leftCtrlPressed   bool
+	rightCtrlPressed  bool
+	leftAltPressed    bool
+	rightAltPressed   bool
+	leftMetaPressed   bool
+	rightMetaPressed  bool
 
 	stopCh chan struct{}
 	doneCh chan struct{}
@@ -104,10 +104,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	k := &Keyboard{
 		name:        resource.NewComponentName("gorai", "input", name),
 		config:      cfg,
-		logger:      slog.Default().With("component", "keyboard", "name", name),
+		logger:      logger.With("component", "keyboard", "name", name),
 		state:       StateClosed,
 		pressedKeys: make(map[uint16]bool),
 		stopCh:      make(chan struct{}),
@@ -552,4 +560,3 @@ func (k *Keyboard) GetStats() (received, published uint64) {
 
 // Verify interface compliance
 var _ input.Keyboard = (*Keyboard)(nil)
-
