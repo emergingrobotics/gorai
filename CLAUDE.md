@@ -10,7 +10,17 @@ Gorai is a Go-based robotics framework designed for makers, citizen scientists, 
 
 **Not competing with ROS 2** in enterprise/research. We're "ROS 2 for prosumers," not "ROS 2 killer."
 
-See [docs/vision-analysis.md](docs/vision-analysis.md) for comprehensive strategic analysis.
+### What Gorai Is
+- **Prosumer robotics framework** — real autonomy between educational toys ($100-300) and enterprise platforms ($4,000+)
+- **Simple binary deployment** — single Go binary, NATS messaging, no containers required
+- **Go-first, pragmatically polyglot** — Go core, Python/C++ services via NATS when appropriate
+
+### What Gorai Is NOT
+- **Not a ROS 2 replacement** — different markets (prosumer vs. enterprise/research)
+- **Not language-purist** — we use the best tool for each job
+- **Not enterprise-focused** — we optimize for accessibility, not feature completeness
+
+---
 
 ## Core Architecture
 
@@ -28,15 +38,41 @@ See [docs/vision-analysis.md](docs/vision-analysis.md) for comprehensive strateg
 ```
 
 - **Single binary** — No containers, no K8s, just a Go binary
-- **NATS messaging** — All component communication via NATS
+- **NATS messaging** — All component communication via NATS pub/sub
 - **Go core** — Components, behaviors, runtime all in Go
 - **Simple deployment** — Copy binary to Pi, run with systemd
 - **Low overhead** — ~20-50MB RAM (vs 512MB+ for containers)
 
-### Future Phases (Preserved in docs/archive/future-state/)
+### Future Phases
 
 - **Phase 2:** Optional containers for ML/vision services (Python/C++)
 - **Phase 3:** K3s orchestration for fleet management
+
+See [docs/archive/future-state/](docs/archive/future-state/) for preserved future designs.
+
+---
+
+## Related Modules
+
+Gorai works with companion modules for hardware communication:
+
+### gorai-gsp (../gorai-gsp)
+Go/TinyGo library implementing the **Gorai Serial Protocol v2 (GSP/2)**:
+- Transport-agnostic binary protocol for host-device communication
+- 5-byte header with version, flags, type, sequence number, and length
+- CRC-16-CCITT error detection
+- Bidirectional with selective ACK
+- 40+ message types for PWM, motors, encoders, IMU, sensors, GPIO
+- Works over UART, UDP, or radio links
+
+### rp2040-pwm (../rp2040-pwm)
+TinyGo firmware for RP2040-based boards providing:
+- 16-channel hardware PWM for servos/ESCs
+- USB serial interface using GSP/2
+- Configurable failsafe and pulse limits
+- Persistent configuration in flash
+
+---
 
 ## CLI Commands
 
@@ -48,6 +84,8 @@ gorai components          # List available component types
 gorai version             # Show version info
 ```
 
+---
+
 ## Hardware Platforms
 
 | Platform | Role | AI Performance |
@@ -58,17 +96,35 @@ gorai version             # Show version info
 
 **Not supported:** Pi 3, Pi Zero, Pi 4 (2GB)
 
-See [specs/hardware-requirements.md](specs/hardware-requirements.md) for full requirements.
+---
 
 ## Key Documentation
 
-- [README.md](README.md) — Quick start guide
-- [specs/robot-definition-language.md](specs/robot-definition-language.md) — RDL configuration
-- [specs/hardware-requirements.md](specs/hardware-requirements.md) — Hardware specs
-- [docs/STRATEGIC-SUMMARY.md](docs/STRATEGIC-SUMMARY.md) — Strategic decisions
+### Strategy & Vision
+- [docs/STRATEGIC-SUMMARY.md](docs/STRATEGIC-SUMMARY.md) — **Key strategic decisions and positioning**
+- [docs/vision-analysis.md](docs/vision-analysis.md) — Comprehensive strategic analysis
 - [docs/FUTURE-ROADMAP.md](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
+
+### Specifications
+- [specs/gorai-framework-specification.md](specs/gorai-framework-specification.md) — **Complete technical spec**
+- [specs/robot-definition-language.md](specs/robot-definition-language.md) — RDL JSON configuration format
+- [specs/code-organization.md](specs/code-organization.md) — **Module structure and satellite repos**
+- [specs/gsp-v2-protocol.md](specs/gsp-v2-protocol.md) — Gorai Serial Protocol specification
+- [specs/hardware-requirements.md](specs/hardware-requirements.md) — Hardware specs
+- [specs/serial-interfaces.md](specs/serial-interfaces.md) — Serial communication patterns
+- [specs/runtime.md](specs/runtime.md) — Robot lifecycle and runtime
+- [specs/testing-approach.md](specs/testing-approach.md) — Testing strategy
+
+### Architecture & Design
 - [docs/PACKAGE-LOCATIONS.md](docs/PACKAGE-LOCATIONS.md) — Where code belongs
-- [docs/archive/future-state/](docs/archive/future-state/) — Preserved K3s/container designs
+- [docs/hardware-abstraction.md](docs/hardware-abstraction.md) — Hardware abstraction layer
+- [docs/component-reference.md](docs/component-reference.md) — Component types reference
+- [docs/general-designs.md](docs/general-designs.md) — ROS 2, Viam, YARP comparison
+
+### Archived Future State
+- [docs/archive/future-state/](docs/archive/future-state/) — K3s/container designs (preserved)
+
+---
 
 ## Code Structure
 
@@ -81,17 +137,25 @@ gorai/
 │   ├── nats/               # NATS client
 │   ├── runtime/            # Robot lifecycle
 │   └── dashboard/          # Web dashboard
-├── components/              # Component interfaces
+├── components/             # Component interfaces
 ├── driver/                 # Hardware drivers (GPIO, I2C, serial)
-├── services/                # Service implementations
+├── services/               # Service implementations
 ├── examples/               # Example robots
-│   ├── gps-tracker/        # GPS tracking example
-│   └── blinky/             # LED blink example
+│   ├── blinky/             # LED blink example (RDL)
+│   ├── gps-tracker/        # GPS tracking example (RDL)
+│   ├── hello-camera/       # Camera streaming example (RDL)
+│   └── pwm-controller/     # PWM control via gorai-gsp (Go)
+├── archive/examples/       # Archived Go examples
+│   ├── hello-robot/        # NATS pub/sub example
+│   └── hello-robot-production/  # Production-ready example
+├── tools/                  # Development tools
+│   └── pwm-ramp-test/      # PWM testing tool
 ├── docs/                   # Documentation
-│   ├── archive/future-state/  # K3s/container designs (preserved)
-│   └── *.md                # Strategy and design docs
+├── specs/                  # Specifications
 └── archive/                # Archived code for future phases
 ```
+
+---
 
 ## Design Principles
 
@@ -101,12 +165,46 @@ gorai/
 4. **Go-first, pragmatic polyglot** — Go core, Python/C++ via NATS (future)
 5. **Cloud-native patterns** — NATS, Prometheus, JetStream (event sourcing)
 
+---
+
+## Key Design Decisions
+
+### Language Strategy
+| Component Type | Language | Rationale |
+|----------------|----------|-----------|
+| Framework core | Pure Go | Concurrency, deployment, AI-assisted coding |
+| Simple sensors | Pure Go | GPIO, I2C, GPS, IMU — protocol parsing |
+| Vision preprocessing | Python | OpenCV ecosystem (future) |
+| ML inference | Python or ONNX Runtime | PyTorch training; ONNX deployment (future) |
+| Camera drivers | cgo wrappers | V4L2, RealSense SDKs in C/C++ |
+| Web UI | Go templates + HTMX | Avoid separate JS frontend complexity |
+
+### Satellite Repository Pattern
+Code requiring CGo or platform-specific dependencies goes in satellite repos:
+- `gorai-driver-*` — Hardware drivers with CGo
+- `gorai-accel-*` — Accelerator backends (Coral, CUDA, Rockchip)
+- `gorai-service-*` — Complex services
+- `gorai-tiny-*` — TinyGo microcontroller code
+
+### Registration Pattern
+All implementations use self-registration via `init()`:
+```go
+func init() {
+    registry.RegisterComponent("camera", "v4l2", New)
+}
+```
+
+---
+
 ## RDL Example
 
 ```json
 {
-  "name": "gps-tracker",
-  "description": "Simple GPS tracker",
+  "version": "3",
+  "robot": {
+    "name": "gps-tracker",
+    "namespace": "gorai"
+  },
   "nats": {"url": "nats://localhost:4222"},
   "components": [
     {
@@ -121,18 +219,104 @@ gorai/
 }
 ```
 
+---
+
 ## Development
+
+### Build Commands
 
 ```bash
 # Build CLI
-go build -o bin/gorai ./cmd/gorai
+make build
+
+# Build all examples
+make build-examples
+
+# Build specific example
+make build-example-pwm-controller
+
+# Validate RDL examples
+make validate-examples
 
 # Run tests
-go test ./...
+make test
 
-# Validate example
-./bin/gorai validate examples/gps-tracker/robot.rdl.json
-
-# Run example
-./bin/gorai run examples/gps-tracker/robot.rdl.json
+# Run all checks (fmt, vet, lint, test)
+make check
 ```
+
+### Run Examples
+
+```bash
+# Start NATS server
+make nats-start
+
+# Run RDL-based examples
+make run-example-blinky
+make run-example-gps
+make run-example-camera
+
+# Run Go-based examples
+make run-example-hello-robot
+make run-example-pwm-controller
+```
+
+### Key Make Targets
+
+| Target | Description |
+|--------|-------------|
+| `build` | Build CLI binary |
+| `build-examples` | Build all example binaries |
+| `validate-examples` | Validate all RDL configs |
+| `test` | Run unit tests |
+| `check` | Run all checks |
+| `nats-start` | Start local NATS server |
+
+---
+
+## Testing
+
+```bash
+# Unit tests
+make test
+
+# All tests with coverage
+make test-cover
+
+# Quick tests (unit + component)
+make test-quick
+
+# All tests (unit, component, integration, module, system)
+make test-all
+```
+
+See [specs/testing-approach.md](specs/testing-approach.md) and [specs/howto-run-tests.md](specs/howto-run-tests.md) for details.
+
+---
+
+## Contributing Guidelines
+
+1. **Read STRATEGIC-SUMMARY.md** — understand strategic context
+2. **Follow language strategy** — Go core, polyglot when appropriate
+3. **Don't fight ROS 2** — we're complementary, not competitive
+4. **Pragmatism over purity** — best tool for job
+5. **Keep it simple** — complexity only when needed
+6. **Document design decisions** — AI-assisted dev requires clarity
+
+---
+
+## Quick Reference
+
+| Concept | Location |
+|---------|----------|
+| Framework spec | [specs/gorai-framework-specification.md](specs/gorai-framework-specification.md) |
+| RDL format | [specs/robot-definition-language.md](specs/robot-definition-language.md) |
+| Code organization | [specs/code-organization.md](specs/code-organization.md) |
+| Strategic decisions | [docs/STRATEGIC-SUMMARY.md](docs/STRATEGIC-SUMMARY.md) |
+| GSP protocol | [specs/gsp-v2-protocol.md](specs/gsp-v2-protocol.md) |
+| Hardware reqs | [specs/hardware-requirements.md](specs/hardware-requirements.md) |
+| Future roadmap | [docs/FUTURE-ROADMAP.md](docs/FUTURE-ROADMAP.md) |
+
+---
+
+**Pronunciation:** "go-ray" (like "sting-ray")
