@@ -9,7 +9,10 @@
   },
 
   "platform": {
-    "board": "rpi5"
+    "board": "rpi5",
+    "gpio": {
+      "chip": 0
+    }
   },
 
   "nats": {
