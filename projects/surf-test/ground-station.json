@@ -1,0 +1,57 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
+
+  "robot": {
+    "name": "ground-station",
+    "namespace": "surf-test",
+    "description": "Ground station PC for remote robot control and video display"
+  },
+
+  "nats": {
+    "url": "nats://192.168.2.27:4222"
+  },
+
+  "components": [
+    {
+      "name": "main_keyboard",
+      "type": "input",
+      "model": "keyboard",
+      "log_level": "debug",
+      "attributes": {
+        "device": "/dev/input/event7",
+        "grab_device": false,
+        "publish_repeat": false
+      }
+    }
+  ],
+
+  "services": [
+    {
+      "name": "keyboard_publisher",
+      "type": "bridge",
+      "model": "keyboard_publisher",
+      "log_level": "trace",
+      "attributes": {
+        "keyboard": "main_keyboard",
+        "topic": "gorai.ground-station.keyboard.events",
+        "publish_repeat": false,
+        "heartbeat_interval_ms": 1000,
+        "include_modifiers": true
+      },
+      "depends_on": ["main_keyboard"]
+    }
+  ],
+
+  "log": {
+    "level": "debug",
+    "format": "text",
+    "output": "stdout"
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8081"
+  }
+}
+
