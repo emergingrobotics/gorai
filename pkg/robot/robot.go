@@ -166,8 +166,15 @@ func (r *Robot) Start(ctx context.Context) error {
 
 		switch comp.Type {
 		case "camera":
-			if err := r.startCamera(ctx, comp); err != nil {
-				return fmt.Errorf("failed to start camera %s: %w", comp.Name, err)
+			// Remote cameras use registry, local cameras use built-in V4L2 driver
+			if comp.Model == "remote" {
+				if err := r.startRegistryComponent(ctx, comp); err != nil {
+					return fmt.Errorf("failed to start component %s: %w", comp.Name, err)
+				}
+			} else {
+				if err := r.startCamera(ctx, comp); err != nil {
+					return fmt.Errorf("failed to start camera %s: %w", comp.Name, err)
+				}
 			}
 		default:
 			if err := r.startRegistryComponent(ctx, comp); err != nil {
@@ -323,6 +330,12 @@ func (r *Robot) detectHardware(ctx context.Context) error {
 
 // detectCamera checks if a camera device is present.
 func (r *Robot) detectCamera(comp config.ComponentConfig) error {
+	// Skip hardware detection for remote cameras (they subscribe to NATS, no local device)
+	if comp.Model == "remote" {
+		r.logger.Debug("Skipping hardware detection for remote camera", "name", comp.Name)
+		return nil
+	}
+
 	devicePath := "/dev/video0"
 	if comp.Attributes != nil {
 		if dev, ok := comp.Attributes["device"].(string); ok {
