@@ -88,7 +88,8 @@ type Config struct {
 // GPIOConfig holds GPIO-specific configuration.
 type GPIOConfig struct {
 	// Chip is the default GPIO chip number (e.g., 4 for /dev/gpiochip4)
-	Chip int `json:"chip"`
+	// Use a pointer to distinguish between "not set" (nil) and "explicitly 0"
+	Chip *int `json:"chip"`
 }
 
 // I2CConfig holds I2C-specific configuration.
@@ -188,9 +189,13 @@ func (h *linuxHAL) GPIO() (gpio.Driver, error) {
 	}
 
 	// Determine GPIO chip
-	chip := h.config.GPIO.Chip
-	if chip == 0 {
-		chip = DefaultGPIOChip(h.board)
+	var chip int
+	if h.config.GPIO.Chip != nil {
+		// Explicitly configured
+		chip = *h.config.GPIO.Chip
+	} else {
+		// Auto-detect
+		chip = DetectGPIOChip(h.board)
 	}
 
 	// Create GPIO driver
@@ -284,9 +289,11 @@ func (h *linuxHAL) SoftwarePWM(pin int) (pwm.Channel, error) {
 
 	// Ensure GPIO driver is initialized
 	if h.gpioDriver == nil {
-		chip := h.config.GPIO.Chip
-		if chip == 0 {
-			chip = DefaultGPIOChip(h.board)
+		var chip int
+		if h.config.GPIO.Chip != nil {
+			chip = *h.config.GPIO.Chip
+		} else {
+			chip = DetectGPIOChip(h.board)
 		}
 		driver, err := createGPIODriver(chip)
 		if err != nil {

@@ -218,7 +218,8 @@ func (r *Robot) initHAL(ctx context.Context) error {
 		halConfig.Board = r.cfg.Platform.Board
 
 		if r.cfg.Platform.GPIO != nil {
-			halConfig.GPIO.Chip = r.cfg.Platform.GPIO.Chip
+			chip := r.cfg.Platform.GPIO.Chip
+			halConfig.GPIO.Chip = &chip
 		}
 		if r.cfg.Platform.I2C != nil {
 			halConfig.I2C.Buses = r.cfg.Platform.I2C.Buses
