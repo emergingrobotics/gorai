@@ -23,6 +23,20 @@
         "grab_device": false,
         "publish_repeat": false
       }
+    },
+
+    {
+      "name": "remote_main_camera",
+      "type": "camera",
+      "model": "remote",
+      "log_level": "debug",
+      "attributes": {
+        "topic": "gorai.main-robot.main_camera.data",
+        "width": 640,
+        "height": 480,
+        "buffer_size": 10,
+        "stale_threshold_ms": 5000
+      }
     }
   ],
 
