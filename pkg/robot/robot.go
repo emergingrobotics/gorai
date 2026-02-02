@@ -464,9 +464,9 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 
 	// Build config for constructor
 	conf := registry.Config{
-		"name":       comp.Name,
-		"type":       comp.Type,
-		"model":      comp.Model,
+		"name":  comp.Name,
+		"type":  comp.Type,
+		"model": comp.Model,
 		// Pass NATS configuration for components that need it
 		"nats_url":   r.getNATSURL(),
 		"namespace":  "gorai",
@@ -477,10 +477,13 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 		conf[k] = v
 	}
 
-	// Build dependencies with HAL
+	// Build dependencies with HAL and NATS
 	deps := &robotDeps{deps: make(map[string]any)}
 	if r.hal != nil {
 		deps.deps["hal"] = r.hal
+	}
+	if r.nats != nil {
+		deps.deps["nats"] = r.nats.Conn()
 	}
 
 	// Create the component
