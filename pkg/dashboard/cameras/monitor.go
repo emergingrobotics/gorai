@@ -37,6 +37,8 @@ type CameraStatus struct {
 // cameraState holds internal state for tracking a camera.
 type cameraState struct {
 	info         CameraInfo
+	model        string // Component model (e.g., "v4l2", "remote")
+	sourceTopic  string // For remote cameras, the configured source topic
 	frameCount   int
 	fpsWindow    time.Time
 	subscription *nats.Subscription
@@ -98,6 +100,7 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, rob
 				device := "/dev/video0"
 				width := 640
 				height := 480
+				sourceTopic := "" // For remote cameras, this is the NATS topic to subscribe to
 
 				if comp.Attributes != nil {
 					if d, ok := comp.Attributes["device"].(string); ok {
@@ -109,6 +112,10 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, rob
 					if h, ok := comp.Attributes["height"].(float64); ok {
 						height = int(h)
 					}
+					// For remote cameras, get the source topic
+					if t, ok := comp.Attributes["topic"].(string); ok {
+						sourceTopic = t
+					}
 				}
 
 				m.cameras[comp.Name] = &cameraState{
@@ -119,7 +126,9 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, rob
 						Height: height,
 						Online: false,
 					},
-					fpsWindow: time.Now(),
+					model:       comp.Model,
+					sourceTopic: sourceTopic,
+					fpsWindow:   time.Now(),
 				}
 			}
 		}
@@ -174,7 +183,19 @@ func (m *Monitor) subscribeToCamera(cameraName string) error {
 		return nil
 	}
 
-	topic := m.topics.ComponentData(cameraName)
+	state := m.cameras[cameraName]
+	if state == nil {
+		return nil
+	}
+
+	// For remote cameras, use the configured source topic
+	// For local cameras, use the standard component data topic
+	var topic string
+	if state.model == "remote" && state.sourceTopic != "" {
+		topic = state.sourceTopic
+	} else {
+		topic = m.topics.ComponentData(cameraName)
+	}
 
 	sub, err := m.nats.Subscribe(topic, func(msg *nats.Msg) {
 		m.handleFrame(cameraName, msg.Data)
@@ -183,8 +204,8 @@ func (m *Monitor) subscribeToCamera(cameraName string) error {
 		return err
 	}
 
-	m.cameras[cameraName].subscription = sub
-	m.logger.Debug("Subscribed to camera", "camera", cameraName, "topic", topic)
+	state.subscription = sub
+	m.logger.Debug("Subscribed to camera", "camera", cameraName, "topic", topic, "model", state.model)
 	return nil
 }
 
@@ -297,4 +318,25 @@ func (m *Monitor) GetCamera(name string) (CameraInfo, bool) {
 		return CameraInfo{}, false
 	}
 	return state.info, true
+}
+
+// GetCameraTopic returns the NATS topic for a camera's data stream.
+// For remote cameras, this returns the configured source topic.
+// For local cameras, this returns the standard component data topic.
+func (m *Monitor) GetCameraTopic(name string) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	state, ok := m.cameras[name]
+	if !ok {
+		// Fall back to standard topic
+		return m.topics.ComponentData(name)
+	}
+
+	// For remote cameras, use the configured source topic
+	if state.model == "remote" && state.sourceTopic != "" {
+		return state.sourceTopic
+	}
+
+	return m.topics.ComponentData(name)
 }

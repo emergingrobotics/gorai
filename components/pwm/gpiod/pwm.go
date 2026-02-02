@@ -96,10 +96,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		return nil, fmt.Errorf("failed to set pin %d as output: %w", pinNumber, err)
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	p := &PWM{
 		name:      name,
 		config:    cfg,
-		logger:    slog.Default().With("component", nameStr),
+		logger:    logger.With("component", nameStr),
 		hal:       h,
 		gpioPin:   gpioPin,
 		pinNumber: pinNumber,
@@ -186,15 +194,15 @@ func (p *PWM) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any
 	case "get_state":
 		p.mu.RLock()
 		state := map[string]any{
-			"pulse_us":       p.pulseUs,
-			"normalized":     p.pulseToNormalized(p.pulseUs),
-			"duty_cycle":     p.pulseToDuty(p.pulseUs),
-			"enabled":        p.enabled,
-			"frequency_hz":   p.config.FrequencyHz,
-			"min_pulse_us":   p.config.MinPulseUs,
-			"max_pulse_us":   p.config.MaxPulseUs,
-			"cmd_count":      p.cmdCount.Load(),
-			"cycle_count":    p.cycleCount.Load(),
+			"pulse_us":     p.pulseUs,
+			"normalized":   p.pulseToNormalized(p.pulseUs),
+			"duty_cycle":   p.pulseToDuty(p.pulseUs),
+			"enabled":      p.enabled,
+			"frequency_hz": p.config.FrequencyHz,
+			"min_pulse_us": p.config.MinPulseUs,
+			"max_pulse_us": p.config.MaxPulseUs,
+			"cmd_count":    p.cmdCount.Load(),
+			"cycle_count":  p.cycleCount.Load(),
 		}
 		p.mu.RUnlock()
 		return state, nil
@@ -465,4 +473,3 @@ func (p *PWM) pulseToDuty(pulseUs float64) float64 {
 
 // Verify interface compliance at compile time.
 var _ pwm.PWM = (*PWM)(nil)
-

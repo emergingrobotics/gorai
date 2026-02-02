@@ -108,6 +108,9 @@ func cmdRun() error {
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	logger := slog.New(handler)
 
+	// Set as default so components using slog.Default() get the same logger
+	slog.SetDefault(logger)
+
 	// Setup context with signal handling
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

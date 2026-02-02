@@ -49,16 +49,38 @@ func (s State) String() string {
 	}
 }
 
+// MessageType identifies the type of keyboard message.
+type MessageType string
+
+const (
+	// MessageTypeKey is a regular key event.
+	MessageTypeKey MessageType = "key"
+	// MessageTypeStatus is a status update (connect/disconnect).
+	MessageTypeStatus MessageType = "status"
+)
+
+// StatusType identifies the keyboard connection status.
+type StatusType string
+
+const (
+	// StatusConnected indicates the keyboard is connected and publishing.
+	StatusConnected StatusType = "connected"
+	// StatusDisconnected indicates the keyboard has disconnected.
+	StatusDisconnected StatusType = "disconnected"
+)
+
 // KeyEventMessage is the message format published to NATS.
 // Uses a simple JSON-serializable struct for compatibility.
 type KeyEventMessage struct {
-	Timestamp int64           `json:"timestamp"`
-	Seq       uint64          `json:"seq"`
-	Key       string          `json:"key"`
-	Code      uint16          `json:"code"`
-	Pressed   bool            `json:"pressed"`
-	Repeat    bool            `json:"repeat"`
-	Modifiers ModifiersData   `json:"modifiers"`
+	Type      MessageType   `json:"type"`
+	Timestamp int64         `json:"timestamp"`
+	Seq       uint64        `json:"seq"`
+	Key       string        `json:"key,omitempty"`
+	Code      uint16        `json:"code,omitempty"`
+	Pressed   bool          `json:"pressed,omitempty"`
+	Repeat    bool          `json:"repeat,omitempty"`
+	Modifiers ModifiersData `json:"modifiers,omitempty"`
+	Status    StatusType    `json:"status,omitempty"`
 }
 
 // ModifiersData holds modifier key state.
@@ -124,10 +146,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	p := &Publisher{
 		name:         resource.NewServiceName("gorai", "bridge", name),
 		config:       cfg,
-		logger:       slog.Default().With("service", "keyboard_publisher", "name", name),
+		logger:       logger.With("service", "keyboard_publisher", "name", name),
 		publishTimes: make([]time.Time, 0, 100),
 		state:        StateStopped,
 		stopCh:       make(chan struct{}),
@@ -283,9 +313,14 @@ func (p *Publisher) stop() error {
 func (p *Publisher) eventLoop(eventsCh <-chan input.KeyEvent) {
 	defer close(p.doneCh)
 
+	// Publish connected status on start
+	p.publishStatus(StatusConnected)
+
 	for {
 		select {
 		case <-p.stopCh:
+			// Publish disconnect status before stopping
+			p.publishStatus(StatusDisconnected)
 			return
 
 		case event, ok := <-eventsCh:
@@ -295,6 +330,9 @@ func (p *Publisher) eventLoop(eventsCh <-chan input.KeyEvent) {
 				p.state = StateDisconnected
 				p.errorMsg = "keyboard event channel closed"
 				p.mu.Unlock()
+
+				// Publish disconnect status
+				p.publishStatus(StatusDisconnected)
 				p.logger.Warn("keyboard event channel closed")
 				return
 			}
@@ -308,6 +346,7 @@ func (p *Publisher) eventLoop(eventsCh <-chan input.KeyEvent) {
 
 			// Build message
 			msg := KeyEventMessage{
+				Type:      MessageTypeKey,
 				Timestamp: time.Now().UnixNano(),
 				Seq:       p.seq.Add(1),
 				Key:       event.Key,
@@ -337,6 +376,22 @@ func (p *Publisher) eventLoop(eventsCh <-chan input.KeyEvent) {
 				p.logger.Debug("published key event", "key", event.Key, "pressed", event.Pressed)
 			}
 		}
+	}
+}
+
+// publishStatus publishes a status message to NATS.
+func (p *Publisher) publishStatus(status StatusType) {
+	msg := KeyEventMessage{
+		Type:      MessageTypeStatus,
+		Timestamp: time.Now().UnixNano(),
+		Seq:       p.seq.Add(1),
+		Status:    status,
+	}
+
+	if err := p.publish(msg); err != nil {
+		p.logger.Warn("failed to publish status", "status", status, "error", err)
+	} else {
+		p.logger.Info("published keyboard status", "status", status)
 	}
 }
 
@@ -433,11 +488,11 @@ func (p *Publisher) DoCommand(ctx context.Context, cmd map[string]any) (map[stri
 
 	case "get_config":
 		return map[string]any{
-			"keyboard":             p.config.Keyboard,
-			"topic":                p.config.GetTopic(),
-			"publish_repeat":       p.config.PublishRepeat,
-			"heartbeat_interval":   p.config.HeartbeatIntervalMs,
-			"include_modifiers":    p.config.IncludeModifiers,
+			"keyboard":           p.config.Keyboard,
+			"topic":              p.config.GetTopic(),
+			"publish_repeat":     p.config.PublishRepeat,
+			"heartbeat_interval": p.config.HeartbeatIntervalMs,
+			"include_modifiers":  p.config.IncludeModifiers,
 		}, nil
 
 	default:
@@ -469,11 +524,17 @@ func (p *Publisher) GetStats() (received, published, dropped uint64) {
 // encodeJSON is a simple JSON encoder for the message.
 func encodeJSON(msg KeyEventMessage) ([]byte, error) {
 	// Simple manual JSON encoding to avoid import cycles
+	if msg.Type == MessageTypeStatus {
+		return []byte(fmt.Sprintf(
+			`{"type":%q,"timestamp":%d,"seq":%d,"status":%q}`,
+			msg.Type, msg.Timestamp, msg.Seq, msg.Status,
+		)), nil
+	}
+
 	return []byte(fmt.Sprintf(
-		`{"timestamp":%d,"seq":%d,"key":%q,"code":%d,"pressed":%t,"repeat":%t,"modifiers":{"shift":%t,"ctrl":%t,"alt":%t,"meta":%t,"caps_lock":%t,"num_lock":%t}}`,
-		msg.Timestamp, msg.Seq, msg.Key, msg.Code, msg.Pressed, msg.Repeat,
+		`{"type":%q,"timestamp":%d,"seq":%d,"key":%q,"code":%d,"pressed":%t,"repeat":%t,"modifiers":{"shift":%t,"ctrl":%t,"alt":%t,"meta":%t,"caps_lock":%t,"num_lock":%t}}`,
+		msg.Type, msg.Timestamp, msg.Seq, msg.Key, msg.Code, msg.Pressed, msg.Repeat,
 		msg.Modifiers.Shift, msg.Modifiers.Ctrl, msg.Modifiers.Alt, msg.Modifiers.Meta,
 		msg.Modifiers.CapsLock, msg.Modifiers.NumLock,
 	)), nil
 }
-

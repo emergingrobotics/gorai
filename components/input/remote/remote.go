@@ -51,15 +51,37 @@ func (s State) String() string {
 	}
 }
 
+// MessageType identifies the type of keyboard message.
+type MessageType string
+
+const (
+	// MessageTypeKey is a regular key event.
+	MessageTypeKey MessageType = "key"
+	// MessageTypeStatus is a status update (connect/disconnect).
+	MessageTypeStatus MessageType = "status"
+)
+
+// StatusType identifies the keyboard connection status.
+type StatusType string
+
+const (
+	// StatusConnected indicates the keyboard is connected and publishing.
+	StatusConnected StatusType = "connected"
+	// StatusDisconnected indicates the keyboard has disconnected.
+	StatusDisconnected StatusType = "disconnected"
+)
+
 // KeyEventMessage matches the JSON format from keyboard_publisher.
 type KeyEventMessage struct {
+	Type      MessageType   `json:"type"`
 	Timestamp int64         `json:"timestamp"`
 	Seq       uint64        `json:"seq"`
-	Key       string        `json:"key"`
-	Code      uint16        `json:"code"`
-	Pressed   bool          `json:"pressed"`
-	Repeat    bool          `json:"repeat"`
-	Modifiers ModifiersData `json:"modifiers"`
+	Key       string        `json:"key,omitempty"`
+	Code      uint16        `json:"code,omitempty"`
+	Pressed   bool          `json:"pressed,omitempty"`
+	Repeat    bool          `json:"repeat,omitempty"`
+	Modifiers ModifiersData `json:"modifiers,omitempty"`
+	Status    StatusType    `json:"status,omitempty"`
 }
 
 // ModifiersData matches the JSON format from keyboard_publisher.
@@ -128,10 +150,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies or use default
+	logger := slog.Default()
+	if loggerRes, err := deps.Get("logger"); err == nil {
+		if l, ok := loggerRes.(*slog.Logger); ok {
+			logger = l
+		}
+	}
+
 	r := &RemoteKeyboard{
 		name:         resource.NewComponentName("gorai", "input", name),
 		config:       cfg,
-		logger:       slog.Default().With("component", "remote_keyboard", "name", name),
+		logger:       logger.With("component", "remote_keyboard", "name", name),
 		state:        StateClosed,
 		pressedKeys:  make(map[uint16]bool),
 		eventCh:      make(chan input.KeyEvent, cfg.BufferSize),
@@ -201,23 +231,36 @@ func (r *RemoteKeyboard) handleMessage(msg *nats.Msg) {
 	r.eventsReceived.Add(1)
 	r.updateReceiveRate()
 
-	// Update last event time
-	r.mu.Lock()
-	r.lastEventTime = time.Now()
-
-	// If we were stale, recover
-	if r.state == StateStale {
-		r.state = StateConnected
-		r.logger.Info("remote keyboard connection restored")
-	}
-	r.mu.Unlock()
-
 	// Decode message
 	var keyMsg KeyEventMessage
 	if err := json.Unmarshal(msg.Data, &keyMsg); err != nil {
 		r.logger.Warn("failed to decode message", "error", err)
 		return
 	}
+
+	// Handle status messages
+	if keyMsg.Type == MessageTypeStatus {
+		r.handleStatusMessage(keyMsg)
+		return
+	}
+
+	// Update last event time for key events
+	r.mu.Lock()
+	r.lastEventTime = time.Now()
+
+	// If we were disconnected/stale, recover
+	if r.state == StateStale || r.state == StateError {
+		r.state = StateConnected
+		r.logger.Info("remote keyboard connection restored")
+	}
+	r.mu.Unlock()
+
+	// Log received event
+	r.logger.Debug("received key event",
+		"key", keyMsg.Key,
+		"pressed", keyMsg.Pressed,
+		"seq", keyMsg.Seq,
+	)
 
 	// Convert to input.KeyEvent
 	event := input.KeyEvent{
@@ -247,6 +290,32 @@ func (r *RemoteKeyboard) handleMessage(msg *nats.Msg) {
 
 	// Send to event channel (non-blocking)
 	r.sendEvent(event)
+}
+
+// handleStatusMessage processes keyboard status messages.
+func (r *RemoteKeyboard) handleStatusMessage(msg KeyEventMessage) {
+	r.logger.Info("received keyboard status",
+		"status", msg.Status,
+		"seq", msg.Seq,
+	)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	switch msg.Status {
+	case StatusConnected:
+		// Keyboard connected/reconnected
+		if r.state != StateConnected {
+			r.state = StateConnected
+			r.logger.Info("remote keyboard connected")
+		}
+
+	case StatusDisconnected:
+		// Keyboard disconnected - release all keys
+		r.state = StateStale
+		r.logger.Warn("remote keyboard disconnected, releasing all keys")
+		r.releaseAllKeysLocked()
+	}
 }
 
 // sendEvent sends an event to the Events() channel, handling overflow.
@@ -320,34 +389,27 @@ func (r *RemoteKeyboard) staleDetectionLoop() {
 }
 
 // checkStale checks if the connection has become stale.
+// Note: This is for monitoring only. Keys are only released when an explicit
+// disconnect message is received from the keyboard publisher.
 func (r *RemoteKeyboard) checkStale() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Skip if not connected
-	if r.state != StateConnected && r.state != StateStale {
+	// Skip if not connected (stale detection only monitors connected state)
+	if r.state != StateConnected {
 		return
 	}
 
+	// Note: We no longer transition to stale or release keys based on timeout.
+	// The stale threshold is now only used for monitoring/logging purposes.
+	// Keys are released only when an explicit disconnect message is received.
 	timeSinceLast := time.Since(r.lastEventTime)
-	wasStale := r.state == StateStale
-	nowStale := timeSinceLast > r.config.StaleThreshold()
-
-	if nowStale && !wasStale {
-		// Became stale
-		r.state = StateStale
-		r.logger.Warn("remote keyboard connection stale",
+	if timeSinceLast > r.config.StaleThreshold() {
+		// Log for monitoring, but don't change state or release keys
+		r.logger.Debug("no keyboard events received recently",
 			"last_event", timeSinceLast.String(),
 			"threshold", r.config.StaleThreshold().String(),
 		)
-
-		if r.config.AutoReleaseOnDisconnect {
-			r.releaseAllKeysLocked()
-		}
-	} else if !nowStale && wasStale {
-		// Recovered
-		r.state = StateConnected
-		r.logger.Info("remote keyboard connection restored")
 	}
 }
 
@@ -460,9 +522,9 @@ func (r *RemoteKeyboard) DoCommand(ctx context.Context, cmd map[string]any) (map
 
 	case "get_config":
 		return map[string]any{
-			"topic":                     r.config.Topic,
-			"buffer_size":               r.config.BufferSize,
-			"stale_threshold_ms":        r.config.StaleThresholdMs,
+			"topic":                      r.config.Topic,
+			"buffer_size":                r.config.BufferSize,
+			"stale_threshold_ms":         r.config.StaleThresholdMs,
 			"auto_release_on_disconnect": r.config.AutoReleaseOnDisconnect,
 		}, nil
 
@@ -565,4 +627,3 @@ func (r *RemoteKeyboard) GetStats() uint64 {
 
 // Verify interface compliance
 var _ input.Keyboard = (*RemoteKeyboard)(nil)
-

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
+
+  "robot": {
+    "name": "main-robot",
+    "namespace": "surf-test",
+    "description": "Main robot on Raspberry Pi 5 with camera and servo control via remote keyboard"
+  },
+
+  "platform": {
+    "board": "rpi5",
+    "gpio": {
+      "chip": 0
+    }
+  },
+
+  "nats": {
+    "url": "nats://0.0.0.0:4222"
+  },
+
+  "components": [
+    {
+      "name": "remote_keyboard",
+      "type": "input",
+      "model": "remote",
+      "log_level": "trace",
+      "attributes": {
+        "topic": "gorai.ground-station.keyboard.events",
+        "buffer_size": 100,
+        "stale_threshold_ms": 3000,
+        "auto_release_on_disconnect": true
+      }
+    },
+
+    {
+      "name": "main_camera",
+      "type": "camera",
+      "model": "v4l2",
+      "log_level": "debug",
+      "attributes": {
+        "device": "/dev/video0",
+        "width": 1920,
+        "height": 1080,
+        "frame_rate": 30,
+        "jpeg_quality": 80,
+        "publish_to_bus": true,
+        "publish_rate_hz": 15,
+        "frame_id": "camera_link"
+      }
+    },
+
+    {
+      "name": "pan_servo",
+      "type": "pwm",
+      "model": "gpiod",
+      "log_level": "debug",
+      "attributes": {
+        "pin": 23,
+        "frequency_hz": 50,
+        "min_pulse_us": 500,
+        "max_pulse_us": 2500,
+        "initial_pulse_us": 1500
+      }
+    },
+
+    {
+      "name": "tilt_servo",
+      "type": "pwm",
+      "model": "gpiod",
+      "log_level": "debug",
+      "attributes": {
+        "pin": 24,
+        "frequency_hz": 50,
+        "min_pulse_us": 500,
+        "max_pulse_us": 2500,
+        "initial_pulse_us": 1500
+      }
+    }
+  ],
+
+  "services": [
+    {
+      "name": "motor_controller",
+      "type": "control",
+      "model": "keypress_motor_controller",
+      "log_level": "trace",
+      "attributes": {
+        "keyboard_component": "remote_keyboard",
+        "motors": [
+          {
+            "name": "pan",
+            "type": "angle_servo",
+            "pwm_component": "pan_servo",
+            "forward_key": "D",
+            "reverse_key": "A",
+            "angle_step": 5.0,
+            "min_angle": -90.0,
+            "max_angle": 90.0,
+            "initial_angle": 0.0,
+            "speed": 1.0
+          },
+          {
+            "name": "tilt",
+            "type": "angle_servo",
+            "pwm_component": "tilt_servo",
+            "forward_key": "W",
+            "reverse_key": "S",
+            "angle_step": 5.0,
+            "min_angle": -45.0,
+            "max_angle": 45.0,
+            "initial_angle": 0.0,
+            "speed": 1.0
+          }
+        ]
+      },
+      "depends_on": ["remote_keyboard", "pan_servo", "tilt_servo"]
+    }
+  ],
+
+  "log": {
+    "level": "debug",
+    "format": "text",
+    "output": "stdout"
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "listen": ":8080"
+  }
+}
+

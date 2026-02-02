@@ -160,13 +160,50 @@ func DetectInfo() BoardInfo {
 }
 
 // DefaultGPIOChip returns the default GPIO chip number for a board.
+// Deprecated: Use DetectGPIOChip for auto-detection with validation.
 func DefaultGPIOChip(board Board) int {
 	switch board {
 	case BoardRaspberryPi5:
-		return 4 // RP1 chip
+		return 4 // RP1 chip (may not exist on all configurations)
 	default:
 		return 0
 	}
+}
+
+// DetectGPIOChip auto-detects the correct GPIO chip number for a board.
+// It validates that the chip exists and is a valid character device.
+func DetectGPIOChip(board Board) int {
+	switch board {
+	case BoardRaspberryPi5:
+		// RPi5 RP1 chip is typically at gpiochip4, but varies by kernel/config
+		// Try the expected locations in order of preference
+		candidates := []int{4, 0}
+		for _, chip := range candidates {
+			if isValidGPIOChip(chip) {
+				return chip
+			}
+		}
+		// Fall back to 0 if nothing valid found
+		return 0
+	default:
+		// For generic Linux, try gpiochip0
+		if isValidGPIOChip(0) {
+			return 0
+		}
+		return 0
+	}
+}
+
+// isValidGPIOChip checks if the given GPIO chip number corresponds to
+// a valid character device.
+func isValidGPIOChip(chip int) bool {
+	path := fmt.Sprintf("/dev/gpiochip%d", chip)
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	// Check if it's a character device (mode includes ModeCharDevice)
+	return info.Mode()&os.ModeCharDevice != 0
 }
 
 // DefaultI2CBus returns the default I2C bus number for a board.

@@ -15,22 +15,24 @@ import (
 
 // StreamHandler bridges NATS camera frames to HTTP MJPEG.
 type StreamHandler struct {
-	nats   *gorainats.Client
-	topics *topics.Builder
-	logger *slog.Logger
-	maxFPS float64
+	nats    *gorainats.Client
+	topics  *topics.Builder
+	monitor *Monitor
+	logger  *slog.Logger
+	maxFPS  float64
 }
 
 // NewStreamHandler creates a new stream handler.
-func NewStreamHandler(natsClient *gorainats.Client, topicsBuilder *topics.Builder, logger *slog.Logger, maxFPS float64) *StreamHandler {
+func NewStreamHandler(natsClient *gorainats.Client, topicsBuilder *topics.Builder, monitor *Monitor, logger *slog.Logger, maxFPS float64) *StreamHandler {
 	if maxFPS <= 0 {
 		maxFPS = 30.0
 	}
 	return &StreamHandler{
-		nats:   natsClient,
-		topics: topicsBuilder,
-		logger: logger,
-		maxFPS: maxFPS,
+		nats:    natsClient,
+		topics:  topicsBuilder,
+		monitor: monitor,
+		logger:  logger,
+		maxFPS:  maxFPS,
 	}
 }
 
@@ -42,12 +44,21 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.nats == nil || h.topics == nil {
+	if h.nats == nil {
 		http.Error(w, "NATS not available", http.StatusServiceUnavailable)
 		return
 	}
 
-	topic := h.topics.ComponentData(cameraName)
+	// Get the correct topic for this camera (handles remote cameras)
+	var topic string
+	if h.monitor != nil {
+		topic = h.monitor.GetCameraTopic(cameraName)
+	} else if h.topics != nil {
+		topic = h.topics.ComponentData(cameraName)
+	} else {
+		http.Error(w, "Topics not configured", http.StatusServiceUnavailable)
+		return
+	}
 
 	// Set MJPEG headers
 	w.Header().Set("Content-Type", "multipart/x-mixed-replace; boundary=frame")
@@ -138,12 +149,21 @@ func (h *StreamHandler) HandleSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.nats == nil || h.topics == nil {
+	if h.nats == nil {
 		http.Error(w, "NATS not available", http.StatusServiceUnavailable)
 		return
 	}
 
-	topic := h.topics.ComponentData(cameraName)
+	// Get the correct topic for this camera (handles remote cameras)
+	var topic string
+	if h.monitor != nil {
+		topic = h.monitor.GetCameraTopic(cameraName)
+	} else if h.topics != nil {
+		topic = h.topics.ComponentData(cameraName)
+	} else {
+		http.Error(w, "Topics not configured", http.StatusServiceUnavailable)
+		return
+	}
 
 	// Create a channel to receive one frame
 	frameCh := make(chan []byte, 1)

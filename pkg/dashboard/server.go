@@ -45,6 +45,7 @@ func (d *Dashboard) setupRoutes() {
 	streamHandler := cameras.NewStreamHandler(
 		d.nats,
 		d.topics,
+		d.cameraMonitor,
 		d.logger,
 		d.getMaxFPS(),
 	)
