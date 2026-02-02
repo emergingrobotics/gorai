@@ -19,7 +19,7 @@
       "model": "keyboard",
       "log_level": "debug",
       "attributes": {
-        "device": "/dev/input/event7",
+        "device": "/dev/input/event8",
         "grab_device": false,
         "publish_repeat": false
       }
