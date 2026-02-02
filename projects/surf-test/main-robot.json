@@ -40,8 +40,8 @@
       "log_level": "debug",
       "attributes": {
         "device": "/dev/video0",
-        "width": 640,
-        "height": 480,
+        "width": 1920,
+        "height": 1080,
         "frame_rate": 30,
         "jpeg_quality": 80,
         "publish_to_bus": true,
