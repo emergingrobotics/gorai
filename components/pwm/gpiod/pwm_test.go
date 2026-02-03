@@ -52,13 +52,14 @@ func TestConfigValidation(t *testing.T) {
 			errMsg:  "frequency_hz must be positive",
 		},
 		{
-			name: "frequency too high",
+			name: "frequency too high for software PWM",
 			config: Config{
 				Pin:            18,
 				FrequencyHz:    1001,
-				MinPulseUs:     1000,
-				MaxPulseUs:     2000,
-				InitialPulseUs: 1500,
+				MinPulseUs:     500,
+				MaxPulseUs:     900, // Keep within period to test frequency limit specifically
+				InitialPulseUs: 700,
+				HWMode:         HWModeSoftware,
 			},
 			wantErr: true,
 			errMsg:  "frequency_hz must be <= 1000 Hz",
@@ -246,21 +247,21 @@ func TestDutyConversion(t *testing.T) {
 
 func TestConfigParsing(t *testing.T) {
 	tests := []struct {
-		name      string
-		conf      map[string]any
-		wantPin   any
-		wantFreq  float64
-		wantErr   bool
+		name     string
+		conf     map[string]any
+		wantPin  any
+		wantFreq float64
+		wantErr  bool
 	}{
 		{
 			name: "full config with int pin",
 			conf: map[string]any{
 				"pin":              float64(18),
-				"frequency_hz":    float64(50),
-				"min_pulse_us":    float64(1000),
-				"max_pulse_us":    float64(2000),
+				"frequency_hz":     float64(50),
+				"min_pulse_us":     float64(1000),
+				"max_pulse_us":     float64(2000),
 				"initial_pulse_us": float64(1500),
-				"invert":          false,
+				"invert":           false,
 			},
 			wantPin:  float64(18),
 			wantFreq: 50,

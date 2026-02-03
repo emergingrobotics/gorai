@@ -2,8 +2,25 @@ package gpiod
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gorai/gorai/pkg/registry"
+)
+
+// HWMode specifies the PWM hardware mode selection.
+type HWMode string
+
+const (
+	// HWModeAuto uses hardware PWM if the pin supports it, otherwise falls back
+	// to software PWM with a warning. This is the default.
+	HWModeAuto HWMode = "auto"
+
+	// HWModeHardware requires hardware PWM. Fails if the pin doesn't support it.
+	HWModeHardware HWMode = "hardware"
+
+	// HWModeSoftware always uses software PWM (GPIO bit-banging).
+	// Timing may be inaccurate due to OS scheduling.
+	HWModeSoftware HWMode = "software"
 )
 
 // Config holds configuration for a gpiod PWM component.
@@ -28,6 +45,12 @@ type Config struct {
 
 	// Invert inverts the signal (active-low). Default: false.
 	Invert bool `json:"invert"`
+
+	// HWMode controls hardware vs software PWM selection:
+	// - "auto" (default): Use hardware PWM if available, software otherwise (with warning)
+	// - "hardware": Require hardware PWM, fail if not available
+	// - "software": Always use software PWM
+	HWMode HWMode `json:"hw_mode"`
 }
 
 // DefaultConfig returns a Config with default values for servo control.
@@ -39,6 +62,7 @@ func DefaultConfig() Config {
 		MaxPulseUs:     2000.0,
 		InitialPulseUs: 1500.0,
 		Invert:         false,
+		HWMode:         HWModeAuto,
 	}
 }
 
@@ -74,6 +98,19 @@ func ParseConfig(conf registry.Config) (Config, error) {
 		cfg.Invert = invert
 	}
 
+	if hwMode, ok := conf["hw_mode"].(string); ok {
+		switch strings.ToLower(hwMode) {
+		case "auto", "":
+			cfg.HWMode = HWModeAuto
+		case "hardware", "hw":
+			cfg.HWMode = HWModeHardware
+		case "software", "sw":
+			cfg.HWMode = HWModeSoftware
+		default:
+			return cfg, fmt.Errorf("invalid hw_mode %q, must be 'auto', 'hardware', or 'software'", hwMode)
+		}
+	}
+
 	return cfg, nil
 }
 
@@ -88,7 +125,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("frequency_hz must be positive, got %f", c.FrequencyHz)
 	}
 
-	if c.FrequencyHz > 1000 {
+	// Software PWM has lower frequency limits due to OS scheduling jitter.
+	// Hardware PWM can handle much higher frequencies (up to MHz range).
+	// We only validate software limits here; hardware limits are validated at runtime.
+	if c.HWMode == HWModeSoftware && c.FrequencyHz > 1000 {
 		return fmt.Errorf("frequency_hz must be <= 1000 Hz for software PWM, got %f", c.FrequencyHz)
 	}
 
@@ -108,6 +148,14 @@ func (c Config) Validate() error {
 	periodUs := 1_000_000.0 / c.FrequencyHz
 	if c.MaxPulseUs > periodUs {
 		return fmt.Errorf("max_pulse_us (%f) exceeds period (%f µs at %f Hz)", c.MaxPulseUs, periodUs, c.FrequencyHz)
+	}
+
+	// Validate hw_mode
+	switch c.HWMode {
+	case HWModeAuto, HWModeHardware, HWModeSoftware, "":
+		// Valid
+	default:
+		return fmt.Errorf("invalid hw_mode %q", c.HWMode)
 	}
 
 	return nil
@@ -132,4 +180,3 @@ func (c Config) CenterPulseUs() float64 {
 func (c Config) PulseRangeUs() float64 {
 	return (c.MaxPulseUs - c.MinPulseUs) / 2.0
 }
-

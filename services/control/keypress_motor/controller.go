@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -44,15 +45,19 @@ func (s State) String() string {
 
 // MotorState holds the current state of a motor binding.
 type MotorState struct {
-	Name              string
-	Type              MotorType
-	PWMComponent      string
-	Enabled           bool
-	CurrentAngle      float64 // For angle servo
-	CurrentSpeed      float64 // For continuous/DC motor
-	CurrentPulseUs    float64 // Actual pulse width
-	ForwardKeyPressed bool
-	ReverseKeyPressed bool
+	Name                string
+	DriveType           DriveType
+	BehaviorType        BehaviorType
+	ControlledComponent string
+	Enabled             bool
+	CurrentAngle        float64 // For angle behavior
+	CurrentSpeed        float64 // For continuous/DC behavior
+	CurrentPulseUs      float64 // Actual pulse width
+	ForwardKeyPressed   bool
+	ReverseKeyPressed   bool
+	// PWM properties (from actual component)
+	MinPulseUs float64
+	MaxPulseUs float64
 }
 
 // Controller implements the keypress motor controller service.
@@ -62,8 +67,8 @@ type Controller struct {
 	logger *slog.Logger
 
 	// Dependencies
-	keyboard input.Keyboard
-	pwmMap   map[string]pwm.PWM
+	keyboard             input.Keyboard
+	controlledComponents map[string]any // motor name -> component (pwm.PWM, etc.)
 
 	// Configuration lookup
 	motorConfigs  map[string]*MotorConfig
@@ -105,40 +110,62 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name = n
 	}
 
+	// Get logger from dependencies, fall back to default
+	logger := slog.Default()
+	if deps != nil {
+		if loggerVal, err := deps.Get("logger"); err == nil {
+			if l, ok := loggerVal.(*slog.Logger); ok && l != nil {
+				logger = l
+			}
+		}
+	}
+	logger = logger.With("service", "keypress_motor_controller", "name", name)
+
 	c := &Controller{
-		name:          resource.NewServiceName("gorai", "control", name),
-		config:        cfg,
-		logger:        slog.Default().With("service", "keypress_motor_controller", "name", name),
-		pwmMap:        make(map[string]pwm.PWM),
-		motorConfigs:  make(map[string]*MotorConfig),
-		forwardKeyMap: make(map[string]*MotorConfig),
-		reverseKeyMap: make(map[string]*MotorConfig),
-		motorStates:   make(map[string]*MotorState),
-		state:         StateStopped,
-		stopCh:        make(chan struct{}),
-		doneCh:        make(chan struct{}),
+		name:                 resource.NewServiceName("gorai", "control", name),
+		config:               cfg,
+		logger:               logger,
+		controlledComponents: make(map[string]any),
+		motorConfigs:         make(map[string]*MotorConfig),
+		forwardKeyMap:        make(map[string]*MotorConfig),
+		reverseKeyMap:        make(map[string]*MotorConfig),
+		motorStates:          make(map[string]*MotorState),
+		state:                StateStopped,
+		stopCh:               make(chan struct{}),
+		doneCh:               make(chan struct{}),
 	}
 
-	// Note: Dependencies (keyboard, PWM components) are resolved later
+	// Note: Dependencies (keyboard, controlled components) are resolved later
 	// when the robot runtime calls Reconfigure with actual dependencies.
 	// For now, we just store the config and prepare the lookup tables.
 
-	// Build lookup tables
+	// Build lookup tables (normalize keys to uppercase for case-insensitive matching)
 	for i := range cfg.Motors {
 		motor := &cfg.Motors[i]
 		c.motorConfigs[motor.Name] = motor
-		c.forwardKeyMap[motor.ForwardKey] = motor
-		c.reverseKeyMap[motor.ReverseKey] = motor
+		c.forwardKeyMap[strings.ToUpper(motor.ForwardKey)] = motor
+		c.reverseKeyMap[strings.ToUpper(motor.ReverseKey)] = motor
 
 		// Initialize motor state
-		c.motorStates[motor.Name] = &MotorState{
-			Name:         motor.Name,
-			Type:         motor.Type,
-			PWMComponent: motor.PWMComponent,
-			Enabled:      true,
-			CurrentAngle: motor.InitialAngle,
-			CurrentSpeed: 0.0,
+		state := &MotorState{
+			Name:                motor.Name,
+			DriveType:           motor.Type,
+			BehaviorType:        motor.Behavior.Type,
+			ControlledComponent: motor.ControlledComponent,
+			Enabled:             true,
 		}
+
+		// Set initial values based on behavior type
+		switch motor.Behavior.Type {
+		case BehaviorTypeAngle:
+			state.CurrentAngle = motor.Behavior.Angle.InitialAngle
+		case BehaviorTypeContinuous:
+			state.CurrentSpeed = motor.Behavior.Continuous.InitialSpeed
+		case BehaviorTypeDC:
+			state.CurrentSpeed = motor.Behavior.DC.InitialSpeed
+		}
+
+		c.motorStates[motor.Name] = state
 	}
 
 	c.logger.Info("keypress motor controller created",
@@ -187,27 +214,48 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 		return fmt.Errorf("component %q is not a keyboard", cfg.KeyboardComponent)
 	}
 
-	// Resolve PWM dependencies
-	pwmMap := make(map[string]pwm.PWM)
-	for _, motor := range cfg.Motors {
-		pwmName := resource.NewComponentName("gorai", "pwm", motor.PWMComponent)
-		pwmRes, err := deps.Get(pwmName)
-		if err != nil {
-			return fmt.Errorf("PWM component %q not found: %w", motor.PWMComponent, err)
-		}
+	// Resolve controlled component dependencies and query their properties
+	controlledComponents := make(map[string]any)
+	pwmPropsMap := make(map[string]pwm.Properties)
 
-		pwmComp, ok := pwmRes.(pwm.PWM)
-		if !ok {
-			return fmt.Errorf("component %q is not a PWM", motor.PWMComponent)
+	for _, motor := range cfg.Motors {
+		switch motor.Type {
+		case DriveTypePWM:
+			pwmName := resource.NewComponentName("gorai", "pwm", motor.ControlledComponent)
+			pwmRes, err := deps.Get(pwmName)
+			if err != nil {
+				return fmt.Errorf("PWM component %q not found for motor %q: %w", motor.ControlledComponent, motor.Name, err)
+			}
+
+			pwmComp, ok := pwmRes.(pwm.PWM)
+			if !ok {
+				return fmt.Errorf("component %q is not a PWM (required by motor %q with type 'pwm')", motor.ControlledComponent, motor.Name)
+			}
+			controlledComponents[motor.Name] = pwmComp
+
+			// Query PWM properties to get actual min/max pulse values
+			props, err := pwmComp.Properties(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get PWM properties for %q: %w", motor.ControlledComponent, err)
+			}
+			pwmPropsMap[motor.Name] = props
+			c.logger.Debug("PWM properties loaded",
+				"motor", motor.Name,
+				"controlled_component", motor.ControlledComponent,
+				"min_pulse_us", props.MinPulseUs,
+				"max_pulse_us", props.MaxPulseUs,
+				"frequency_hz", props.FrequencyHz)
+
+		default:
+			return fmt.Errorf("unsupported drive type %q for motor %q", motor.Type, motor.Name)
 		}
-		pwmMap[motor.Name] = pwmComp
 	}
 
 	// Update controller
 	c.mu.Lock()
 	c.config = cfg
 	c.keyboard = keyboard
-	c.pwmMap = pwmMap
+	c.controlledComponents = controlledComponents
 
 	// Rebuild lookup tables
 	c.motorConfigs = make(map[string]*MotorConfig)
@@ -217,19 +265,46 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 	for i := range cfg.Motors {
 		motor := &cfg.Motors[i]
 		c.motorConfigs[motor.Name] = motor
-		c.forwardKeyMap[motor.ForwardKey] = motor
-		c.reverseKeyMap[motor.ReverseKey] = motor
+		// Normalize keys to uppercase for case-insensitive matching
+		c.forwardKeyMap[strings.ToUpper(motor.ForwardKey)] = motor
+		c.reverseKeyMap[strings.ToUpper(motor.ReverseKey)] = motor
+
+		// Get PWM properties for this motor (if PWM type)
+		var minPulseUs, maxPulseUs float64
+		if motor.Type == DriveTypePWM {
+			props := pwmPropsMap[motor.Name]
+			minPulseUs = props.MinPulseUs
+			maxPulseUs = props.MaxPulseUs
+		}
 
 		// Initialize or update motor state
 		if _, exists := c.motorStates[motor.Name]; !exists {
-			c.motorStates[motor.Name] = &MotorState{
-				Name:         motor.Name,
-				Type:         motor.Type,
-				PWMComponent: motor.PWMComponent,
-				Enabled:      true,
-				CurrentAngle: motor.InitialAngle,
-				CurrentSpeed: 0.0,
+			state := &MotorState{
+				Name:                motor.Name,
+				DriveType:           motor.Type,
+				BehaviorType:        motor.Behavior.Type,
+				ControlledComponent: motor.ControlledComponent,
+				Enabled:             true,
+				MinPulseUs:          minPulseUs,
+				MaxPulseUs:          maxPulseUs,
 			}
+
+			// Set initial values based on behavior type
+			switch motor.Behavior.Type {
+			case BehaviorTypeAngle:
+				state.CurrentAngle = motor.Behavior.Angle.InitialAngle
+			case BehaviorTypeContinuous:
+				state.CurrentSpeed = motor.Behavior.Continuous.InitialSpeed
+			case BehaviorTypeDC:
+				state.CurrentSpeed = motor.Behavior.DC.InitialSpeed
+			}
+
+			c.motorStates[motor.Name] = state
+		} else {
+			// Update existing state with new properties
+			c.motorStates[motor.Name].MinPulseUs = minPulseUs
+			c.motorStates[motor.Name].MaxPulseUs = maxPulseUs
+			c.motorStates[motor.Name].BehaviorType = motor.Behavior.Type
 		}
 	}
 	c.mu.Unlock()
@@ -264,11 +339,35 @@ func (c *Controller) start(ctx context.Context) error {
 	c.state = StateRunning
 	c.mu.Unlock()
 
-	// Set initial positions for angle servos
+	// Enable all PWM channels
+	for motorName, comp := range c.controlledComponents {
+		if pwmComp, ok := comp.(pwm.PWM); ok {
+			if err := pwmComp.Enable(ctx); err != nil {
+				c.logger.Warn("failed to enable PWM", "motor", motorName, "error", err)
+			} else {
+				c.logger.Debug("PWM enabled", "motor", motorName)
+			}
+		}
+	}
+
+	// Set initial positions/speeds
 	for _, motor := range c.config.Motors {
-		if motor.Type == MotorTypeAngleServo {
-			if err := c.setAngle(ctx, motor.Name, motor.InitialAngle); err != nil {
+		switch motor.Behavior.Type {
+		case BehaviorTypeAngle:
+			if err := c.setAngle(ctx, motor.Name, motor.Behavior.Angle.InitialAngle); err != nil {
 				c.logger.Warn("failed to set initial angle", "motor", motor.Name, "error", err)
+			}
+		case BehaviorTypeContinuous:
+			if motor.Behavior.Continuous.InitialSpeed != 0 {
+				if err := c.setSpeed(ctx, motor.Name, motor.Behavior.Continuous.InitialSpeed); err != nil {
+					c.logger.Warn("failed to set initial speed", "motor", motor.Name, "error", err)
+				}
+			}
+		case BehaviorTypeDC:
+			if motor.Behavior.DC.InitialSpeed != 0 {
+				if err := c.setSpeed(ctx, motor.Name, motor.Behavior.DC.InitialSpeed); err != nil {
+					c.logger.Warn("failed to set initial speed", "motor", motor.Name, "error", err)
+				}
 			}
 		}
 	}
@@ -349,9 +448,13 @@ func (c *Controller) eventLoop(eventsCh <-chan input.KeyEvent) {
 func (c *Controller) processKeyEvent(ctx context.Context, event input.KeyEvent) {
 	c.keyEventsProcessed.Add(1)
 
+	// Normalize key to uppercase for case-insensitive matching
+	// (evdev reports physical keys like "A", "D" regardless of shift state)
+	normalizedKey := strings.ToUpper(event.Key)
+
 	c.mu.RLock()
-	forwardMotor := c.forwardKeyMap[event.Key]
-	reverseMotor := c.reverseKeyMap[event.Key]
+	forwardMotor := c.forwardKeyMap[normalizedKey]
+	reverseMotor := c.reverseKeyMap[normalizedKey]
 	c.mu.RUnlock()
 
 	if forwardMotor != nil {
@@ -373,22 +476,42 @@ func (c *Controller) handleForwardKey(ctx context.Context, motor *MotorConfig, p
 	state.ForwardKeyPressed = pressed
 	c.mu.Unlock()
 
-	switch motor.Type {
-	case MotorTypeAngleServo:
+	switch motor.Behavior.Type {
+	case BehaviorTypeAngle:
 		if pressed {
 			c.mu.RLock()
 			currentAngle := state.CurrentAngle
 			c.mu.RUnlock()
 
-			newAngle := Clamp(currentAngle+motor.AngleStep, motor.MinAngle, motor.MaxAngle)
+			angleCfg := motor.Behavior.Angle
+			newAngle := Clamp(currentAngle+angleCfg.AngleStep, angleCfg.MinAngle, angleCfg.MaxAngle)
 			if err := c.setAngle(ctx, motor.Name, newAngle); err != nil {
 				c.logger.Error("failed to set angle", "motor", motor.Name, "error", err)
 			}
 		}
 
-	case MotorTypeContinuousServo, MotorTypeDCMotor:
+	case BehaviorTypeContinuous:
+		speed := motor.Behavior.Continuous.Speed
 		if pressed {
-			if err := c.setSpeed(ctx, motor.Name, motor.Speed); err != nil {
+			if err := c.setSpeed(ctx, motor.Name, speed); err != nil {
+				c.logger.Error("failed to set speed", "motor", motor.Name, "error", err)
+			}
+		} else if motor.StopOnRelease {
+			c.mu.RLock()
+			reversePressed := state.ReverseKeyPressed
+			c.mu.RUnlock()
+
+			if !reversePressed {
+				if err := c.setSpeed(ctx, motor.Name, 0.0); err != nil {
+					c.logger.Error("failed to stop motor", "motor", motor.Name, "error", err)
+				}
+			}
+		}
+
+	case BehaviorTypeDC:
+		speed := motor.Behavior.DC.Speed
+		if pressed {
+			if err := c.setSpeed(ctx, motor.Name, speed); err != nil {
 				c.logger.Error("failed to set speed", "motor", motor.Name, "error", err)
 			}
 		} else if motor.StopOnRelease {
@@ -416,22 +539,42 @@ func (c *Controller) handleReverseKey(ctx context.Context, motor *MotorConfig, p
 	state.ReverseKeyPressed = pressed
 	c.mu.Unlock()
 
-	switch motor.Type {
-	case MotorTypeAngleServo:
+	switch motor.Behavior.Type {
+	case BehaviorTypeAngle:
 		if pressed {
 			c.mu.RLock()
 			currentAngle := state.CurrentAngle
 			c.mu.RUnlock()
 
-			newAngle := Clamp(currentAngle-motor.AngleStep, motor.MinAngle, motor.MaxAngle)
+			angleCfg := motor.Behavior.Angle
+			newAngle := Clamp(currentAngle-angleCfg.AngleStep, angleCfg.MinAngle, angleCfg.MaxAngle)
 			if err := c.setAngle(ctx, motor.Name, newAngle); err != nil {
 				c.logger.Error("failed to set angle", "motor", motor.Name, "error", err)
 			}
 		}
 
-	case MotorTypeContinuousServo, MotorTypeDCMotor:
+	case BehaviorTypeContinuous:
+		speed := motor.Behavior.Continuous.Speed
 		if pressed {
-			if err := c.setSpeed(ctx, motor.Name, -motor.Speed); err != nil {
+			if err := c.setSpeed(ctx, motor.Name, -speed); err != nil {
+				c.logger.Error("failed to set speed", "motor", motor.Name, "error", err)
+			}
+		} else if motor.StopOnRelease {
+			c.mu.RLock()
+			forwardPressed := state.ForwardKeyPressed
+			c.mu.RUnlock()
+
+			if !forwardPressed {
+				if err := c.setSpeed(ctx, motor.Name, 0.0); err != nil {
+					c.logger.Error("failed to stop motor", "motor", motor.Name, "error", err)
+				}
+			}
+		}
+
+	case BehaviorTypeDC:
+		speed := motor.Behavior.DC.Speed
+		if pressed {
+			if err := c.setSpeed(ctx, motor.Name, -speed); err != nil {
 				c.logger.Error("failed to set speed", "motor", motor.Name, "error", err)
 			}
 		} else if motor.StopOnRelease {
@@ -448,80 +591,115 @@ func (c *Controller) handleReverseKey(ctx context.Context, motor *MotorConfig, p
 	}
 }
 
-// setAngle sets the angle for an angle servo.
+// setAngle sets the angle for an angle behavior motor.
 func (c *Controller) setAngle(ctx context.Context, motorName string, angle float64) error {
 	c.mu.RLock()
 	motor := c.motorConfigs[motorName]
 	state := c.motorStates[motorName]
-	pwmComp := c.pwmMap[motorName]
+	comp := c.controlledComponents[motorName]
 	c.mu.RUnlock()
 
-	if motor == nil || state == nil || pwmComp == nil {
+	if motor == nil || state == nil || comp == nil {
 		return fmt.Errorf("motor %q not found", motorName)
 	}
 
-	// Clamp angle
-	angle = Clamp(angle, motor.MinAngle, motor.MaxAngle)
-
-	// Convert to pulse width
-	pulseUs := AngleToPulse(angle, motor.MinAngle, motor.MaxAngle)
-
-	// Send to PWM
-	if err := pwmComp.SetPulse(ctx, pulseUs); err != nil {
-		return fmt.Errorf("PWM SetPulse failed: %w", err)
+	if motor.Behavior.Type != BehaviorTypeAngle {
+		return fmt.Errorf("motor %q is not configured for angle behavior", motorName)
 	}
 
-	// Update state
-	c.mu.Lock()
-	state.CurrentAngle = angle
-	state.CurrentPulseUs = pulseUs
-	c.mu.Unlock()
+	angleCfg := motor.Behavior.Angle
 
-	c.pwmCommandsSent.Add(1)
-	c.logger.Debug("angle set", "motor", motorName, "angle", angle, "pulse_us", pulseUs)
+	// Clamp angle
+	angle = Clamp(angle, angleCfg.MinAngle, angleCfg.MaxAngle)
+
+	// Handle based on drive type
+	switch motor.Type {
+	case DriveTypePWM:
+		pwmComp, ok := comp.(pwm.PWM)
+		if !ok {
+			return fmt.Errorf("component for motor %q is not a PWM", motorName)
+		}
+
+		// Convert to pulse width using actual PWM component limits
+		pulseUs := AngleToPulse(angle, angleCfg.MinAngle, angleCfg.MaxAngle, state.MinPulseUs, state.MaxPulseUs)
+
+		// Send to PWM
+		if err := pwmComp.SetPulse(ctx, pulseUs); err != nil {
+			return fmt.Errorf("PWM SetPulse failed: %w", err)
+		}
+
+		// Update state
+		c.mu.Lock()
+		state.CurrentAngle = angle
+		state.CurrentPulseUs = pulseUs
+		c.mu.Unlock()
+
+		c.pwmCommandsSent.Add(1)
+		c.logger.Debug("angle set", "motor", motorName, "angle", angle, "pulse_us", pulseUs,
+			"min_pulse", state.MinPulseUs, "max_pulse", state.MaxPulseUs)
+
+	default:
+		return fmt.Errorf("unsupported drive type %q for angle control", motor.Type)
+	}
 
 	return nil
 }
 
-// setSpeed sets the speed for a continuous servo or DC motor.
+// setSpeed sets the speed for a continuous or DC behavior motor.
 func (c *Controller) setSpeed(ctx context.Context, motorName string, speed float64) error {
 	c.mu.RLock()
 	motor := c.motorConfigs[motorName]
 	state := c.motorStates[motorName]
-	pwmComp := c.pwmMap[motorName]
+	comp := c.controlledComponents[motorName]
 	c.mu.RUnlock()
 
-	if motor == nil || state == nil || pwmComp == nil {
+	if motor == nil || state == nil || comp == nil {
 		return fmt.Errorf("motor %q not found", motorName)
 	}
 
 	// Clamp speed
 	speed = Clamp(speed, -1.0, 1.0)
 
-	var err error
-	var pulseUs float64
-
+	// Handle based on drive type and behavior
 	switch motor.Type {
-	case MotorTypeContinuousServo:
-		pulseUs = SpeedToPulse(speed)
-		err = pwmComp.SetPulse(ctx, pulseUs)
+	case DriveTypePWM:
+		pwmComp, ok := comp.(pwm.PWM)
+		if !ok {
+			return fmt.Errorf("component for motor %q is not a PWM", motorName)
+		}
 
-	case MotorTypeDCMotor:
-		err = pwmComp.SetNormalized(ctx, speed)
+		var pulseUs float64
+		var err error
+
+		switch motor.Behavior.Type {
+		case BehaviorTypeContinuous:
+			// Use actual PWM component limits
+			pulseUs = SpeedToPulse(speed, state.MinPulseUs, state.MaxPulseUs)
+			err = pwmComp.SetPulse(ctx, pulseUs)
+
+		case BehaviorTypeDC:
+			err = pwmComp.SetNormalized(ctx, speed)
+
+		default:
+			return fmt.Errorf("setSpeed called on motor %q with behavior %q", motorName, motor.Behavior.Type)
+		}
+
+		if err != nil {
+			return fmt.Errorf("PWM command failed: %w", err)
+		}
+
+		// Update state
+		c.mu.Lock()
+		state.CurrentSpeed = speed
+		state.CurrentPulseUs = pulseUs
+		c.mu.Unlock()
+
+		c.pwmCommandsSent.Add(1)
+		c.logger.Debug("speed set", "motor", motorName, "speed", speed, "pulse_us", pulseUs)
+
+	default:
+		return fmt.Errorf("unsupported drive type %q for speed control", motor.Type)
 	}
-
-	if err != nil {
-		return fmt.Errorf("PWM command failed: %w", err)
-	}
-
-	// Update state
-	c.mu.Lock()
-	state.CurrentSpeed = speed
-	state.CurrentPulseUs = pulseUs
-	c.mu.Unlock()
-
-	c.pwmCommandsSent.Add(1)
-	c.logger.Debug("speed set", "motor", motorName, "speed", speed)
 
 	return nil
 }
@@ -543,11 +721,11 @@ func (c *Controller) stopMotor(ctx context.Context, motorName string) error {
 	state.ReverseKeyPressed = false
 	c.mu.Unlock()
 
-	switch motor.Type {
-	case MotorTypeAngleServo:
+	switch motor.Behavior.Type {
+	case BehaviorTypeAngle:
 		// Angle servos maintain position, nothing to do
 		return nil
-	case MotorTypeContinuousServo, MotorTypeDCMotor:
+	case BehaviorTypeContinuous, BehaviorTypeDC:
 		return c.setSpeed(ctx, motorName, 0.0)
 	}
 
@@ -568,6 +746,21 @@ func (c *Controller) stopAllMotors(ctx context.Context) {
 			c.logger.Warn("failed to stop motor", "motor", name, "error", err)
 		}
 	}
+
+	// Disable all PWM channels
+	c.mu.RLock()
+	components := c.controlledComponents
+	c.mu.RUnlock()
+
+	for motorName, comp := range components {
+		if pwmComp, ok := comp.(pwm.PWM); ok {
+			if err := pwmComp.Disable(ctx); err != nil {
+				c.logger.Warn("failed to disable PWM", "motor", motorName, "error", err)
+			} else {
+				c.logger.Debug("PWM disabled", "motor", motorName)
+			}
+		}
+	}
 }
 
 // DoCommand handles arbitrary commands.
@@ -586,8 +779,8 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		if motor == nil {
 			return nil, fmt.Errorf("motor %q not found", motorName)
 		}
-		if motor.Type != MotorTypeAngleServo {
-			return nil, fmt.Errorf("motor %q is not an angle servo", motorName)
+		if motor.Behavior.Type != BehaviorTypeAngle {
+			return nil, fmt.Errorf("motor %q is not configured for angle behavior", motorName)
 		}
 
 		if err := c.setAngle(ctx, motorName, angle); err != nil {
@@ -606,8 +799,8 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		if motor == nil {
 			return nil, fmt.Errorf("motor %q not found", motorName)
 		}
-		if motor.Type == MotorTypeAngleServo {
-			return nil, fmt.Errorf("motor %q is an angle servo, use set_angle", motorName)
+		if motor.Behavior.Type == BehaviorTypeAngle {
+			return nil, fmt.Errorf("motor %q is configured for angle behavior, use set_angle", motorName)
 		}
 
 		if err := c.setSpeed(ctx, motorName, speed); err != nil {
@@ -638,14 +831,15 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 				return nil, fmt.Errorf("motor %q not found", motorName)
 			}
 			return map[string]any{
-				"name":                 state.Name,
-				"type":                 string(state.Type),
-				"enabled":              state.Enabled,
-				"current_angle":        state.CurrentAngle,
-				"current_speed":        state.CurrentSpeed,
-				"current_pulse_us":     state.CurrentPulseUs,
-				"forward_key_pressed":  state.ForwardKeyPressed,
-				"reverse_key_pressed":  state.ReverseKeyPressed,
+				"name":                state.Name,
+				"drive_type":          string(state.DriveType),
+				"behavior_type":       string(state.BehaviorType),
+				"enabled":             state.Enabled,
+				"current_angle":       state.CurrentAngle,
+				"current_speed":       state.CurrentSpeed,
+				"current_pulse_us":    state.CurrentPulseUs,
+				"forward_key_pressed": state.ForwardKeyPressed,
+				"reverse_key_pressed": state.ReverseKeyPressed,
 			}, nil
 		}
 
@@ -653,7 +847,8 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		states := make(map[string]any)
 		for name, state := range c.motorStates {
 			states[name] = map[string]any{
-				"type":                string(state.Type),
+				"drive_type":          string(state.DriveType),
+				"behavior_type":       string(state.BehaviorType),
 				"enabled":             state.Enabled,
 				"current_angle":       state.CurrentAngle,
 				"current_speed":       state.CurrentSpeed,
@@ -747,4 +942,3 @@ func (c *Controller) GetMotorState(motorName string) (*MotorState, error) {
 	copy := *state
 	return &copy, nil
 }
-

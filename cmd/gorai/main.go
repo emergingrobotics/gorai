@@ -22,6 +22,9 @@ import (
 
 	// Bridge services
 	_ "github.com/gorai/gorai/services/bridge/keyboard_publisher"
+
+	// Control services
+	_ "github.com/gorai/gorai/services/control/keypress_motor"
 )
 
 func main() {
