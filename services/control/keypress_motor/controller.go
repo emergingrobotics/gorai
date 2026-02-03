@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -138,12 +139,12 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	// when the robot runtime calls Reconfigure with actual dependencies.
 	// For now, we just store the config and prepare the lookup tables.
 
-	// Build lookup tables
+	// Build lookup tables (normalize keys to uppercase for case-insensitive matching)
 	for i := range cfg.Motors {
 		motor := &cfg.Motors[i]
 		c.motorConfigs[motor.Name] = motor
-		c.forwardKeyMap[motor.ForwardKey] = motor
-		c.reverseKeyMap[motor.ReverseKey] = motor
+		c.forwardKeyMap[strings.ToUpper(motor.ForwardKey)] = motor
+		c.reverseKeyMap[strings.ToUpper(motor.ReverseKey)] = motor
 
 		// Initialize motor state
 		state := &MotorState{
@@ -264,8 +265,9 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 	for i := range cfg.Motors {
 		motor := &cfg.Motors[i]
 		c.motorConfigs[motor.Name] = motor
-		c.forwardKeyMap[motor.ForwardKey] = motor
-		c.reverseKeyMap[motor.ReverseKey] = motor
+		// Normalize keys to uppercase for case-insensitive matching
+		c.forwardKeyMap[strings.ToUpper(motor.ForwardKey)] = motor
+		c.reverseKeyMap[strings.ToUpper(motor.ReverseKey)] = motor
 
 		// Get PWM properties for this motor (if PWM type)
 		var minPulseUs, maxPulseUs float64
@@ -446,9 +448,13 @@ func (c *Controller) eventLoop(eventsCh <-chan input.KeyEvent) {
 func (c *Controller) processKeyEvent(ctx context.Context, event input.KeyEvent) {
 	c.keyEventsProcessed.Add(1)
 
+	// Normalize key to uppercase for case-insensitive matching
+	// (evdev reports physical keys like "A", "D" regardless of shift state)
+	normalizedKey := strings.ToUpper(event.Key)
+
 	c.mu.RLock()
-	forwardMotor := c.forwardKeyMap[event.Key]
-	reverseMotor := c.reverseKeyMap[event.Key]
+	forwardMotor := c.forwardKeyMap[normalizedKey]
+	reverseMotor := c.reverseKeyMap[normalizedKey]
 	c.mu.RUnlock()
 
 	if forwardMotor != nil {
