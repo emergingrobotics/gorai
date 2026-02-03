@@ -264,6 +264,15 @@ func (c *Controller) start(ctx context.Context) error {
 	c.state = StateRunning
 	c.mu.Unlock()
 
+	// Enable all PWM channels
+	for motorName, pwmComp := range c.pwmMap {
+		if err := pwmComp.Enable(ctx); err != nil {
+			c.logger.Warn("failed to enable PWM", "motor", motorName, "error", err)
+		} else {
+			c.logger.Debug("PWM enabled", "motor", motorName)
+		}
+	}
+
 	// Set initial positions for angle servos
 	for _, motor := range c.config.Motors {
 		if motor.Type == MotorTypeAngleServo {
@@ -568,6 +577,19 @@ func (c *Controller) stopAllMotors(ctx context.Context) {
 			c.logger.Warn("failed to stop motor", "motor", name, "error", err)
 		}
 	}
+
+	// Disable all PWM channels
+	c.mu.RLock()
+	pwmMap := c.pwmMap
+	c.mu.RUnlock()
+
+	for motorName, pwmComp := range pwmMap {
+		if err := pwmComp.Disable(ctx); err != nil {
+			c.logger.Warn("failed to disable PWM", "motor", motorName, "error", err)
+		} else {
+			c.logger.Debug("PWM disabled", "motor", motorName)
+		}
+	}
 }
 
 // DoCommand handles arbitrary commands.
@@ -638,14 +660,14 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 				return nil, fmt.Errorf("motor %q not found", motorName)
 			}
 			return map[string]any{
-				"name":                 state.Name,
-				"type":                 string(state.Type),
-				"enabled":              state.Enabled,
-				"current_angle":        state.CurrentAngle,
-				"current_speed":        state.CurrentSpeed,
-				"current_pulse_us":     state.CurrentPulseUs,
-				"forward_key_pressed":  state.ForwardKeyPressed,
-				"reverse_key_pressed":  state.ReverseKeyPressed,
+				"name":                state.Name,
+				"type":                string(state.Type),
+				"enabled":             state.Enabled,
+				"current_angle":       state.CurrentAngle,
+				"current_speed":       state.CurrentSpeed,
+				"current_pulse_us":    state.CurrentPulseUs,
+				"forward_key_pressed": state.ForwardKeyPressed,
+				"reverse_key_pressed": state.ReverseKeyPressed,
 			}, nil
 		}
 
@@ -747,4 +769,3 @@ func (c *Controller) GetMotorState(motorName string) (*MotorState, error) {
 	copy := *state
 	return &copy, nil
 }
-

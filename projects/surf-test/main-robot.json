@@ -24,7 +24,7 @@
       "name": "remote_keyboard",
       "type": "input",
       "model": "remote",
-      "log_level": "trace",
+      "log_level": "info",
       "attributes": {
         "topic": "gorai.ground-station.keyboard.events",
         "buffer_size": 100,
@@ -40,8 +40,8 @@
       "log_level": "debug",
       "attributes": {
         "device": "/dev/video0",
-        "width": 1920,
-        "height": 1080,
+        "width": 1280,
+        "height": 720,
         "frame_rate": 30,
         "jpeg_quality": 80,
         "publish_to_bus": true,
@@ -58,8 +58,8 @@
       "attributes": {
         "pin": 23,
         "frequency_hz": 50,
-        "min_pulse_us": 500,
-        "max_pulse_us": 2500,
+        "min_pulse_us": 900,
+        "max_pulse_us": 2100,
         "initial_pulse_us": 1500
       }
     },
@@ -72,8 +72,8 @@
       "attributes": {
         "pin": 24,
         "frequency_hz": 50,
-        "min_pulse_us": 500,
-        "max_pulse_us": 2500,
+        "min_pulse_us": 900,
+        "max_pulse_us": 2100,
         "initial_pulse_us": 1500
       }
     }
@@ -94,10 +94,10 @@
             "pwm_component": "pan_servo",
             "forward_key": "D",
             "reverse_key": "A",
-            "angle_step": 5.0,
+            "angle_step": 2.5,
             "min_angle": -90.0,
             "max_angle": 90.0,
-            "initial_angle": 0.0,
+            "initial_angle": 45,
             "speed": 1.0
           },
           {
@@ -106,10 +106,10 @@
             "pwm_component": "tilt_servo",
             "forward_key": "W",
             "reverse_key": "S",
-            "angle_step": 5.0,
-            "min_angle": -45.0,
-            "max_angle": 45.0,
-            "initial_angle": 0.0,
+            "angle_step": 2.5,
+            "min_angle": -90.0,
+            "max_angle": 90.0,
+            "initial_angle": 45,
             "speed": 1.0
           }
         ]
