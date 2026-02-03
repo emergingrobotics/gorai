@@ -13,7 +13,7 @@ package pwm
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	component "github.com/gorai/gorai/components"
 )
 
 // PWM represents a PWM output component.
@@ -70,5 +70,8 @@ type Properties struct {
 
 	// Inverted indicates if the signal is active-low.
 	Inverted bool
-}
 
+	// Mode indicates whether hardware or software PWM is being used.
+	// Values: "hardware", "software"
+	Mode string
+}

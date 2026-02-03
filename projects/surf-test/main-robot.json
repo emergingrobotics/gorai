@@ -56,11 +56,12 @@
       "model": "gpiod",
       "log_level": "debug",
       "attributes": {
-        "pin": 23,
+        "pin": 12,
         "frequency_hz": 50,
         "min_pulse_us": 900,
         "max_pulse_us": 2100,
-        "initial_pulse_us": 1500
+        "initial_pulse_us": 1500,
+        "hw_mode": "auto"
       }
     },
 
@@ -70,11 +71,12 @@
       "model": "gpiod",
       "log_level": "debug",
       "attributes": {
-        "pin": 24,
+        "pin": 13,
         "frequency_hz": 50,
         "min_pulse_us": 900,
         "max_pulse_us": 2100,
-        "initial_pulse_us": 1500
+        "initial_pulse_us": 1500,
+        "hw_mode": "auto"
       }
     }
   ],

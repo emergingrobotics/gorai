@@ -1,16 +1,21 @@
-// Package gpiod provides a software PWM implementation using libgpiod.
+// Package gpiod provides a PWM implementation supporting both hardware and software modes.
 //
 // This package implements the pwm.PWM interface for Raspberry Pi 5 and other
 // Linux systems with GPIO support via the HAL (Hardware Abstraction Layer).
 //
+// Hardware PWM uses the Linux sysfs interface (/sys/class/pwm) for precise timing.
 // Software PWM is generated in a dedicated goroutine with timing achieved
-// through a combination of time.Sleep and busy-waiting for precision.
+// through a combination of time.Sleep and busy-waiting (less precise).
+//
+// The component automatically detects hardware PWM support based on the pin
+// and falls back to software PWM with a warning when hardware is not available.
 package gpiod
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +23,7 @@ import (
 	"github.com/gorai/gorai/components/pwm"
 	"github.com/gorai/gorai/driver/gpio"
 	"github.com/gorai/gorai/driver/hal"
+	driverpwm "github.com/gorai/gorai/driver/pwm"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
 )
@@ -26,23 +32,28 @@ func init() {
 	registry.RegisterComponent("pwm", "gpiod", New)
 }
 
-// PWM implements software PWM using HAL GPIO.
+// PWM implements hardware or software PWM using HAL.
 type PWM struct {
 	name   resource.Name
 	config Config
 	logger *slog.Logger
 
 	hal       hal.HAL
-	gpioPin   gpio.Pin
 	pinNumber int
+
+	// Hardware PWM (used when isHardware is true)
+	hwChannel  driverpwm.Channel
+	isHardware bool
+
+	// Software PWM (used when isHardware is false)
+	gpioPin gpio.Pin
+	stopCh  chan struct{}
+	doneCh  chan struct{}
 
 	mu       sync.RWMutex
 	pulseUs  float64
 	enabled  bool
 	periodNs int64
-
-	stopCh chan struct{}
-	doneCh chan struct{}
 
 	// Metrics
 	cmdCount   atomic.Uint64
@@ -79,23 +90,6 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		return nil, fmt.Errorf("failed to resolve pin %v: %w", cfg.Pin, err)
 	}
 
-	// Get GPIO driver from HAL
-	gpioDriver, err := h.GPIO()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get GPIO driver: %w", err)
-	}
-
-	// Get the pin
-	gpioPin, err := gpioDriver.Pin(pinNumber)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get GPIO pin %d: %w", pinNumber, err)
-	}
-
-	// Set pin as output
-	if err := gpioPin.SetDirection(ctx, gpio.Output); err != nil {
-		return nil, fmt.Errorf("failed to set pin %d as output: %w", pinNumber, err)
-	}
-
 	// Get logger from dependencies or use default
 	logger := slog.Default()
 	if loggerRes, err := deps.Get("logger"); err == nil {
@@ -103,24 +97,75 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 			logger = l
 		}
 	}
+	logger = logger.With("component", nameStr)
 
-	p := &PWM{
-		name:      name,
-		config:    cfg,
-		logger:    logger.With("component", nameStr),
-		hal:       h,
-		gpioPin:   gpioPin,
-		pinNumber: pinNumber,
-		pulseUs:   cfg.InitialPulseUs,
-		periodNs:  cfg.PeriodNs(),
-		stopCh:    make(chan struct{}),
-		doneCh:    make(chan struct{}),
+	// Check for hardware PWM support
+	chip, channel, hasHardwarePWM := h.GetPWMMapping(pinNumber)
+
+	// Determine whether to use hardware or software PWM
+	useHardware := false
+	hwMode := cfg.HWMode
+	if hwMode == "" {
+		hwMode = HWModeAuto
 	}
 
-	// Start PWM goroutine (initially disabled)
-	go p.pwmLoop()
+	switch hwMode {
+	case HWModeHardware:
+		if !hasHardwarePWM {
+			hwPins := hal.GetHardwarePWMPins(h.Board())
+			return nil, fmt.Errorf("hardware PWM not available on GPIO %d. "+
+				"Hardware PWM pins on %s: %v", pinNumber, h.Board(), formatPinList(hwPins))
+		}
+		useHardware = true
 
+	case HWModeSoftware:
+		useHardware = false
+
+	case HWModeAuto:
+		if hasHardwarePWM {
+			useHardware = true
+		} else {
+			// Emit warning about software PWM
+			hwPins := hal.GetHardwarePWMPins(h.Board())
+			logger.Warn("PWM using software mode - timing may be inaccurate",
+				"pin", pinNumber,
+				"reason", "pin does not support hardware PWM",
+				"hardware_pwm_pins", formatPinList(hwPins),
+				"recommendation", fmt.Sprintf("use GPIO %v for precise servo control", hwPins),
+			)
+			useHardware = false
+		}
+	}
+
+	p := &PWM{
+		name:       name,
+		config:     cfg,
+		logger:     logger,
+		hal:        h,
+		pinNumber:  pinNumber,
+		pulseUs:    cfg.InitialPulseUs,
+		periodNs:   cfg.PeriodNs(),
+		isHardware: useHardware,
+	}
+
+	if useHardware {
+		// Initialize hardware PWM
+		if err := p.initHardwarePWM(ctx, chip, channel); err != nil {
+			return nil, fmt.Errorf("failed to initialize hardware PWM: %w", err)
+		}
+	} else {
+		// Initialize software PWM
+		if err := p.initSoftwarePWM(ctx); err != nil {
+			return nil, fmt.Errorf("failed to initialize software PWM: %w", err)
+		}
+	}
+
+	modeStr := "software"
+	if useHardware {
+		modeStr = "hardware"
+	}
 	p.logger.Info("PWM component initialized",
+		"mode", modeStr,
 		"board", h.Board(),
 		"pin", pinNumber,
 		"pin_ref", cfg.Pin,
@@ -130,6 +175,93 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	)
 
 	return p, nil
+}
+
+// initHardwarePWM sets up hardware PWM via sysfs.
+func (p *PWM) initHardwarePWM(ctx context.Context, chip, channel int) error {
+	// Get PWM chip from HAL
+	pwmChip, err := p.hal.PWM(chip)
+	if err != nil {
+		return fmt.Errorf("failed to open PWM chip %d: %w", chip, err)
+	}
+
+	// Get the channel
+	hwChan, err := pwmChip.Channel(channel)
+	if err != nil {
+		return fmt.Errorf("failed to get PWM channel %d: %w", channel, err)
+	}
+
+	p.hwChannel = hwChan
+
+	// Set frequency (period)
+	if err := hwChan.SetFrequency(ctx, p.config.FrequencyHz); err != nil {
+		return fmt.Errorf("failed to set frequency: %w", err)
+	}
+
+	// Set initial pulse width as duty cycle
+	pulseNs := uint64(p.config.InitialPulseUs * 1000)
+	if err := hwChan.SetDuty(ctx, pulseNs); err != nil {
+		return fmt.Errorf("failed to set initial duty: %w", err)
+	}
+
+	p.logger.Debug("Hardware PWM initialized",
+		"chip", chip,
+		"channel", channel,
+		"frequency_hz", p.config.FrequencyHz,
+		"initial_pulse_us", p.config.InitialPulseUs,
+	)
+
+	return nil
+}
+
+// initSoftwarePWM sets up software PWM via GPIO bit-banging.
+func (p *PWM) initSoftwarePWM(ctx context.Context) error {
+	// Get GPIO driver from HAL
+	gpioDriver, err := p.hal.GPIO()
+	if err != nil {
+		return fmt.Errorf("failed to get GPIO driver: %w", err)
+	}
+
+	// Get the pin
+	gpioPin, err := gpioDriver.Pin(p.pinNumber)
+	if err != nil {
+		return fmt.Errorf("failed to get GPIO pin %d: %w", p.pinNumber, err)
+	}
+
+	// Set pin as output
+	if err := gpioPin.SetDirection(ctx, gpio.Output); err != nil {
+		return fmt.Errorf("failed to set pin %d as output: %w", p.pinNumber, err)
+	}
+
+	p.gpioPin = gpioPin
+	p.stopCh = make(chan struct{})
+	p.doneCh = make(chan struct{})
+
+	// Start PWM goroutine (initially disabled)
+	go p.pwmLoop()
+
+	p.logger.Debug("Software PWM initialized",
+		"pin", p.pinNumber,
+		"frequency_hz", p.config.FrequencyHz,
+	)
+
+	return nil
+}
+
+// formatPinList formats a list of pins for display.
+func formatPinList(pins []int) string {
+	if len(pins) == 0 {
+		return "none"
+	}
+	sort.Ints(pins)
+	result := ""
+	for i, pin := range pins {
+		if i > 0 {
+			result += ", "
+		}
+		result += fmt.Sprintf("%d", pin)
+	}
+	return result
 }
 
 // Name returns the resource name.
@@ -193,6 +325,10 @@ func (p *PWM) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any
 
 	case "get_state":
 		p.mu.RLock()
+		mode := "software"
+		if p.isHardware {
+			mode = "hardware"
+		}
 		state := map[string]any{
 			"pulse_us":     p.pulseUs,
 			"normalized":   p.pulseToNormalized(p.pulseUs),
@@ -203,6 +339,8 @@ func (p *PWM) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any
 			"max_pulse_us": p.config.MaxPulseUs,
 			"cmd_count":    p.cmdCount.Load(),
 			"cycle_count":  p.cycleCount.Load(),
+			"mode":         mode,
+			"pin":          p.pinNumber,
 		}
 		p.mu.RUnlock()
 		return state, nil
@@ -216,23 +354,33 @@ func (p *PWM) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any
 func (p *PWM) Close(ctx context.Context) error {
 	p.logger.Info("Closing PWM component")
 
-	// Stop PWM loop
-	close(p.stopCh)
+	if p.isHardware {
+		// Disable hardware PWM
+		if p.hwChannel != nil {
+			if err := p.hwChannel.Disable(ctx); err != nil {
+				p.logger.Warn("Failed to disable hardware PWM on close", "error", err)
+			}
+		}
+		// Note: PWM chip cleanup is handled by HAL.Close()
+	} else {
+		// Stop software PWM loop
+		if p.stopCh != nil {
+			close(p.stopCh)
 
-	// Wait for loop to finish with timeout
-	select {
-	case <-p.doneCh:
-	case <-time.After(time.Second):
-		p.logger.Warn("PWM loop did not stop cleanly")
+			// Wait for loop to finish with timeout
+			select {
+			case <-p.doneCh:
+			case <-time.After(time.Second):
+				p.logger.Warn("PWM loop did not stop cleanly")
+			}
+		}
+
+		// Set pin LOW
+		if p.gpioPin != nil {
+			p.gpioPin.Write(ctx, false)
+		}
+		// Note: GPIO driver cleanup is handled by HAL.Close()
 	}
-
-	// Set pin LOW
-	if p.gpioPin != nil {
-		p.gpioPin.Write(ctx, false)
-	}
-
-	// Note: GPIO driver cleanup is handled by HAL.Close()
-	// Don't close the pin here as other components may share the GPIO driver
 
 	return nil
 }
@@ -250,6 +398,15 @@ func (p *PWM) SetPulse(ctx context.Context, pulseUs float64) error {
 	p.mu.Lock()
 	p.pulseUs = pulseUs
 	p.mu.Unlock()
+
+	// For hardware PWM, update immediately
+	if p.isHardware && p.hwChannel != nil {
+		pulseNs := uint64(pulseUs * 1000)
+		if err := p.hwChannel.SetDuty(ctx, pulseNs); err != nil {
+			return fmt.Errorf("failed to set hardware PWM duty: %w", err)
+		}
+	}
+	// For software PWM, the pwmLoop will pick up the new value
 
 	p.logger.Debug("Set pulse", "pulse_us", pulseUs)
 	return nil
@@ -292,6 +449,19 @@ func (p *PWM) Enable(ctx context.Context) error {
 		return nil
 	}
 
+	// For hardware PWM, enable the channel
+	if p.isHardware && p.hwChannel != nil {
+		// Set the current pulse before enabling
+		pulseNs := uint64(p.pulseUs * 1000)
+		if err := p.hwChannel.SetDuty(ctx, pulseNs); err != nil {
+			return fmt.Errorf("failed to set duty before enable: %w", err)
+		}
+		if err := p.hwChannel.Enable(ctx); err != nil {
+			return fmt.Errorf("failed to enable hardware PWM: %w", err)
+		}
+	}
+	// For software PWM, the pwmLoop will start generating signal
+
 	p.enabled = true
 	p.logger.Info("PWM enabled", "pulse_us", p.pulseUs)
 	return nil
@@ -308,8 +478,13 @@ func (p *PWM) Disable(ctx context.Context) error {
 
 	p.enabled = false
 
-	// Set pin LOW immediately
-	if p.gpioPin != nil {
+	// For hardware PWM, disable the channel
+	if p.isHardware && p.hwChannel != nil {
+		if err := p.hwChannel.Disable(ctx); err != nil {
+			return fmt.Errorf("failed to disable hardware PWM: %w", err)
+		}
+	} else if p.gpioPin != nil {
+		// For software PWM, set pin LOW immediately
 		p.gpioPin.Write(ctx, false)
 	}
 
@@ -340,6 +515,10 @@ func (p *PWM) GetNormalized(ctx context.Context) (float64, error) {
 
 // Properties returns the PWM configuration and capabilities.
 func (p *PWM) Properties(ctx context.Context) (pwm.Properties, error) {
+	mode := "software"
+	if p.isHardware {
+		mode = "hardware"
+	}
 	return pwm.Properties{
 		FrequencyHz: p.config.FrequencyHz,
 		MinPulseUs:  p.config.MinPulseUs,
@@ -347,6 +526,7 @@ func (p *PWM) Properties(ctx context.Context) (pwm.Properties, error) {
 		Pin:         p.pinNumber,
 		Board:       string(p.hal.Board()),
 		Inverted:    p.config.Invert,
+		Mode:        mode,
 	}, nil
 }
 
