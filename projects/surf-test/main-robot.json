@@ -58,8 +58,8 @@
       "attributes": {
         "pin": 12,
         "frequency_hz": 50,
-        "min_pulse_us": 900,
-        "max_pulse_us": 2100,
+        "min_pulse_us": 1000,
+        "max_pulse_us": 2000,
         "initial_pulse_us": 1500,
         "hw_mode": "auto"
       }
@@ -73,8 +73,8 @@
       "attributes": {
         "pin": 13,
         "frequency_hz": 50,
-        "min_pulse_us": 900,
-        "max_pulse_us": 2100,
+        "min_pulse_us": 1000,
+        "max_pulse_us": 2000,
         "initial_pulse_us": 1500,
         "hw_mode": "auto"
       }
