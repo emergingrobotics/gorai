@@ -90,27 +90,37 @@
         "motors": [
           {
             "name": "pan",
-            "type": "angle_servo",
-            "pwm_component": "pan_servo",
-            "forward_key": "D",
-            "reverse_key": "A",
-            "angle_step": 2.5,
-            "min_angle": -90.0,
-            "max_angle": 90.0,
-            "initial_angle": 45,
-            "speed": 1.0
+            "type": "pwm",
+            "controlled_component": "pan_servo",
+            "forward_key": "d",
+            "reverse_key": "a",
+            "behavior": {
+              "type": "angle",
+              "angle": {
+                "angle_step": 2.5,
+                "min_angle": -90.0,
+                "max_angle": 90.0,
+                "initial_angle": 45.0,
+                "speed": 1.0
+              }
+            }
           },
           {
             "name": "tilt",
-            "type": "angle_servo",
-            "pwm_component": "tilt_servo",
-            "forward_key": "W",
-            "reverse_key": "S",
-            "angle_step": 2.5,
-            "min_angle": -90.0,
-            "max_angle": 90.0,
-            "initial_angle": 45,
-            "speed": 1.0
+            "type": "pwm",
+            "controlled_component": "tilt_servo",
+            "forward_key": "w",
+            "reverse_key": "s",
+            "behavior": {
+              "type": "angle",
+              "angle": {
+                "angle_step": 2.5,
+                "min_angle": -90.0,
+                "max_angle": 90.0,
+                "initial_angle": 45.0,
+                "speed": 1.0
+              }
+            }
           }
         ]
       },
@@ -129,4 +139,3 @@
     "listen": ":8080"
   }
 }
-
