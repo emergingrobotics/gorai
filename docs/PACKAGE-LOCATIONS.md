@@ -71,8 +71,9 @@ func main() {
 **Contains:**
 - `pkg/config/` - RDL parsing and configuration
 - `pkg/nats/` - NATS client wrapper
+- `pkg/mesh/` - Service discovery via NATS KV (runtime registration/discovery)
 - `pkg/accel/` - ML acceleration abstractions
-- `pkg/registry/` - Component/service registry
+- `pkg/registry/` - Component/service registry (compile-time registration)
 - `pkg/resource/` - Base resource interfaces
 - `pkg/dashboard/` - Web dashboard
 - `pkg/pub/`, `pkg/sub/` - NATS pub/sub utilities
@@ -289,6 +290,27 @@ service/navigation/
 - Shared infrastructure → pkg
 - Used by multiple packages → confirms pkg placement
 
+### Example 6: Service Discovery
+
+"I want cross-binary service discovery using NATS"
+
+**Decision:** `pkg/mesh/`
+- Shared infrastructure → pkg
+- Uses NATS KV for persistent registry
+- Provides client for registration, discovery, watching
+
+```
+pkg/mesh/
+├── client.go           # Main client interface
+├── registration.go     # Service registration + heartbeat
+├── discovery.go        # Query services and channels
+├── watcher.go          # Watch for changes
+├── schema.go           # Schema registry
+├── micro.go            # NATS micro service API
+├── kv.go               # KV bucket management
+└── types.go            # Core types (ServiceDescriptor, etc.)
+```
+
 ## Anti-Patterns
 
 **Don't:**
@@ -309,7 +331,7 @@ service/navigation/
 | Directory | Contains | Examples |
 |-----------|----------|----------|
 | `cmd/` | Entry points | CLI, main.go |
-| `pkg/` | Shared infrastructure | config, nats, accel, registry |
+| `pkg/` | Shared infrastructure | config, nats, mesh, accel, registry |
 | `components/` | Hardware abstractions | motor, sensor, camera |
 | `driver/` | Low-level hardware | gpio, i2c, spi, serial |
 | `services/` | Software capabilities | vision, navigation, slam |

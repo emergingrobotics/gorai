@@ -2,6 +2,8 @@
 
 **Professional robotics for prosumers — without the PhD**
 
+> **Building a new component or service?** Skip to [docs/LLM-DESIGN-GUIDE.md](docs/LLM-DESIGN-GUIDE.md) for complete templates, patterns, and checklists.
+
 Gorai is a Go-based robotics framework designed for makers, citizen scientists, students, and small organizations who need real autonomy without ROS 2's complexity. Build a robot in under an hour with a single binary and NATS messaging.
 
 ## Strategic Positioning
@@ -77,12 +79,74 @@ TinyGo firmware for RP2040-based boards providing:
 ## CLI Commands
 
 ```bash
+# Core commands
 gorai validate <config>   # Validate RDL file
 gorai run <config>        # Run robot (development mode)
 gorai build <config>      # Build standalone binary
 gorai components          # List available component types
 gorai version             # Show version info
+
+# Mesh service discovery
+gorai mesh services       # List running services
+gorai mesh channels       # List registered NATS channels
+gorai mesh schemas        # List or show message schemas
+gorai mesh watch          # Watch for services joining/leaving
+gorai mesh summary        # Show mesh state summary
+gorai mesh init           # Initialize predefined schemas
 ```
+
+---
+
+## Mesh Service Discovery
+
+The mesh system enables runtime service discovery across independent processes using NATS KV.
+
+### Key Features
+- **Runtime Registration**: Services register themselves at startup with automatic heartbeat
+- **Channel Discovery**: Find available NATS subjects and their message schemas
+- **Cross-Binary Discovery**: Independent processes discover each other's services
+- **Health Monitoring**: Automatic TTL-based expiry for stale services
+- **Schema Registry**: JSON Schema definitions for message types
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         NATS JetStream KV                                │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  gorai-services (TTL: 30s)     → Active service registrations   │    │
+│  │  gorai-channels (persistent)   → Channel/subject descriptors    │    │
+│  │  gorai-schemas  (persistent)   → Message schemas (JSON Schema)  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│  Well-Known Subjects:                                                   │
+│  ├── gorai.mesh.announce         → Service join/leave announcements    │
+│  └── gorai.mesh.heartbeat.<id>   → Per-service heartbeats              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Usage Example
+
+```go
+// Register a service
+client, _ := mesh.NewClient(natsConn)
+reg, _ := client.Register(ctx, mesh.ServiceDescriptor{
+    Name:    "motor-controller",
+    Type:    mesh.TypeComponent,
+    Subtype: "motor",
+    Model:   "pwm",
+    RobotID: "robot-alpha",
+    Publishes: []string{"gorai.robot-alpha.motor.state"},
+})
+defer reg.Deregister()
+
+// Discover services
+motors, _ := client.FindServices(ctx, mesh.Query{
+    RobotID: "robot-alpha",
+    Subtype: "motor",
+})
+```
+
+See [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) for complete specification.
 
 ---
 
@@ -109,6 +173,7 @@ gorai version             # Show version info
 - [specs/gorai-framework-specification.md](specs/gorai-framework-specification.md) — **Complete technical spec**
 - [specs/robot-definition-language.md](specs/robot-definition-language.md) — RDL JSON configuration format
 - [specs/code-organization.md](specs/code-organization.md) — **Module structure and satellite repos**
+- [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) — **Runtime service discovery via NATS KV**
 - [specs/gsp-v2-protocol.md](specs/gsp-v2-protocol.md) — Gorai Serial Protocol specification
 - [specs/hardware-requirements.md](specs/hardware-requirements.md) — Hardware specs
 - [specs/serial-interfaces.md](specs/serial-interfaces.md) — Serial communication patterns
@@ -117,6 +182,7 @@ gorai version             # Show version info
 
 ### Architecture & Design
 - [docs/PACKAGE-LOCATIONS.md](docs/PACKAGE-LOCATIONS.md) — Where code belongs
+- [docs/LLM-DESIGN-GUIDE.md](docs/LLM-DESIGN-GUIDE.md) — **Complete guide for LLMs designing components/services**
 - [docs/hardware-abstraction.md](docs/hardware-abstraction.md) — Hardware abstraction layer
 - [docs/component-reference.md](docs/component-reference.md) — Component types reference
 - [docs/general-designs.md](docs/general-designs.md) — ROS 2, Viam, YARP comparison
@@ -131,9 +197,19 @@ gorai version             # Show version info
 ```
 gorai/
 ├── cmd/gorai/              # CLI commands
+│   └── commands/
+│       ├── mesh.go         # Mesh service discovery CLI
+│       └── ...
 ├── pkg/                    # Core libraries
 │   ├── accel/              # ML acceleration
 │   ├── config/             # RDL parsing
+│   ├── mesh/               # Service discovery (NATS KV)
+│   │   ├── client.go       # Main client interface
+│   │   ├── registration.go # Service registration + heartbeat
+│   │   ├── discovery.go    # Query services and channels
+│   │   ├── watcher.go      # Watch for changes
+│   │   ├── schema.go       # Schema registry
+│   │   └── micro.go        # NATS micro service API
 │   ├── nats/               # NATS client
 │   ├── runtime/            # Robot lifecycle
 │   └── dashboard/          # Web dashboard
@@ -309,9 +385,11 @@ See [specs/testing-approach.md](specs/testing-approach.md) and [specs/howto-run-
 
 | Concept | Location |
 |---------|----------|
+| **LLM Design Guide** | [docs/LLM-DESIGN-GUIDE.md](docs/LLM-DESIGN-GUIDE.md) — **Start here for building components/services** |
 | Framework spec | [specs/gorai-framework-specification.md](specs/gorai-framework-specification.md) |
 | RDL format | [specs/robot-definition-language.md](specs/robot-definition-language.md) |
 | Code organization | [specs/code-organization.md](specs/code-organization.md) |
+| Mesh discovery | [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) |
 | Strategic decisions | [docs/STRATEGIC-SUMMARY.md](docs/STRATEGIC-SUMMARY.md) |
 | GSP protocol | [specs/gsp-v2-protocol.md](specs/gsp-v2-protocol.md) |
 | Hardware reqs | [specs/hardware-requirements.md](specs/hardware-requirements.md) |

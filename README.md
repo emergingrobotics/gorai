@@ -186,6 +186,8 @@ See [Hardware Requirements](specs/hardware-requirements.md) for details.
 
 ## CLI Commands
 
+### Core Commands
+
 | Command | Description |
 |---------|-------------|
 | `gorai validate <config>` | Validate RDL configuration |
@@ -193,6 +195,17 @@ See [Hardware Requirements](specs/hardware-requirements.md) for details.
 | `gorai build <config>` | Build standalone binary |
 | `gorai components` | List available component types |
 | `gorai version` | Show version information |
+
+### Mesh Commands (Service Discovery)
+
+| Command | Description |
+|---------|-------------|
+| `gorai mesh services` | List running services in the mesh |
+| `gorai mesh channels` | List registered NATS channels |
+| `gorai mesh schemas` | List or show message schemas |
+| `gorai mesh watch` | Watch for services joining/leaving |
+| `gorai mesh summary` | Show mesh state summary |
+| `gorai mesh init` | Initialize predefined schemas |
 
 ---
 
@@ -255,6 +268,62 @@ Gorai uses a message-based architecture where all components communicate via NAT
 
 ---
 
+## Service Discovery (Mesh)
+
+Gorai includes a built-in service mesh for runtime discovery across independent processes. This enables:
+
+- **Cross-binary discovery** — Modules that aren't compiled together can find each other
+- **Channel registry** — Discover available NATS subjects and their schemas
+- **Health monitoring** — Automatic TTL-based expiry for stale services
+- **Schema documentation** — JSON Schema definitions for message types
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         NATS JetStream KV                                │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  gorai-services (TTL: 30s)     → Active service registrations   │    │
+│  │  gorai-channels (persistent)   → Channel/subject descriptors    │    │
+│  │  gorai-schemas  (persistent)   → Message schemas (JSON Schema)  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Quick Example
+
+```go
+// Register a service
+client, _ := mesh.NewClient(natsConn)
+reg, _ := client.Register(ctx, mesh.ServiceDescriptor{
+    Name:    "motor-controller",
+    Type:    mesh.TypeComponent,
+    Subtype: "motor",
+    RobotID: "robot-alpha",
+})
+defer reg.Deregister()
+
+// Discover other services
+motors, _ := client.FindServices(ctx, mesh.Query{Subtype: "motor"})
+```
+
+### CLI Discovery
+
+```bash
+# List all running services
+gorai mesh services
+
+# Watch for changes in real-time
+gorai mesh watch
+
+# List available channels
+gorai mesh channels robot-alpha
+```
+
+See [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) for complete documentation.
+
+---
+
 ## Why Gorai?
 
 ### Cloud-Native Patterns
@@ -308,6 +377,11 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 - [Vision Analysis](docs/vision-analysis.md) — Strategic architecture assessment
 - [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
 - [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning
+- [Mesh Service Discovery](specs/mesh-service-discovery.md) — Runtime service discovery
+
+### For AI Assistants / LLMs
+- [LLM Design Guide](docs/LLM-DESIGN-GUIDE.md) — **Everything an LLM needs to build components/services**
+- [CLAUDE.md](CLAUDE.md) — Project overview for AI assistants
 
 ### Future State
 - [Future Roadmap](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
@@ -319,7 +393,12 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 
 Gorai is built with [Claude Code](https://claude.ai/claude-code). We believe AI-assisted development is the future — the project is organized for both humans and AI to reason about effectively.
 
-See [CLAUDE.md](CLAUDE.md) for contributor guidelines.
+### For Humans
+- See [CLAUDE.md](CLAUDE.md) for contributor guidelines
+- See [docs/PACKAGE-LOCATIONS.md](docs/PACKAGE-LOCATIONS.md) for code organization
+
+### For AI Assistants
+- See [docs/LLM-DESIGN-GUIDE.md](docs/LLM-DESIGN-GUIDE.md) — A single document containing everything needed to design new components and services without reading the entire codebase
 
 ---
 

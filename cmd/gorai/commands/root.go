@@ -37,6 +37,10 @@ func Execute() error {
 	case "component":
 		return cmdComponent()
 
+	// Mesh/service discovery
+	case "mesh":
+		return cmdMesh()
+
 	// Utility commands
 	case "version":
 		return cmdVersion()
@@ -70,6 +74,16 @@ Component Commands:
   component info      Show component information
   component add       Add component to project
 
+Mesh Commands (Service Discovery):
+  mesh services       List running services in the mesh
+  mesh channels       List registered NATS channels
+  mesh schemas        List or show message schemas
+  mesh watch          Watch for services joining/leaving
+  mesh summary        Show mesh state summary
+  mesh robots         List robots with registered services
+  mesh init           Initialize mesh with predefined schemas
+  mesh reset          Reset mesh (delete all data)
+
 Utility Commands:
   version             Print version information
   migrate             Migrate RDL v1 config to v2 format
@@ -89,6 +103,12 @@ Examples:
 
   # List available components
   gorai components
+
+  # Discover running services
+  gorai mesh services robot-alpha
+
+  # Watch mesh in real-time
+  gorai mesh watch
 
 Quick Start:
   1. Create robot.json with your components

@@ -168,6 +168,7 @@ github.com/gorai/gorai/
 ├── pkg/                            # Core libraries
 │   ├── node/                       # Node lifecycle
 │   ├── nats/                       # NATS abstraction
+│   ├── mesh/                       # Service discovery via NATS KV
 │   ├── pub/                        # Publisher
 │   ├── sub/                        # Subscriber
 │   ├── services/                    # Service server/client
@@ -175,7 +176,7 @@ github.com/gorai/gorai/
 │   ├── param/                      # Parameter store
 │   ├── tf/                         # Transform tree
 │   ├── config/                     # Configuration
-│   ├── registry/                   # Component/service registry
+│   ├── registry/                   # Component/service registry (compile-time)
 │   └── log/                        # Structured logging
 │
 ├── components/                      # Component interfaces
@@ -252,7 +253,7 @@ github.com/gorai/gorai/
 | Directory | Purpose | Contents |
 |-----------|---------|----------|
 | `api/` | Protocol Buffer definitions | `.proto` files and generated Go code |
-| `pkg/` | Core libraries | Node, messaging, configuration |
+| `pkg/` | Core libraries | Node, messaging, mesh service discovery, configuration |
 | `components/` | Component interfaces | Motor, camera, sensor interfaces + fakes |
 | `services/` | Service interfaces | Vision, SLAM, navigation interfaces |
 | `accel/` | Acceleration layer | Accelerator interface + CPU reference |

@@ -19,6 +19,7 @@ A lightweight, Go-based robotics framework built on NATS.io with first-class AI/
    - [Helper Interfaces](#helper-interfaces)
    - [Component Types](#component-types) (Sensors, Actuators, Power, Space, Links)
 4. [Communication Layer](#communication-layer)
+   - [Mesh Service Discovery](#mesh-service-discovery)
 5. [Topic Naming Convention](#topic-naming-convention)
 6. [Protocol Buffer Definitions](#protocol-buffer-definitions)
 7. [Core Components](#core-components)
@@ -664,6 +665,36 @@ message Envelope {
     map<string, string> metadata = 4;
 }
 ```
+
+### Mesh Service Discovery
+
+The mesh system provides runtime service discovery using NATS KV buckets:
+
+| Bucket | Purpose | TTL |
+|--------|---------|-----|
+| `gorai-services` | Active service registrations | 30s (heartbeat required) |
+| `gorai-channels` | Channel/subject descriptors | None (persistent) |
+| `gorai-schemas` | Message schemas (JSON Schema) | None (persistent) |
+
+**Key Features:**
+- **Cross-Binary Discovery**: Independent processes find each other via NATS KV
+- **Automatic Heartbeat**: Services refresh their registration every 10s
+- **Schema Registry**: JSON Schema definitions for message types
+- **Watch Capability**: Real-time notifications when services join/leave
+
+**Well-Known Subjects:**
+- `gorai.mesh.announce` — Service join/leave announcements
+- `gorai.mesh.heartbeat.<service-id>` — Per-service heartbeats
+
+**CLI Commands:**
+```bash
+gorai mesh services          # List running services
+gorai mesh channels          # List registered channels
+gorai mesh schemas           # List message schemas
+gorai mesh watch             # Watch for changes
+```
+
+See [specs/mesh-service-discovery.md](mesh-service-discovery.md) for complete specification.
 
 ---
 
