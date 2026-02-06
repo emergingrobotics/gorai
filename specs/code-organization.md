@@ -62,7 +62,7 @@ See [Linux Boards Specification](linux-boards.md) for supported hardware. The **
 - Ultra-low-power embedded devices
 - Hardware that cannot run Linux
 
-Microcontroller nodes communicate with Linux nodes via serial using the Gorai Serial Protocol (GSP). A Linux node runs a serial-to-NATS gateway that proxies messages between the microcontroller and the NATS bus. See [Serial Interfaces Specification](serial-interfaces.md) for details.
+Microcontroller nodes communicate with Linux nodes via serial using the Gorai Serial Protocol (GSP). A Linux node runs a serial-to-NATS gateway that proxies messages between the microcontroller and the NATS bus. See [gorai-gsp](https://github.com/emergingrobotics/gorai-gsp) for the GSP/2 protocol specification and implementation.
 
 ```mermaid
 flowchart TB
@@ -511,7 +511,7 @@ TinyGo devices communicate with the main Gorai system (running standard Go on Li
 
 See [Linux Boards Specification](linux-boards.md) for gateway board options (e.g., Milk-V Duo, Pi Zero 2 W).
 
-See [Serial Interfaces Specification](serial-interfaces.md) for the GSP protocol and gateway implementation.
+See [gorai-gsp](https://github.com/emergingrobotics/gorai-gsp) for the GSP protocol and gateway implementation.
 
 ```mermaid
 flowchart LR

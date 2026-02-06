@@ -399,7 +399,7 @@ Connect microcontroller to Linux board:
 
 The serial gateway translates NATS messages to a compact serial protocol.
 
-*Cross-reference: See specs/serial-interfaces.md for protocol details.*
+*Cross-reference: See [gorai-gsp](https://github.com/emergingrobotics/gorai-gsp) for the Gorai Serial Protocol (GSP/2) specification and implementation.*
 
 ---
 

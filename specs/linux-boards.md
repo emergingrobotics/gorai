@@ -157,7 +157,7 @@ In distributed Gorai systems, secondary nodes handle specific subsystems (sensor
 
 ## Small Gateway Boards
 
-Small Linux boards serve as serial-to-NATS gateways, bridging microcontroller peripherals to the main robot network. These boards run the Gorai Serial Gateway (see [Serial Interfaces Specification](serial-interfaces.md)).
+Small Linux boards serve as serial-to-NATS gateways, bridging microcontroller peripherals to the main robot network. These boards run the Gorai Serial Gateway (see [gorai-gsp](https://github.com/emergingrobotics/gorai-gsp) for the protocol specification and implementation).
 
 ### Gateway Architecture
 
