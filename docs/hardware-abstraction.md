@@ -1,8 +1,17 @@
 # Hardware Abstraction Layer Design
 
+> **⚠️ NOTICE: HAL REMOVED (2026-02-06)**
+>
+> The HAL (`driver/hal`) package has been **removed** from the codebase. Components that depended on HAL (gpiod PWM, i2c_bridge) have been disabled.
+>
+> This documentation is preserved for reference when HAL is reimplemented. For now, use external hardware communication via:
+> - **GSP protocol** via serial/USB (see `gorai-gsp` repo)
+> - **NATS messaging** for remote hardware access
+> - **gorai-nats-gw** for bridging GSP devices to NATS
+
 **Version:** 2.0
-**Status:** Draft
-**Last Updated:** 2026-01-27
+**Status:** ~~Draft~~ **ARCHIVED - HAL REMOVED**
+**Last Updated:** 2026-02-06
 
 ## 1. Overview
 

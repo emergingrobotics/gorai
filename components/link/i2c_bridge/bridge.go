@@ -1,5 +1,9 @@
 // Package i2c_bridge provides an I2C bridge component that reads raw data
 // from I2C devices and publishes it to the NATS message bus.
+//
+// NOTE: This package is currently DISABLED because the HAL (Hardware Abstraction Layer)
+// has been removed. The HAL provided hardware access for I2C buses.
+// This component will be re-enabled when HAL is reimplemented.
 package i2c_bridge
 
 import (
@@ -10,15 +14,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gorai/gorai/driver/hal"
 	"github.com/gorai/gorai/driver/i2c"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
 )
 
-func init() {
-	registry.RegisterComponent("link", "i2c_bridge", New)
+// HAL interface stub - will be provided by reimplemented HAL package
+type halInterface interface {
+	I2C(bus int) (i2c.Bus, error)
+	Board() string
 }
+
+// NOTE: Registration disabled - HAL package removed
+// func init() {
+// 	registry.RegisterComponent("link", "i2c_bridge", New)
+// }
 
 // State represents the operational state of the bridge.
 type State int
@@ -64,7 +74,7 @@ type Bridge struct {
 	config *Config
 	logger *slog.Logger
 
-	hal hal.HAL
+	hal halInterface
 	bus i2c.Bus // HAL-provided I2C bus interface
 
 	mu           sync.RWMutex
@@ -109,7 +119,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	if err != nil {
 		return nil, fmt.Errorf("HAL not available: %w (ensure platform section is configured)", err)
 	}
-	h, ok := halAny.(hal.HAL)
+	h, ok := halAny.(halInterface)
 	if !ok {
 		return nil, fmt.Errorf("invalid HAL type: %T", halAny)
 	}

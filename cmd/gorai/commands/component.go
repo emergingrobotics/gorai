@@ -216,13 +216,13 @@ func newComponentAddCmd() *cobra.Command {
 
 			// Show next steps
 			fmt.Println("\nNext steps:")
-			fmt.Println("  1. Add import to your robot binary (e.g., cmd/robot/main.go):\n")
+			fmt.Println("  1. Add import to your robot binary (e.g., cmd/robot/main.go):")
 
 			for _, p := range md.Component.Provides {
 				fmt.Printf("     import _ \"%s/%s\"\n", repository, p.Model)
 			}
 
-			fmt.Println("\n  2. Configure in robot.json (example):\n")
+			fmt.Println("\n  2. Configure in robot.json (example):")
 			if len(md.Component.Provides) > 0 {
 				p := md.Component.Provides[0]
 				fmt.Printf("     {\n")

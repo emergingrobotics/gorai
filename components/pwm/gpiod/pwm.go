@@ -1,5 +1,9 @@
 // Package gpiod provides a PWM implementation supporting both hardware and software modes.
 //
+// NOTE: This package is currently DISABLED because the HAL (Hardware Abstraction Layer)
+// has been removed. The HAL provided hardware access for GPIO, PWM, I2C, etc.
+// This component will be re-enabled when HAL is reimplemented.
+//
 // This package implements the pwm.PWM interface for Raspberry Pi 5 and other
 // Linux systems with GPIO support via the HAL (Hardware Abstraction Layer).
 //
@@ -22,15 +26,24 @@ import (
 
 	"github.com/gorai/gorai/components/pwm"
 	"github.com/gorai/gorai/driver/gpio"
-	"github.com/gorai/gorai/driver/hal"
 	driverpwm "github.com/gorai/gorai/driver/pwm"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
 )
 
-func init() {
-	registry.RegisterComponent("pwm", "gpiod", New)
+// HAL interface stub - will be provided by reimplemented HAL package
+type halInterface interface {
+	ResolvePinFromAny(v any) (int, error)
+	GetPWMMapping(pin int) (chip, channel int, hasHardware bool)
+	Board() string
+	GPIO() (gpio.Driver, error)
+	PWM(chip int) (driverpwm.Chip, error)
 }
+
+// NOTE: Registration disabled - HAL package removed
+// func init() {
+// 	registry.RegisterComponent("pwm", "gpiod", New)
+// }
 
 // PWM implements hardware or software PWM using HAL.
 type PWM struct {
@@ -38,7 +51,7 @@ type PWM struct {
 	config Config
 	logger *slog.Logger
 
-	hal       hal.HAL
+	hal       halInterface
 	pinNumber int
 
 	// Hardware PWM (used when isHardware is true)
@@ -79,7 +92,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	if err != nil {
 		return nil, fmt.Errorf("HAL not available: %w (ensure platform section is configured)", err)
 	}
-	h, ok := halAny.(hal.HAL)
+	h, ok := halAny.(halInterface)
 	if !ok {
 		return nil, fmt.Errorf("invalid HAL type: %T", halAny)
 	}
@@ -112,7 +125,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	switch hwMode {
 	case HWModeHardware:
 		if !hasHardwarePWM {
-			hwPins := hal.GetHardwarePWMPins(h.Board())
+			hwPins := []int{12, 13, 18, 19} // Default PWM pins - TODO: get from reimplemented HAL
 			return nil, fmt.Errorf("hardware PWM not available on GPIO %d. "+
 				"Hardware PWM pins on %s: %v", pinNumber, h.Board(), formatPinList(hwPins))
 		}
@@ -126,7 +139,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 			useHardware = true
 		} else {
 			// Emit warning about software PWM
-			hwPins := hal.GetHardwarePWMPins(h.Board())
+			hwPins := []int{12, 13, 18, 19} // Default PWM pins - TODO: get from reimplemented HAL
 			logger.Warn("PWM using software mode - timing may be inaccurate",
 				"pin", pinNumber,
 				"reason", "pin does not support hardware PWM",
