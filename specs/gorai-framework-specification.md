@@ -37,6 +37,7 @@ A lightweight, Go-based robotics framework built on NATS.io with first-class AI/
      - [AI-Powered Coordinators](#ai-powered-coordinators)
 10. [Acceleration Layer](#acceleration-layer)
 11. [Configuration System](#configuration-system)
+    - [Dynamic Discovery](#dynamic-discovery-rdl-v4)
 12. [Web Dashboard](#web-dashboard)
 13. [Network Transparency](#network-transparency)
 14. [CLI Tool](#cli-tool)
@@ -3820,6 +3821,51 @@ type ConvertOptions struct {
   }
 }
 ```
+
+### Dynamic Discovery (RDL v4)
+
+RDL supports hybrid static/dynamic configuration where gateways discover hardware at runtime:
+
+```json
+{
+  "gateways": [
+    {
+      "name": "usb-gateway",
+      "type": "gateway/gsp",
+      "config": {
+        "discovery": {"enabled": true, "patterns": ["/dev/ttyACM*"]}
+      }
+    }
+  ],
+
+  "discovery": {
+    "enabled": true,
+    "auto_adopt": true,
+    "sources": [
+      {"type": "gateway", "gateway": "usb-gateway"}
+    ],
+    "rules": [
+      {"match": {"capability": "PWM"}, "adopt_as": {"type": "motor"}},
+      {"match": {"capability": "IMU"}, "adopt_as": {"type": "sensor", "subtype": "imu"}}
+    ]
+  },
+
+  "services": [
+    {
+      "name": "patrol",
+      "depends_on": ["@discovered:motor/*", "@discovered:sensor/imu/*"]
+    }
+  ]
+}
+```
+
+**Key Features:**
+- `gateways` — Protocol bridges that discover hardware
+- `discovery.sources` — Where to find devices (gateways, mesh)
+- `discovery.rules` — How to map capabilities to component types
+- `@discovered:` — Dynamic dependency resolution
+
+See [specs/dynamic-discovery.md](dynamic-discovery.md) for complete specification.
 
 ### Hot Reconfiguration
 

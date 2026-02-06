@@ -150,6 +150,52 @@ See [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) for compl
 
 ---
 
+## Dynamic Discovery
+
+Gorai supports **hybrid static/dynamic** configuration where RDL defines structure and rules, while devices are discovered at runtime.
+
+### Key Concepts
+
+1. **Gateways** — Bridge hardware protocols (GSP/2, Modbus) to NATS, register devices in mesh
+2. **Discovery Sources** — Where to find devices (gateways, mesh queries)
+3. **Adoption Rules** — How to map discovered capabilities to component types
+4. **Dynamic Dependencies** — Services that depend on discovered resources (`@discovered:motor/*`)
+5. **Proxy Components** — Wrappers that make remote devices look like local components
+
+### RDL Example
+
+```json
+{
+  "gateways": [
+    {
+      "name": "usb-gateway",
+      "type": "gateway/gsp",
+      "config": {"discovery": {"enabled": true, "patterns": ["/dev/ttyACM*"]}}
+    }
+  ],
+  "discovery": {
+    "enabled": true,
+    "rules": [
+      {"match": {"capability": "PWM"}, "adopt_as": {"type": "motor"}}
+    ]
+  },
+  "services": [
+    {"name": "patrol", "depends_on": ["@discovered:motor/*"]}
+  ]
+}
+```
+
+### Runtime Flow
+
+```
+Gateway discovers device → Registers in mesh → Discovery manager adopts →
+Proxy component created → Service dependencies resolve → Robot operates
+```
+
+See [specs/dynamic-discovery.md](specs/dynamic-discovery.md) for complete specification.
+
+---
+
 ## Hardware Platforms
 
 | Platform | Role | AI Performance |
@@ -174,6 +220,7 @@ See [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) for compl
 - [specs/robot-definition-language.md](specs/robot-definition-language.md) — RDL JSON configuration format
 - [specs/code-organization.md](specs/code-organization.md) — **Module structure and satellite repos**
 - [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) — **Runtime service discovery via NATS KV**
+- [specs/dynamic-discovery.md](specs/dynamic-discovery.md) — **Auto-adoption and dynamic dependencies**
 - [specs/gsp-v2-protocol.md](specs/gsp-v2-protocol.md) — Gorai Serial Protocol specification
 - [specs/hardware-requirements.md](specs/hardware-requirements.md) — Hardware specs
 - [specs/serial-interfaces.md](specs/serial-interfaces.md) — Serial communication patterns
@@ -390,6 +437,7 @@ See [specs/testing-approach.md](specs/testing-approach.md) and [specs/howto-run-
 | RDL format | [specs/robot-definition-language.md](specs/robot-definition-language.md) |
 | Code organization | [specs/code-organization.md](specs/code-organization.md) |
 | Mesh discovery | [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) |
+| Dynamic discovery | [specs/dynamic-discovery.md](specs/dynamic-discovery.md) — **Auto-adoption, gateways, @discovered:** |
 | Strategic decisions | [docs/STRATEGIC-SUMMARY.md](docs/STRATEGIC-SUMMARY.md) |
 | GSP protocol | [specs/gsp-v2-protocol.md](specs/gsp-v2-protocol.md) |
 | Hardware reqs | [specs/hardware-requirements.md](specs/hardware-requirements.md) |

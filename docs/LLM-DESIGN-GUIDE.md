@@ -720,12 +720,120 @@ go mod tidy
 
 ---
 
+---
+
+## Gateway Integration
+
+Gateways bridge hardware protocols (GSP/2, Modbus) to NATS. They should register with the mesh.
+
+### Gateway Pattern
+
+```go
+// Gateway registers itself
+meshClient.Register(ctx, mesh.ServiceDescriptor{
+    Name:    "gsp-gateway",
+    Type:    mesh.TypeService,
+    Subtype: "gateway",
+    Model:   "gsp",
+    RobotID: robotID,
+})
+
+// Each device registers when connected
+meshClient.Register(ctx, mesh.ServiceDescriptor{
+    Name:    deviceID,
+    Type:    mesh.TypeComponent,
+    Subtype: "pwm-controller",
+    Model:   "gsp-device",
+    RobotID: robotID,
+    Publishes: []string{"gsp." + deviceID + ".rx.sensor.>"},
+    Subscribes: []string{"gsp." + deviceID + ".tx.command.>"},
+})
+```
+
+### Subject Namespaces
+
+| Layer | Prefix | Use |
+|-------|--------|-----|
+| Gateway | `gsp.<device>` | Raw device data |
+| Gorai | `gorai.<robot>.<component>` | Normalized data |
+
+---
+
+## Dynamic Discovery
+
+RDL can define discovery rules to auto-adopt devices not in the config.
+
+### RDL Discovery Section
+
+```json
+{
+  "discovery": {
+    "enabled": true,
+    "auto_adopt": true,
+    "sources": [
+      {"type": "gateway", "gateway": "gsp-gateway"},
+      {"type": "mesh", "query": {"subtype": "motor"}}
+    ],
+    "rules": [
+      {
+        "match": {"capability": "PWM"},
+        "adopt_as": {"type": "motor", "model": "remote-pwm"}
+      }
+    ]
+  }
+}
+```
+
+### Dynamic Dependencies
+
+Services can depend on discovered resources:
+
+```json
+{
+  "name": "patrol",
+  "type": "behavior/patrol",
+  "depends_on": [
+    "camera",
+    "@discovered:motor/*",
+    "@discovered:sensor/imu/*"
+  ]
+}
+```
+
+| Pattern | Meaning |
+|---------|---------|
+| `@discovered:motor/*` | Any discovered motor |
+| `@discovered:sensor/imu/*` | Any discovered IMU |
+| `@discovered:*` | Any discovered resource |
+
+### Proxy Components
+
+Discovered devices are wrapped in proxies:
+
+```go
+type RemoteMotor struct {
+    natsConn   *nats.Conn
+    cmdSubject string
+}
+
+func (m *RemoteMotor) SetPower(ctx context.Context, power float64) error {
+    cmd := map[string]any{"power": power}
+    data, _ := json.Marshal(cmd)
+    return m.natsConn.Publish(m.cmdSubject, data)
+}
+```
+
+See [specs/dynamic-discovery.md](../specs/dynamic-discovery.md) for complete specification.
+
+---
+
 ## Related Documents
 
 | Document | Purpose |
 |----------|---------|
 | [CLAUDE.md](../CLAUDE.md) | Project overview for AI assistants |
 | [specs/mesh-service-discovery.md](../specs/mesh-service-discovery.md) | Mesh system specification |
+| [specs/dynamic-discovery.md](../specs/dynamic-discovery.md) | Dynamic discovery and auto-adoption |
 | [specs/gorai-framework-specification.md](../specs/gorai-framework-specification.md) | Complete technical spec |
 | [docs/PACKAGE-LOCATIONS.md](PACKAGE-LOCATIONS.md) | Where code belongs |
 | [specs/robot-definition-language.md](../specs/robot-definition-language.md) | RDL JSON format |

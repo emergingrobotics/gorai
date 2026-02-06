@@ -324,6 +324,71 @@ See [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) for compl
 
 ---
 
+## Dynamic Discovery
+
+Gorai supports **hybrid static/dynamic** configuration. Define structure in RDL, discover hardware at runtime.
+
+### The Problem
+
+Traditional approach requires declaring every device in config:
+
+```json
+{
+  "components": [
+    {"name": "motor1", "type": "motor/pwm", "config": {"pin": 18}},
+    {"name": "motor2", "type": "motor/pwm", "config": {"pin": 19}}
+  ]
+}
+```
+
+What if you don't know what devices will be connected? What if devices are hot-plugged?
+
+### The Solution
+
+Define **discovery rules** instead of individual devices:
+
+```json
+{
+  "gateways": [
+    {
+      "name": "usb-gateway",
+      "type": "gateway/gsp",
+      "config": {
+        "discovery": {"enabled": true, "patterns": ["/dev/ttyACM*"]}
+      }
+    }
+  ],
+
+  "discovery": {
+    "enabled": true,
+    "auto_adopt": true,
+    "rules": [
+      {"match": {"capability": "PWM"}, "adopt_as": {"type": "motor"}},
+      {"match": {"capability": "IMU"}, "adopt_as": {"type": "sensor", "subtype": "imu"}}
+    ]
+  },
+
+  "services": [
+    {
+      "name": "patrol",
+      "type": "behavior/patrol",
+      "depends_on": ["@discovered:motor/*", "@discovered:sensor/imu/*"]
+    }
+  ]
+}
+```
+
+**What happens:**
+
+1. Gateway discovers Pico on USB with PWM+IMU capabilities
+2. Auto-adopts as motor and IMU sensor (via rules)
+3. Patrol service's `@discovered:` dependencies resolve
+4. Robot starts patrolling with discovered hardware
+
+See [specs/dynamic-discovery.md](specs/dynamic-discovery.md) for complete documentation.
+
+---
+
 ## Why Gorai?
 
 ### Cloud-Native Patterns
@@ -378,6 +443,7 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 - [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
 - [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning
 - [Mesh Service Discovery](specs/mesh-service-discovery.md) — Runtime service discovery
+- [Dynamic Discovery](specs/dynamic-discovery.md) — Auto-adoption and `@discovered:` dependencies
 
 ### For AI Assistants / LLMs
 - [LLM Design Guide](docs/LLM-DESIGN-GUIDE.md) — **Everything an LLM needs to build components/services**

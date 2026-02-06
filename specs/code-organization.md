@@ -169,6 +169,8 @@ github.com/gorai/gorai/
 │   ├── node/                       # Node lifecycle
 │   ├── nats/                       # NATS abstraction
 │   ├── mesh/                       # Service discovery via NATS KV
+│   ├── discovery/                  # Dynamic discovery manager
+│   ├── proxy/                      # Remote component proxies
 │   ├── pub/                        # Publisher
 │   ├── sub/                        # Subscriber
 │   ├── services/                    # Service server/client

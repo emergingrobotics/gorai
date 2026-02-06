@@ -436,9 +436,72 @@ cmd/gorai/commands/
 └── mesh.go           # CLI commands
 ```
 
+## Gateway Integration
+
+Protocol gateways (GSP/2, Modbus, CAN) bridge hardware devices to NATS and should register with the mesh.
+
+### Gateway Self-Registration
+
+```go
+// Gateway registers itself as a service
+meshClient.Register(ctx, mesh.ServiceDescriptor{
+    Name:    "gsp-gateway",
+    Type:    mesh.TypeService,
+    Subtype: "gateway",
+    Model:   "gsp",
+    RobotID: robotID,
+    Metadata: map[string]string{
+        "protocol":  "gsp/2",
+        "transport": "serial",
+    },
+})
+```
+
+### Device Bridge Registration
+
+Each connected device registers as a component:
+
+```go
+// When device connects and reports capabilities
+meshClient.Register(ctx, mesh.ServiceDescriptor{
+    Name:    "pico-001",
+    Type:    mesh.TypeComponent,
+    Subtype: "pwm-controller",
+    Model:   "gsp-device",
+    RobotID: robotID,
+    Version: "1.0.0",
+    Metadata: map[string]string{
+        "capabilities": "PWM,IMU,GPIO",
+        "serial_port":  "/dev/ttyACM0",
+    },
+    Publishes: []string{
+        "gsp.pico-001.rx.sensor.imu_data",
+        "gsp.pico-001.rx.event.heartbeat",
+    },
+    Subscribes: []string{
+        "gsp.pico-001.tx.command.pwm_set",
+    },
+})
+```
+
+### Subject Namespace Strategy
+
+| Layer | Prefix | Example |
+|-------|--------|---------|
+| Gateway (raw) | `gsp.<device>` | `gsp.pico-001.rx.sensor.imu_data` |
+| Gorai (normalized) | `gorai.<robot>.<component>` | `gorai.scout.imu.data` |
+
+Gateways use their own namespace (`gsp.*`) while the mesh tracks them for discovery. Optional bridge services can translate between namespaces.
+
+See [Dynamic Discovery Specification](dynamic-discovery.md) for complete gateway integration patterns.
+
+---
+
 ## Related Documents
 
+- [Dynamic Discovery](dynamic-discovery.md) — Auto-adoption and dynamic dependencies
 - [NATS Configuration](../nats/nats.conf)
 - [Topic Naming Conventions](../pkg/topics/topics.go)
 - [Component Registry](../pkg/registry/registry.go)
 - [Framework Specification](gorai-framework-specification.md)
+- [GSP-NATS Gateway](../../gorai-nats-gw/docs/DESIGN.md) — Gateway design document

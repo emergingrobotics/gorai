@@ -72,6 +72,8 @@ func main() {
 - `pkg/config/` - RDL parsing and configuration
 - `pkg/nats/` - NATS client wrapper
 - `pkg/mesh/` - Service discovery via NATS KV (runtime registration/discovery)
+- `pkg/discovery/` - Dynamic discovery manager (auto-adoption, rules)
+- `pkg/proxy/` - Remote component proxies (RemoteMotor, RemoteSensor)
 - `pkg/accel/` - ML acceleration abstractions
 - `pkg/registry/` - Component/service registry (compile-time registration)
 - `pkg/resource/` - Base resource interfaces
@@ -311,6 +313,29 @@ pkg/mesh/
 └── types.go            # Core types (ServiceDescriptor, etc.)
 ```
 
+### Example 7: Dynamic Device Adoption
+
+"I want to auto-adopt devices discovered by gateways"
+
+**Decision:** `pkg/discovery/` + `pkg/proxy/`
+- Discovery manager → `pkg/discovery/`
+- Proxy components → `pkg/proxy/`
+
+```
+pkg/discovery/
+├── manager.go          # Discovery manager
+├── source.go           # Discovery source interface
+├── mesh_source.go      # Mesh-based discovery
+├── rules.go            # Adoption rules
+└── config.go           # Configuration types
+
+pkg/proxy/
+├── factory.go          # Proxy component factory
+├── motor.go            # RemoteMotor proxy
+├── sensor.go           # RemoteSensor proxy
+└── camera.go           # RemoteCamera proxy
+```
+
 ## Anti-Patterns
 
 **Don't:**
@@ -331,7 +356,7 @@ pkg/mesh/
 | Directory | Contains | Examples |
 |-----------|----------|----------|
 | `cmd/` | Entry points | CLI, main.go |
-| `pkg/` | Shared infrastructure | config, nats, mesh, accel, registry |
+| `pkg/` | Shared infrastructure | config, nats, mesh, discovery, proxy, accel, registry |
 | `components/` | Hardware abstractions | motor, sensor, camera |
 | `driver/` | Low-level hardware | gpio, i2c, spi, serial |
 | `services/` | Software capabilities | vision, navigation, slam |
