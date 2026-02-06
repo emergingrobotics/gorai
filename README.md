@@ -4,6 +4,8 @@
 
 **Professional robotics for prosumers — without the PhD**
 
+Built for the physical AI era: simple today, ready for AI-driven autonomy and fleets.
+
 *Pronounced "go-ray" (like "sting-ray")*
 
 Build a robot in under an hour. Write JSON, get a binary, deploy to a Raspberry Pi.
@@ -40,13 +42,36 @@ No containers. No K8s. Just a 10-20MB binary that runs on a Raspberry Pi 5 or Or
 - Need **approachable software** (productive in days, not months)
 - Value **modern tooling** (AI-assisted coding, simple deployment)
 - Are building **prosumer robots** (marine monitoring, land vehicles, research platforms)
+- Are a **software-first team** adding physical embodiment to AI/ML or scaling from one robot to fleets
+- Care more about **behavior, coordination, and operations** than low-level kinematics or middleware internals
 
 **Use ROS 2 if you:**
 - Work in **enterprise/research** robotics (warehouse automation, autonomous vehicles)
 - Need the **full ROS ecosystem** (thousands of packages, simulation, SLAM libraries)
 - Are in **academia** where ROS 2 is the standard
+- Need **deep hardware or control-architecture experimentation** (ROS 2 is the right platform)
 
-We're not replacing ROS 2 — we're targeting a different market. Think "ROS 2 for prosumers."
+We're not replacing ROS 2 — we're targeting a different market. Think "ROS 2 for prosumers," with an **AI-first** design for the next wave of autonomous systems.
+
+---
+
+## The Future Robot Market (and Why Gorai Addresses It)
+
+Robotics is shifting because **decision-making is moving up the stack**: autonomy is no longer only hand-authored logic. Perception, planning, and task selection are increasingly learned, probabilistic, or agentic. That shift—*physical AI*—changes what a platform must provide.
+
+**What the future market is:**
+- **Physical AI** — systems where behavior, autonomy, and coordination are more complex than motor control or kinematics
+- **Software-first teams** — engineers and AI/ML practitioners who need to ship robots and fleets without becoming robotics-infrastructure experts
+- **Autonomy as a spectrum** — from scripted behaviors and state machines to learned perception and agentic planners, all needing the same operational surface
+
+**Why Gorai is built for it:**
+- **AI-first by design** — we treat AI-driven execution as a first-class assumption: capability surfaces for tools, governance and safety at runtime, and auditability/replay as baseline, not add-ons
+- **Start simple, scale without rewriting** — one binary today; same contracts and RDL when you add ML services, multi-robot coordination, or fleet operations
+- **Clarity over maximal flexibility** — we optimize for teams whose hardest problems are autonomy, orchestration, deployment, and safety—not low-level robotics research
+
+We are not trying to serve every robot. We are building the default platform for teams that ask: *"How do we safely decide what the robot should do next—and scale that across systems?"*
+
+For the full strategic context, see [Gorai Overarching Strategy](docs/gorai-overarching-strategy.md).
 
 ---
 
@@ -439,8 +464,10 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 - [Robot Definition Language](specs/robot-definition-language.md) — RDL configuration
 
 ### Architecture & Design
+- [Gorai Overarching Strategy](docs/gorai-overarching-strategy.md) — AI-first positioning and future robot market
 - [Vision Analysis](docs/vision-analysis.md) — Strategic architecture assessment
 - [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
+<<<<<<< HEAD
 - [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning
 - [Mesh Service Discovery](specs/mesh-service-discovery.md) — Runtime service discovery
 - [Dynamic Discovery](specs/dynamic-discovery.md) — Auto-adoption and `@discovered:` dependencies
@@ -448,6 +475,9 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 ### For AI Assistants / LLMs
 - [LLM Design Guide](docs/LLM-DESIGN-GUIDE.md) — **Everything an LLM needs to build components/services**
 - [CLAUDE.md](CLAUDE.md) — Project overview for AI assistants
+=======
+- [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning - Outdated by AI-first positioning
+>>>>>>> 8c68a47 (added strategy doc and ai-controlled safety architecture docs. slightly updated readme with additional context)
 
 ### Future State
 - [Future Roadmap](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
