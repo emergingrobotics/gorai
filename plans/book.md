@@ -441,7 +441,7 @@ go mod download
 - TinyGo installation
 - Supported boards (RP2040, ESP32)
 - Serial gateway setup
-- *Cross-reference: See specs/serial-interfaces.md*
+- *Cross-reference: See [gorai-gsp](https://github.com/emergingrobotics/gorai-gsp) for the Gorai Serial Protocol (GSP/2) specification and implementation*
 
 ---
 
