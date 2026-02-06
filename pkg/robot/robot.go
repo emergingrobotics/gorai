@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gorai/gorai/driver/camera/v4l2"
-	"github.com/gorai/gorai/driver/hal"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/dashboard"
 	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
@@ -47,9 +46,6 @@ type Robot struct {
 	logger     *slog.Logger
 	ctx        context.Context
 	cancel     context.CancelFunc
-
-	// Hardware Abstraction Layer
-	hal hal.HAL
 
 	// NATS client for messaging
 	nats   *gorainats.Client
@@ -138,12 +134,6 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 func (r *Robot) Start(ctx context.Context) error {
 	r.logger.Info("Starting robot", "name", r.cfg.Robot.Name)
 
-	// Initialize HAL if platform config is present
-	if err := r.initHAL(ctx); err != nil {
-		r.logger.Warn("Failed to initialize HAL", "error", err)
-		// Don't fail startup - components that don't need HAL can still run
-	}
-
 	// Connect to NATS
 	if err := r.connectNATS(ctx); err != nil {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
@@ -222,39 +212,6 @@ func (r *Robot) Start(ctx context.Context) error {
 	})
 
 	r.logger.Info("Robot started", "components", len(r.cfg.Components), "services", len(r.cfg.Services))
-	return nil
-}
-
-// initHAL initializes the Hardware Abstraction Layer from platform config.
-func (r *Robot) initHAL(ctx context.Context) error {
-	// Build HAL config from platform config
-	halConfig := hal.Config{}
-
-	if r.cfg.Platform != nil {
-		halConfig.Board = r.cfg.Platform.Board
-
-		if r.cfg.Platform.GPIO != nil {
-			chip := r.cfg.Platform.GPIO.Chip
-			halConfig.GPIO.Chip = &chip
-		}
-		if r.cfg.Platform.I2C != nil {
-			halConfig.I2C.Buses = r.cfg.Platform.I2C.Buses
-		}
-		if r.cfg.Platform.SPI != nil {
-			halConfig.SPI.Buses = r.cfg.Platform.SPI.Buses
-		}
-		if r.cfg.Platform.PWM != nil {
-			halConfig.PWM.Chips = r.cfg.Platform.PWM.Chips
-		}
-	}
-
-	h, err := hal.New(halConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create HAL: %w", err)
-	}
-
-	r.hal = h
-	r.logger.Info("HAL initialized", "board", h.Board())
 	return nil
 }
 
@@ -500,11 +457,8 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 		conf[k] = v
 	}
 
-	// Build dependencies with HAL, NATS, and logger
+	// Build dependencies with NATS and logger
 	deps := &robotDeps{deps: make(map[string]any)}
-	if r.hal != nil {
-		deps.deps["hal"] = r.hal
-	}
 	if r.nats != nil {
 		deps.deps["nats"] = r.nats.Conn()
 	}
@@ -971,13 +925,6 @@ func (r *Robot) Stop(ctx context.Context) error {
 
 	// Cancel internal context
 	r.cancel()
-
-	// Close HAL (releases GPIO, I2C, etc.)
-	if r.hal != nil {
-		if err := r.hal.Close(ctx); err != nil {
-			r.logger.Warn("Error closing HAL", "error", err)
-		}
-	}
 
 	// Close NATS connection
 	if r.nats != nil {
