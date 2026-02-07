@@ -58,7 +58,7 @@ func Execute() error {
 func printUsage() error {
 	fmt.Printf(`gorai - Gorai Robotics Framework CLI (v%s)
 
-The robotics platform for software teams
+The robotics platform for software engineers
 
 Usage:
   gorai <command> [flags]

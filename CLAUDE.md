@@ -1,6 +1,6 @@
 # Gorai
 
-**The robotics platform for software teams.**
+**The robotics platform for software engineers.**
 
 Gorai is a Go-based robotics framework designed for makers, citizen scientists, students, and small organizations who need real autonomy without ROS 2's complexity. Build a robot in under an hour with a single binary and NATS messaging.
 

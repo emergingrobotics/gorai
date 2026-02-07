@@ -2,7 +2,7 @@
 
 <img src="./images/gorai.png" width="25%">
 
-**The robotics platform for software teams.**
+**The robotics platform for software engineers.**
 
 *Pronounced "go-ray" (like "sting-ray")*
 
