@@ -2,11 +2,19 @@
 
 <img src="./images/gorai.png" width="25%">
 
-**Professional robotics for prosumers — without the PhD**
-
-Built for the physical AI era: simple today, ready for AI-driven autonomy and fleets.
+**The robotics platform for software teams.**
 
 *Pronounced "go-ray" (like "sting-ray")*
+
+## Why Gorai?
+
+> **Autonomy without replay is folklore.** Gorai treats action logs, state streams, and replay as first-class platform concerns — not optional add-ons.
+
+> **Agent-compatible. Not agent-dependent.** AI-driven execution is a first-class citizen, but the platform works just as well with deterministic state machines, scripts, and rule-based planners. No autonomy method is mandatory. All are constrained.
+
+> **Build robots like software. Run them like systems.** Gorai is a software engineer's robotics platform — opinionated, pragmatic, and operational. If you already think in APIs, distributed systems, and deployments, you'll be productive in days, not months.
+
+---
 
 Build a robot in under an hour. Write JSON, get a binary, deploy to a Raspberry Pi.
 
