@@ -16,6 +16,10 @@
 
 ---
 
+> **Full documentation lives at [gorai-docs](https://github.com/emergingrobotics/gorai-docs).** Strategy, architecture, specifications, hardware analysis, a 20-chapter book, and implementation guides — all indexed for both humans and AI agents. Point your AI coding assistant at that repo and it will navigate 100+ documents via `CLAUDE.md` and `INDEX.md` automatically.
+
+---
+
 Build a robot in under an hour. Write JSON, get a binary, deploy to a Raspberry Pi.
 
 ```bash
@@ -475,7 +479,6 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 - [Gorai Overarching Strategy](docs/gorai-overarching-strategy.md) — AI-first positioning and future robot market
 - [Vision Analysis](docs/vision-analysis.md) — Strategic architecture assessment
 - [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
-<<<<<<< HEAD
 - [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning
 - [Mesh Service Discovery](specs/mesh-service-discovery.md) — Runtime service discovery
 - [Dynamic Discovery](specs/dynamic-discovery.md) — Auto-adoption and `@discovered:` dependencies
@@ -483,9 +486,7 @@ The K3s/container architecture is preserved in [docs/archive/future-state/](docs
 ### For AI Assistants / LLMs
 - [LLM Design Guide](docs/LLM-DESIGN-GUIDE.md) — **Everything an LLM needs to build components/services**
 - [CLAUDE.md](CLAUDE.md) — Project overview for AI assistants
-=======
-- [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning - Outdated by AI-first positioning
->>>>>>> 8c68a47 (added strategy doc and ai-controlled safety architecture docs. slightly updated readme with additional context)
+- [gorai-docs INDEX.md](https://github.com/emergingrobotics/gorai-docs/blob/main/INDEX.md) — AI-navigable index of all documentation
 
 ### Future State
 - [Future Roadmap](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
