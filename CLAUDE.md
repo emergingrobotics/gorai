@@ -4,7 +4,7 @@
 
 Gorai is a Go-based robotics framework designed for makers, citizen scientists, students, and small organizations who need real autonomy without ROS 2's complexity. Build a robot in under an hour with a single binary and NATS messaging.
 
-> **Documentation has moved to [../gorai-docs](../gorai-docs)** — all strategy, specifications, architecture docs, book content, plans, and guides are in the gorai-docs repository. This repo focuses on design and implementation of the core gorai system.
+> **Documentation has moved to [../gorai-docs](https://github.com/emergingrobotics/gorai-docs)** — all strategy, specifications, architecture docs, book content, plans, and guides are in the gorai-docs repository. This repo focuses on design and implementation of the core gorai system.
 
 ## What This Repo Contains
 
@@ -225,7 +225,7 @@ make nats-start         # Start local NATS server
 
 ## Documentation (in gorai-docs)
 
-All documentation has moved to [../gorai-docs](../gorai-docs):
+All documentation has moved to [../gorai-docs](https://github.com/emergingrobotics/gorai-docs):
 
 | Category | Location in gorai-docs |
 |----------|----------------------|

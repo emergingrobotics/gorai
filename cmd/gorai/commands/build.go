@@ -136,7 +136,6 @@ func cmdBuild() error {
 	fmt.Println("Build completed successfully.")
 	fmt.Println("\nNext steps:")
 	fmt.Printf("  gorai run --config %s     # Run robot (foreground)\n", configPath)
-	fmt.Printf("  gorai start --config %s   # Start as systemd service\n", configPath)
 
 	return nil
 }

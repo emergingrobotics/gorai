@@ -34,7 +34,6 @@ help:
 	@echo "  make run-example-blinky        Run blinky LED example"
 	@echo "  make run-example-gps           Run GPS tracker example"
 	@echo "  make run-example-camera        Run camera streaming example"
-	@echo "  make run-example-hello-robot   Run hello-robot publisher"
 	@echo "  make run-example-pwm-controller Run PWM controller (gorai-gsp)"
 	@echo ""
 

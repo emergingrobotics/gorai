@@ -173,8 +173,8 @@ func (d *Device) WriteReg(ctx context.Context, reg byte, data []byte) error {
 	return d.Write(ctx, buf)
 }
 
-// ReadByte reads a single byte.
-func (d *Device) ReadByte(ctx context.Context) (byte, error) {
+// ReadByteCtx reads a single byte.
+func (d *Device) ReadByteCtx(ctx context.Context) (byte, error) {
 	data, err := d.Read(ctx, 1)
 	if err != nil {
 		return 0, err
@@ -182,8 +182,8 @@ func (d *Device) ReadByte(ctx context.Context) (byte, error) {
 	return data[0], nil
 }
 
-// WriteByte writes a single byte.
-func (d *Device) WriteByte(ctx context.Context, b byte) error {
+// WriteByteCtx writes a single byte.
+func (d *Device) WriteByteCtx(ctx context.Context, b byte) error {
 	return d.Write(ctx, []byte{b})
 }
 

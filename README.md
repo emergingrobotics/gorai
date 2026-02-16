@@ -83,7 +83,7 @@ Robotics is shifting because **decision-making is moving up the stack**: autonom
 
 We are not trying to serve every robot. We are building the default platform for teams that ask: *"How do we safely decide what the robot should do next—and scale that across systems?"*
 
-For the full strategic context, see [Gorai Overarching Strategy](../gorai-docs/docs/overview/) in the gorai-docs repository.
+For the full strategic context, see [Gorai Overarching Strategy](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/overview/) in the gorai-docs repository.
 
 ---
 
@@ -217,7 +217,7 @@ You'll see GPS NMEA sentences streaming over NATS.
 
 **Not supported:** Pi 3, Pi Zero, Pi 4 (2GB)
 
-See Hardware Requirements in the [gorai-docs](../gorai-docs/docs/specifications/) repository for details.
+See Hardware Requirements in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/specifications/) repository for details.
 
 ---
 
@@ -232,6 +232,15 @@ See Hardware Requirements in the [gorai-docs](../gorai-docs/docs/specifications/
 | `gorai build <config>` | Build standalone binary |
 | `gorai components` | List available component types |
 | `gorai version` | Show version information |
+| `gorai migrate` | Migrate RDL v1 config to v2 format |
+
+### Component Management
+
+| Command | Description |
+|---------|-------------|
+| `gorai component search` | Search for third-party components |
+| `gorai component info` | Show component information |
+| `gorai component add` | Add component to project |
 
 ### Mesh Commands (Service Discovery)
 
@@ -242,7 +251,9 @@ See Hardware Requirements in the [gorai-docs](../gorai-docs/docs/specifications/
 | `gorai mesh schemas` | List or show message schemas |
 | `gorai mesh watch` | Watch for services joining/leaving |
 | `gorai mesh summary` | Show mesh state summary |
+| `gorai mesh robots` | List robots with registered services |
 | `gorai mesh init` | Initialize predefined schemas |
+| `gorai mesh reset` | Reset mesh (delete all data) |
 
 ---
 
@@ -357,7 +368,7 @@ gorai mesh watch
 gorai mesh channels robot-alpha
 ```
 
-See the mesh service discovery specification in the [gorai-docs](../gorai-docs/docs/specifications/) repository for complete documentation.
+See the mesh service discovery specification in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/specifications/) repository for complete documentation.
 
 ---
 
@@ -422,7 +433,7 @@ Define **discovery rules** instead of individual devices:
 3. Patrol service's `@discovered:` dependencies resolve
 4. Robot starts patrolling with discovered hardware
 
-See the dynamic discovery specification in the [gorai-docs](../gorai-docs/docs/specifications/) repository for complete documentation.
+See the dynamic discovery specification in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/specifications/) repository for complete documentation.
 
 ---
 
@@ -460,18 +471,18 @@ The current focus is on a simple, single-binary deployment model:
 
 ### Future Roadmap
 
-For production fleets and advanced features, see the Future Roadmap in the [gorai-docs](../gorai-docs/docs/plans/) repository:
+For production fleets and advanced features, see the Future Roadmap in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/plans/) repository:
 - **Phase 2:** Optional containers for ML/vision services
 - **Phase 3:** K3s orchestration for fleet management
 - **Phase 4:** ROS 2 bridge, advanced SLAM
 
-The K3s/container architecture is preserved in the [gorai-docs](../gorai-docs/docs/architecture/) repository.
+The K3s/container architecture is preserved in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/architecture/) repository.
 
 ---
 
 ## Documentation
 
-All documentation has moved to the [gorai-docs](../gorai-docs) repository, including:
+All documentation has moved to the [gorai-docs](https://github.com/emergingrobotics/gorai-docs) repository, including:
 
 - **Getting Started** — Hardware requirements, Robot Definition Language (RDL) configuration
 - **Architecture & Design** — Strategy, vision analysis, design comparisons, mesh service discovery, dynamic discovery
@@ -486,10 +497,10 @@ Gorai is built with [Claude Code](https://claude.ai/claude-code). We believe AI-
 
 ### For Humans
 - See [CLAUDE.md](CLAUDE.md) for contributor guidelines
-- See the [gorai-docs](../gorai-docs) repository for code organization and package locations
+- See the [gorai-docs](https://github.com/emergingrobotics/gorai-docs) repository for code organization and package locations
 
 ### For AI Assistants
-- See the LLM Design Guide in the [gorai-docs](../gorai-docs) repository — everything needed to design new components and services without reading the entire codebase
+- See the LLM Design Guide in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs) repository — everything needed to design new components and services without reading the entire codebase
 
 ---
 

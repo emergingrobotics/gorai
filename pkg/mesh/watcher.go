@@ -3,6 +3,7 @@ package mesh
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -109,16 +110,22 @@ func (c *Client) WatchServices(ctx context.Context, q Query, opts ...WatcherOpti
 	}
 
 	// Watch KV for changes
+	var wg sync.WaitGroup
 	if cfg.watchKV {
-		go w.watchKV(watchCtx, q)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w.watchKV(watchCtx, q)
+		}()
 	}
 
-	// Cleanup goroutine
+	// Cleanup goroutine: wait for watchKV to exit before closing events channel
 	go func() {
 		<-watchCtx.Done()
 		if w.announceSub != nil {
 			w.announceSub.Unsubscribe()
 		}
+		wg.Wait()
 		close(w.events)
 		close(w.done)
 	}()
@@ -238,12 +245,19 @@ func (c *Client) WatchChannels(ctx context.Context, q ChannelQuery, opts ...Watc
 		done:   make(chan struct{}),
 	}
 
+	var wg sync.WaitGroup
 	if cfg.watchKV {
-		go w.watchKV(watchCtx, q)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w.watchKV(watchCtx, q)
+		}()
 	}
 
+	// Cleanup goroutine: wait for watchKV to exit before closing events channel
 	go func() {
 		<-watchCtx.Done()
+		wg.Wait()
 		close(w.events)
 		close(w.done)
 	}()

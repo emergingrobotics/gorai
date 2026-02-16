@@ -54,7 +54,6 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Connection", "close")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Rate limiting
 	minInterval := time.Duration(0)

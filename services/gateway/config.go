@@ -3,6 +3,7 @@ package gateway
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -91,8 +92,10 @@ var validDevicePathPrefixes = []string{
 
 // validateDevicePath checks that a device path is a valid serial device.
 func validateDevicePath(path string) error {
+	// Canonicalize to prevent path traversal (e.g. /dev/tty/../sda1)
+	cleaned := filepath.Clean(path)
 	for _, prefix := range validDevicePathPrefixes {
-		if strings.HasPrefix(path, prefix) {
+		if strings.HasPrefix(cleaned, prefix) {
 			return nil
 		}
 	}

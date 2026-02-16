@@ -243,10 +243,21 @@ func (h *Handler) HandleDetections(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(detections)
 }
 
+// Maximum WebSocket clients for model status updates.
+const maxModelWSClients = 100
+
 // HandleWebSocket handles WebSocket connections for model status updates.
 func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	h.wsMu.RLock()
+	clientCount := len(h.wsClients)
+	h.wsMu.RUnlock()
+	if clientCount >= maxModelWSClients {
+		http.Error(w, "too many WebSocket connections", http.StatusServiceUnavailable)
+		return
+	}
+
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		InsecureSkipVerify: true,
+		OriginPatterns: []string{"*"},
 	})
 	if err != nil {
 		h.logger.Warn("WebSocket accept error", "error", err)

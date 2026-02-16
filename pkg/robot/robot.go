@@ -324,7 +324,7 @@ func (r *Robot) detectCamera(comp config.ComponentConfig) error {
 			"error":  result.Error,
 		})
 
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 
 	deviceInfo := result.Device

@@ -35,11 +35,11 @@ type Device interface {
 	// WriteReg writes data to a register.
 	WriteReg(ctx context.Context, reg byte, data []byte) error
 
-	// ReadByte reads a single byte.
-	ReadByte(ctx context.Context) (byte, error)
+	// ReadByteCtx reads a single byte.
+	ReadByteCtx(ctx context.Context) (byte, error)
 
-	// WriteByte writes a single byte.
-	WriteByte(ctx context.Context, b byte) error
+	// WriteByteCtx writes a single byte.
+	WriteByteCtx(ctx context.Context, b byte) error
 
 	// ReadByteReg reads a single byte from a register.
 	ReadByteReg(ctx context.Context, reg byte) (byte, error)

@@ -57,6 +57,12 @@ type componentInfo struct {
 	Models      []string
 }
 
+// cmdListComponents handles 'gorai components' by directly listing component types.
+func cmdListComponents() error {
+	args := os.Args[2:]
+	return listComponents(args)
+}
+
 // cmdList handles the 'gorai list' command.
 func cmdList() error {
 	args := os.Args[2:]

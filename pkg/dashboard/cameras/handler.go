@@ -201,10 +201,21 @@ func formatFloat(f float64, precision int) string {
 	return string(rune('0'+intPart%100/10)) + string(rune('0'+intPart%10)) + "." + string(rune('0'+fracPart))
 }
 
+// Maximum WebSocket clients for camera status updates.
+const maxCameraWSClients = 100
+
 // HandleWebSocket handles WebSocket connections for camera status updates.
 func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	h.wsMu.RLock()
+	clientCount := len(h.wsClients)
+	h.wsMu.RUnlock()
+	if clientCount >= maxCameraWSClients {
+		http.Error(w, "too many WebSocket connections", http.StatusServiceUnavailable)
+		return
+	}
+
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		InsecureSkipVerify: true, // Allow connections from any origin
+		OriginPatterns: []string{"*"},
 	})
 	if err != nil {
 		h.logger.Warn("WebSocket accept error", "error", err)

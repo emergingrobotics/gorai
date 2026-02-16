@@ -30,9 +30,8 @@ func Execute() error {
 
 	// Component management
 	case "components":
-		return cmdList()
+		return cmdListComponents()
 	case "list":
-		// Alias for backwards compatibility
 		return cmdList()
 	case "component":
 		return cmdComponent()
