@@ -32,8 +32,16 @@ type ResourceServer struct {
 	methods  map[string]reflect.Method
 }
 
+// blockedRPCMethods are methods that must never be exposed over unauthenticated NATS RPC.
+var blockedRPCMethods = map[string]bool{
+	"Close":       true,
+	"Reconfigure": true,
+}
+
 // Wrap creates a new ResourceServer that exposes the resource over NATS.
-func Wrap(nc *nats.Conn, res resource.Resource) (*ResourceServer, error) {
+// Only methods in allowedMethods are exposed. If allowedMethods is empty,
+// all public methods except blocked administrative methods are exposed.
+func Wrap(nc *nats.Conn, res resource.Resource, allowedMethods ...string) (*ResourceServer, error) {
 	if nc == nil {
 		return nil, fmt.Errorf("NATS connection is required")
 	}
@@ -47,11 +55,29 @@ func Wrap(nc *nats.Conn, res resource.Resource) (*ResourceServer, error) {
 		methods:  make(map[string]reflect.Method),
 	}
 
-	// Discover methods via reflection
-	resType := reflect.TypeOf(res)
-	for i := 0; i < resType.NumMethod(); i++ {
-		method := resType.Method(i)
-		s.methods[method.Name] = method
+	if len(allowedMethods) > 0 {
+		// Only register explicitly allowed methods
+		allowed := make(map[string]bool, len(allowedMethods))
+		for _, name := range allowedMethods {
+			allowed[name] = true
+		}
+		resType := reflect.TypeOf(res)
+		for i := 0; i < resType.NumMethod(); i++ {
+			method := resType.Method(i)
+			if allowed[method.Name] {
+				s.methods[method.Name] = method
+			}
+		}
+	} else {
+		// Register all public methods except blocked ones
+		resType := reflect.TypeOf(res)
+		for i := 0; i < resType.NumMethod(); i++ {
+			method := resType.Method(i)
+			if blockedRPCMethods[method.Name] {
+				continue
+			}
+			s.methods[method.Name] = method
+		}
 	}
 
 	// Subscribe to RPC requests

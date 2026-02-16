@@ -3,7 +3,6 @@ package mesh
 import (
 	"context"
 	"encoding/json"
-	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -12,12 +11,11 @@ import (
 
 // Watcher watches for mesh changes (services joining/leaving, channels added/removed).
 type Watcher struct {
-	client     *Client
-	query      Query
-	events     chan Event
-	cancel     context.CancelFunc
-	done       chan struct{}
-	mu         sync.RWMutex
+	client      *Client
+	query       Query
+	events      chan Event
+	cancel      context.CancelFunc
+	done        chan struct{}
 	announceSub *nats.Subscription
 }
 

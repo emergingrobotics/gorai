@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -71,10 +72,10 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		cfg = &config.DashboardConfig{}
 	}
 
-	// Apply defaults
+	// Apply defaults — bind to localhost only for safety
 	listen := cfg.Listen
 	if listen == "" {
-		listen = ":8080"
+		listen = "127.0.0.1:8080"
 	}
 
 	d := &Dashboard{
@@ -144,6 +145,14 @@ func (d *Dashboard) Start(ctx context.Context) error {
 	// Start model monitor
 	if err := d.modelMonitor.Start(ctx); err != nil {
 		d.logger.Warn("Failed to start model monitor", "error", err)
+	}
+
+	// Warn if binding to all interfaces without authentication
+	if strings.HasPrefix(d.server.Addr, ":") || strings.HasPrefix(d.server.Addr, "0.0.0.0:") {
+		d.logger.Warn("Dashboard is bound to all network interfaces with no authentication",
+			"addr", d.server.Addr,
+			"recommendation", "set listen to 127.0.0.1:<port> or add authentication",
+		)
 	}
 
 	// Start HTTP server in background

@@ -10,9 +10,10 @@ import (
 
 // Client is the main mesh client for service discovery and registration.
 type Client struct {
-	nc     *nats.Conn
-	kv     *KVManager
-	logger *slog.Logger
+	nc       *nats.Conn
+	kv       *KVManager
+	logger   *slog.Logger
+	ownsConn bool
 }
 
 // ClientOption configures a Client.
@@ -91,9 +92,13 @@ func (c *Client) Conn() *nats.Conn {
 	return c.nc
 }
 
-// Close cleans up client resources. Note: does not close the NATS connection.
+// Close cleans up client resources. If the client owns the NATS connection
+// (created via Connect), it will be closed. Otherwise the connection is
+// managed externally and left open.
 func (c *Client) Close() error {
-	// Nothing to clean up currently; NATS connection is managed externally
+	if c.ownsConn && c.nc != nil {
+		c.nc.Close()
+	}
 	return nil
 }
 
@@ -108,6 +113,7 @@ func (c *Client) IsConnected() bool {
 }
 
 // Connect creates a NATS connection and mesh client in one call.
+// The returned client owns the NATS connection and will close it on Close().
 func Connect(ctx context.Context, url string, opts ...ClientOption) (*Client, error) {
 	nc, err := nats.Connect(url)
 	if err != nil {
@@ -120,6 +126,7 @@ func Connect(ctx context.Context, url string, opts ...ClientOption) (*Client, er
 		return nil, err
 	}
 
+	client.ownsConn = true
 	return client, nil
 }
 

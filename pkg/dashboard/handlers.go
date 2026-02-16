@@ -2,7 +2,9 @@ package dashboard
 
 import (
 	"encoding/json"
+	"html"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -46,14 +48,14 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
             <div class="status-card">
                 <h3>Robot</h3>
                 <div class="value">`))
-	w.Write([]byte(d.robotCfg.Robot.Name))
+	w.Write([]byte(html.EscapeString(d.robotCfg.Robot.Name)))
 	w.Write([]byte(`</div>
                 <div class="label">Name</div>
             </div>
             <div class="status-card">
                 <h3>Components</h3>
                 <div class="value">`))
-	w.Write([]byte(itoa(len(d.robotCfg.Components))))
+	w.Write([]byte(strconv.Itoa(len(d.robotCfg.Components))))
 	w.Write([]byte(`</div>
                 <div class="label">Configured</div>
             </div>
@@ -66,9 +68,9 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 			onlineCount++
 		}
 	}
-	w.Write([]byte(itoa(onlineCount)))
+	w.Write([]byte(strconv.Itoa(onlineCount)))
 	w.Write([]byte(` / `))
-	w.Write([]byte(itoa(len(cameras))))
+	w.Write([]byte(strconv.Itoa(len(cameras))))
 	w.Write([]byte(`</div>
                 <div class="label">Online</div>
             </div>
@@ -101,13 +103,13 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`                    <div class="component-item">
                         <div>
                             <div class="name">`))
-		w.Write([]byte(comp.Name))
+		w.Write([]byte(html.EscapeString(comp.Name)))
 		w.Write([]byte(`</div>
                             <div class="type">`))
-		w.Write([]byte(comp.Type))
+		w.Write([]byte(html.EscapeString(comp.Type)))
 		if comp.Model != "" {
 			w.Write([]byte(` / `))
-			w.Write([]byte(comp.Model))
+			w.Write([]byte(html.EscapeString(comp.Model)))
 		}
 		w.Write([]byte(`</div>
                         </div>
@@ -186,18 +188,3 @@ func (d *Dashboard) handleCamerasAPI(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(cameras)
 }
 
-// itoa converts an int to a string (simple implementation to avoid strconv).
-func itoa(i int) string {
-	if i == 0 {
-		return "0"
-	}
-	if i < 0 {
-		return "-" + itoa(-i)
-	}
-	var digits []byte
-	for i > 0 {
-		digits = append([]byte{byte('0' + i%10)}, digits...)
-		i /= 10
-	}
-	return string(digits)
-}

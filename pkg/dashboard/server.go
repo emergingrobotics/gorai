@@ -11,12 +11,23 @@ import (
 	"github.com/gorai/gorai/pkg/dashboard/static"
 )
 
+// securityHeaders adds security headers to all responses.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // setupRoutes configures the Chi router with all dashboard routes.
 func (d *Dashboard) setupRoutes() {
 	r := chi.NewRouter()
 
 	// Middleware
-	r.Use(middleware.RealIP)
+	r.Use(securityHeaders)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))

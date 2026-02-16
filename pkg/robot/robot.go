@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -688,10 +690,48 @@ func (r *Robot) publishStartupEvent(eventType, component, componentType, message
 	}
 }
 
+// validateExternalCommand checks that an external service command is safe to execute.
+func validateExternalCommand(command string) error {
+	if command == "" {
+		return fmt.Errorf("command is empty")
+	}
+
+	// Require absolute path to prevent PATH-based attacks
+	if !filepath.IsAbs(command) {
+		return fmt.Errorf("external service command must be an absolute path, got: %s", command)
+	}
+
+	// Reject shell metacharacters in the command path
+	shellMetachars := "`$|;&(){}[]!#~"
+	for _, ch := range shellMetachars {
+		if strings.ContainsRune(command, ch) {
+			return fmt.Errorf("external service command contains forbidden character %q: %s", ch, command)
+		}
+	}
+
+	// Verify the command exists and is executable
+	info, err := os.Stat(command)
+	if err != nil {
+		return fmt.Errorf("external service command not found: %w", err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("external service command is a directory: %s", command)
+	}
+	if info.Mode()&0111 == 0 {
+		return fmt.Errorf("external service command is not executable: %s", command)
+	}
+
+	return nil
+}
+
 // startExternalService spawns a managed external service process.
 func (r *Robot) startExternalService(ctx context.Context, svc config.ServiceConfig) error {
 	if svc.External == nil || svc.External.Command == "" {
 		return fmt.Errorf("external service %s has no command configured", svc.Name)
+	}
+
+	if err := validateExternalCommand(svc.External.Command); err != nil {
+		return fmt.Errorf("external service %s: %w", svc.Name, err)
 	}
 
 	r.logger.Info("Starting external service",

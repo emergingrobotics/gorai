@@ -52,19 +52,30 @@ TinyGo firmware for RP2040-based boards providing:
 
 ```bash
 # Core commands
-gorai validate <config>   # Validate RDL file
-gorai run <config>        # Run robot (development mode)
-gorai build <config>      # Build standalone binary
+gorai validate <config>   # Validate RDL configuration file
+gorai run <config>        # Run robot in development mode (foreground)
+gorai build <config>      # Build standalone binary for deployment
+
+# Component management
 gorai components          # List available component types
-gorai version             # Show version info
+gorai component search    # Search for third-party components
+gorai component info      # Show component information
+gorai component add       # Add component to project
 
 # Mesh service discovery
-gorai mesh services       # List running services
+gorai mesh services       # List running services in the mesh
 gorai mesh channels       # List registered NATS channels
 gorai mesh schemas        # List or show message schemas
 gorai mesh watch          # Watch for services joining/leaving
 gorai mesh summary        # Show mesh state summary
-gorai mesh init           # Initialize predefined schemas
+gorai mesh robots         # List robots with registered services
+gorai mesh init           # Initialize mesh with predefined schemas
+gorai mesh reset          # Reset mesh (delete all data)
+
+# Utility commands
+gorai version             # Print version information
+gorai migrate             # Migrate RDL v1 config to v2 format
+gorai help                # Print help message
 ```
 
 ---
@@ -73,31 +84,85 @@ gorai mesh init           # Initialize predefined schemas
 
 ```
 gorai/
-├── cmd/gorai/              # CLI commands
-│   └── commands/
-│       ├── mesh.go         # Mesh service discovery CLI
-│       └── ...
-├── pkg/                    # Core libraries
-│   ├── accel/              # ML acceleration
-│   ├── config/             # RDL parsing
-│   ├── mesh/               # Service discovery (NATS KV)
-│   │   ├── client.go       # Main client interface
-│   │   ├── registration.go # Service registration + heartbeat
-│   │   ├── discovery.go    # Query services and channels
-│   │   ├── watcher.go      # Watch for changes
-│   │   ├── schema.go       # Schema registry
-│   │   └── micro.go        # NATS micro service API
-│   ├── nats/               # NATS client
-│   ├── runtime/            # Robot lifecycle
-│   └── dashboard/          # Web dashboard
-├── components/             # Component interfaces
-├── driver/                 # Hardware drivers (GPIO, I2C, serial)
-├── services/               # Service implementations
+├── api/                    # API definitions
+│   └── proto/              # Protobuf definitions
+├── cmd/gorai/              # CLI entry point
+│   └── commands/           # CLI command implementations
+├── components/             # Component type interfaces and implementations
+│   ├── arm/                # Robotic arm
+│   ├── base/               # Mobile base (differential drive, etc.)
+│   ├── camera/             # Camera capture
+│   ├── gripper/            # Gripper/end-effector
+│   ├── input/              # Input devices (joystick, gamepad)
+│   ├── link/               # Kinematic link
+│   ├── motor/              # DC/brushless motor
+│   ├── power/              # Power management
+│   ├── pwm/                # PWM output
+│   ├── sensor/             # Generic sensor
+│   ├── serial/             # Serial port
+│   ├── servo/              # Servo motor
+│   ├── space/              # Spatial/coordinate frame
+│   ├── stepper/            # Stepper motor
+│   ├── thruster/           # Thruster (ROV/drone)
+│   └── valve/              # Valve actuator
+├── driver/                 # Hardware drivers
+│   ├── camera/             # Camera drivers
+│   ├── gpio/               # GPIO pin access
+│   ├── i2c/                # I2C bus
+│   ├── pwm/                # PWM hardware
+│   ├── serial/             # Serial/UART
+│   └── spi/                # SPI bus
 ├── examples/               # Example robots
 │   ├── blinky/             # LED blink example (RDL)
 │   ├── gps-tracker/        # GPS tracking example (RDL)
 │   ├── hello-camera/       # Camera streaming example (RDL)
 │   └── pwm-controller/     # PWM control via gorai-gsp (Go)
+├── images/                 # Project images and assets
+├── internal/               # Internal packages (not importable)
+│   ├── proto/              # Generated protobuf Go code
+│   └── testutil/           # Test helpers
+├── nws/                    # NATS WebSocket bridge
+├── pkg/                    # Core libraries
+│   ├── accel/              # ML acceleration
+│   ├── components/         # Component registry and lifecycle
+│   ├── config/             # RDL parsing and validation
+│   ├── dashboard/          # Web dashboard
+│   ├── discovery/          # Service discovery
+│   ├── gsp/                # Gorai Serial Protocol client
+│   ├── hardware/           # Hardware abstraction
+│   ├── log/                # Structured logging
+│   ├── mesh/               # Mesh service discovery (NATS KV)
+│   ├── nats/               # NATS client wrapper
+│   ├── node/               # Robot node lifecycle
+│   ├── param/              # Parameter server
+│   ├── proxy/              # Component proxy (remote access)
+│   ├── pub/                # NATS publisher helpers
+│   ├── registry/           # Component/service registry
+│   ├── resource/           # Resource naming and management
+│   ├── robot/              # Robot instance orchestration
+│   ├── services/           # Service registry and lifecycle
+│   ├── sub/                # NATS subscriber helpers
+│   ├── systemd/            # Systemd unit file generation
+│   ├── tf/                 # Transform/coordinate frames
+│   ├── topics/             # NATS topic conventions
+│   └── validation/         # Config validation rules
+├── scripts/                # Shell scripts (wrapper, start/stop)
+├── services/               # Service implementations
+│   ├── behavior/           # Behavior trees / state machines
+│   ├── bridge/             # Protocol bridge
+│   ├── control/            # Control loops (PID, etc.)
+│   ├── coordinator/        # Multi-component coordination
+│   ├── formatter/          # Data formatting
+│   ├── gateway/            # External API gateway
+│   ├── mlmodel/            # ML model serving
+│   ├── motion/             # Motion planning
+│   ├── navigation/         # Autonomous navigation
+│   ├── slam/               # SLAM (mapping/localization)
+│   ├── telemetry/          # Metrics and telemetry
+│   └── vision/             # Computer vision pipelines
+├── templates/              # Code generation templates
+│   ├── component/          # Component scaffolding templates
+│   └── service/            # Service scaffolding templates
 ├── tools/                  # Development tools
 │   └── pwm-ramp-test/      # PWM testing tool
 └── archive/                # Archived code for future phases

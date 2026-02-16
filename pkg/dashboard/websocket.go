@@ -10,6 +10,8 @@ import (
 	"github.com/coder/websocket"
 )
 
+const maxWebSocketClients = 100
+
 // WebSocketHub manages WebSocket connections for real-time updates.
 type WebSocketHub struct {
 	clients    map[*websocket.Conn]bool
@@ -17,6 +19,7 @@ type WebSocketHub struct {
 	broadcast  chan []byte
 	register   chan *websocket.Conn
 	unregister chan *websocket.Conn
+	done       chan struct{}
 }
 
 // NewWebSocketHub creates a new WebSocket hub.
@@ -26,11 +29,14 @@ func NewWebSocketHub() *WebSocketHub {
 		broadcast:  make(chan []byte, 256),
 		register:   make(chan *websocket.Conn),
 		unregister: make(chan *websocket.Conn),
+		done:       make(chan struct{}),
 	}
 }
 
 // Run starts the hub's message loop.
 func (h *WebSocketHub) Run(ctx context.Context) {
+	defer close(h.done)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -64,10 +70,17 @@ func (h *WebSocketHub) Run(ctx context.Context) {
 			}
 			h.mu.RUnlock()
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			writeCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 			for _, conn := range clients {
-				if err := conn.Write(ctx, websocket.MessageText, message); err != nil {
-					h.unregister <- conn
+				if err := conn.Write(writeCtx, websocket.MessageText, message); err != nil {
+					// Remove failed client directly instead of sending to unregister channel
+					// to avoid deadlock (we are the reader of that channel)
+					h.mu.Lock()
+					if _, ok := h.clients[conn]; ok {
+						delete(h.clients, conn)
+						conn.Close(websocket.StatusNormalClosure, "")
+					}
+					h.mu.Unlock()
 				}
 			}
 			cancel()
@@ -95,14 +108,25 @@ func (h *WebSocketHub) BroadcastJSON(v interface{}) {
 
 // HandleWebSocket upgrades HTTP to WebSocket and manages the connection.
 func (h *WebSocketHub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Reject if too many clients are connected
+	if h.ClientCount() >= maxWebSocketClients {
+		http.Error(w, "too many WebSocket connections", http.StatusServiceUnavailable)
+		return
+	}
+
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		InsecureSkipVerify: true, // Allow connections from any origin
+		InsecureSkipVerify: true,
 	})
 	if err != nil {
 		return
 	}
 
-	h.register <- conn
+	select {
+	case h.register <- conn:
+	case <-h.done:
+		conn.Close(websocket.StatusGoingAway, "server shutdown")
+		return
+	}
 
 	// Keep connection open
 	ctx := r.Context()
@@ -113,7 +137,10 @@ func (h *WebSocketHub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.unregister <- conn
+	select {
+	case h.unregister <- conn:
+	case <-h.done:
+	}
 }
 
 // ClientCount returns the number of connected clients.

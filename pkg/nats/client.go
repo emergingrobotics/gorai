@@ -3,9 +3,12 @@ package nats
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -17,13 +20,22 @@ type Client struct {
 	logger *slog.Logger
 }
 
+// TLSConfig holds TLS settings for NATS connections.
+type TLSConfig struct {
+	CAFile   string
+	CertFile string
+	KeyFile  string
+}
+
 // Config holds NATS connection configuration.
 type Config struct {
-	URL            string
-	Name           string
-	ConnectTimeout time.Duration
-	ReconnectWait  time.Duration
-	MaxReconnects  int
+	URL             string
+	Name            string
+	ConnectTimeout  time.Duration
+	ReconnectWait   time.Duration
+	MaxReconnects   int
+	CredentialsFile string
+	TLS             *TLSConfig
 }
 
 // DefaultConfig returns a default NATS configuration.
@@ -80,22 +92,43 @@ func Connect(ctx context.Context, cfg *Config, opts ...Option) (*Client, error) 
 		}),
 	}
 
+	// Add credentials if configured
+	if cfg.CredentialsFile != "" {
+		natsOpts = append(natsOpts, nats.UserCredentials(cfg.CredentialsFile))
+	}
+
+	// Add TLS if configured
+	if cfg.TLS != nil {
+		tlsConfig, err := buildTLSConfig(cfg.TLS)
+		if err != nil {
+			return nil, fmt.Errorf("failed to configure TLS: %w", err)
+		}
+		natsOpts = append(natsOpts, nats.Secure(tlsConfig))
+	}
+
 	// Connect with context timeout
 	var conn *nats.Conn
-	var err error
+	var connErr error
 
 	done := make(chan struct{})
 	go func() {
-		conn, err = nats.Connect(cfg.URL, natsOpts...)
+		conn, connErr = nats.Connect(cfg.URL, natsOpts...)
 		close(done)
 	}()
 
 	select {
 	case <-ctx.Done():
+		// Clean up the connection if it eventually succeeds
+		go func() {
+			<-done
+			if conn != nil {
+				conn.Close()
+			}
+		}()
 		return nil, ctx.Err()
 	case <-done:
-		if err != nil {
-			return nil, fmt.Errorf("failed to connect to NATS at %s: %w", cfg.URL, err)
+		if connErr != nil {
+			return nil, fmt.Errorf("failed to connect to NATS at %s: %w", cfg.URL, connErr)
 		}
 	}
 
@@ -171,4 +204,33 @@ func (c *Client) Status() nats.Status {
 		return nats.CLOSED
 	}
 	return c.conn.Status()
+}
+
+// buildTLSConfig constructs a *tls.Config from the TLS configuration.
+func buildTLSConfig(cfg *TLSConfig) (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	if cfg.CAFile != "" {
+		caCert, err := os.ReadFile(cfg.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA file: %w", err)
+		}
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("failed to parse CA certificate")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
+	if cfg.CertFile != "" && cfg.KeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	return tlsConfig, nil
 }

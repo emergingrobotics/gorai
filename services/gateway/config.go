@@ -1,7 +1,11 @@
 // Package gateway provides a GSP-NATS bridge service for serial devices.
 package gateway
 
-import "time"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
 // Config holds gateway configuration.
 type Config struct {
@@ -78,10 +82,30 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// validDevicePathPrefixes are the allowed prefixes for serial device paths.
+var validDevicePathPrefixes = []string{
+	"/dev/tty",
+	"/dev/serial/",
+	"/dev/cu.",
+}
+
+// validateDevicePath checks that a device path is a valid serial device.
+func validateDevicePath(path string) error {
+	for _, prefix := range validDevicePathPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid device path %q: must start with /dev/tty, /dev/serial/, or /dev/cu.", path)
+}
+
 // Validate checks the port configuration for errors.
 func (p *PortConfig) Validate() error {
 	if p.Device == "" {
 		return ErrNoDevicePath
+	}
+	if err := validateDevicePath(p.Device); err != nil {
+		return err
 	}
 	if p.DeviceID == "" {
 		return ErrNoDeviceID

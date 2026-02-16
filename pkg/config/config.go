@@ -432,13 +432,27 @@ func LoadFromBytes(data []byte) (*RDL, error) {
 	return &cfg, nil
 }
 
+// envVarPattern matches ${VAR} and ${VAR:-default} syntax in JSON.
+var envVarPattern = regexp.MustCompile(`\$\{([^}:]+)(?::-([^}]*))?\}`)
+
+// jsonEscapeValue escapes a string value so it is safe to embed in JSON.
+// It marshals the value to JSON (adding quotes and escaping special chars),
+// then strips the surrounding quotes to return just the escaped content.
+func jsonEscapeValue(value string) string {
+	escaped, err := json.Marshal(value)
+	if err != nil {
+		return value
+	}
+	// Strip surrounding quotes from the JSON string
+	return string(escaped[1 : len(escaped)-1])
+}
+
 // expandEnvVars expands environment variable references in JSON.
 // Supports ${VAR} and ${VAR:-default} syntax.
+// Values are JSON-escaped to prevent injection of structure-breaking characters.
 func expandEnvVars(data []byte) []byte {
-	// Pattern: ${VAR} or ${VAR:-default}
-	re := regexp.MustCompile(`\$\{([^}:]+)(?::-([^}]*))?\}`)
-	return re.ReplaceAllFunc(data, func(match []byte) []byte {
-		parts := re.FindSubmatch(match)
+	return envVarPattern.ReplaceAllFunc(data, func(match []byte) []byte {
+		parts := envVarPattern.FindSubmatch(match)
 		varName := string(parts[1])
 		defaultVal := ""
 		if len(parts) > 2 {
@@ -446,9 +460,9 @@ func expandEnvVars(data []byte) []byte {
 		}
 
 		if val := os.Getenv(varName); val != "" {
-			return []byte(val)
+			return []byte(jsonEscapeValue(val))
 		}
-		return []byte(defaultVal)
+		return []byte(jsonEscapeValue(defaultVal))
 	})
 }
 
@@ -588,6 +602,12 @@ func (cfg *RDL) Validate() error {
 	return nil
 }
 
+// Pre-compiled patterns for name validation.
+var (
+	nameStartPattern = regexp.MustCompile(`^[a-zA-Z]`)
+	nameFullPattern  = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`)
+)
+
 // validateName checks if a name is valid per RDL spec.
 func validateName(name string) error {
 	if name == "" {
@@ -597,13 +617,11 @@ func validateName(name string) error {
 		return fmt.Errorf("name too long (max 63 characters)")
 	}
 
-	// Must start with letter
-	if !regexp.MustCompile(`^[a-zA-Z]`).MatchString(name) {
+	if !nameStartPattern.MatchString(name) {
 		return fmt.Errorf("name must start with a letter")
 	}
 
-	// Only letters, numbers, hyphens, underscores
-	if !regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]*$`).MatchString(name) {
+	if !nameFullPattern.MatchString(name) {
 		return fmt.Errorf("name may only contain letters, numbers, hyphens, and underscores")
 	}
 

@@ -89,7 +89,8 @@ type Camera struct {
 	publishFPS    float64
 
 	// Callbacks (for NATS integration)
-	onFrame func(jpeg []byte, timestamp time.Time, seq uint64, frameID string)
+	onFrame   func(jpeg []byte, timestamp time.Time, seq uint64, frameID string)
+	onFrameMu sync.RWMutex
 
 	stopCh chan struct{}
 	doneCh chan struct{}
@@ -198,8 +199,11 @@ func (c *Camera) handleFrame(jpegData []byte, timestamp time.Time) {
 	c.frameMu.Unlock()
 
 	// Rate limiting for publishing
-	if c.publishInterval > 0 && !c.lastPublishTime.IsZero() {
-		elapsed := timestamp.Sub(c.lastPublishTime)
+	c.fpsCalcMu.Lock()
+	lastPublish := c.lastPublishTime
+	c.fpsCalcMu.Unlock()
+	if c.publishInterval > 0 && !lastPublish.IsZero() {
+		elapsed := timestamp.Sub(lastPublish)
 		if elapsed < c.publishInterval {
 			c.framesDropped.Add(1)
 			return
@@ -214,12 +218,17 @@ func (c *Camera) handleFrame(jpegData []byte, timestamp time.Time) {
 	seq := c.seq.Add(1)
 
 	// Call frame callback if set (for NATS publishing)
-	if c.onFrame != nil {
-		c.onFrame(jpegData, timestamp, seq, c.config.FrameID)
+	c.onFrameMu.RLock()
+	callback := c.onFrame
+	c.onFrameMu.RUnlock()
+	if callback != nil {
+		callback(jpegData, timestamp, seq, c.config.FrameID)
 	}
 
 	c.framesPublished.Add(1)
+	c.fpsCalcMu.Lock()
 	c.lastPublishTime = timestamp
+	c.fpsCalcMu.Unlock()
 	c.updatePublishFPS(timestamp)
 }
 
@@ -259,7 +268,9 @@ func (c *Camera) updatePublishFPS(t time.Time) {
 
 // SetFrameCallback sets the callback for frame publishing.
 func (c *Camera) SetFrameCallback(fn func(jpeg []byte, timestamp time.Time, seq uint64, frameID string)) {
+	c.onFrameMu.Lock()
 	c.onFrame = fn
+	c.onFrameMu.Unlock()
 }
 
 // heartbeatLoop runs the heartbeat loop.

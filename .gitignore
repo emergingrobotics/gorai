@@ -1,6 +1,7 @@
 *~
-./gorai
-./gorai-robot
+/gorai
+/gorai-robot
+/repeat
 
 # Binaries
 *.exe

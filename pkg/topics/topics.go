@@ -44,6 +44,8 @@ const (
 	Heartbeat = "heartbeat"
 	// Shutdown is for system shutdown events
 	Shutdown = "shutdown"
+	// EmergencyStop is for emergency stop commands that halt all actuators
+	EmergencyStop = "estop"
 )
 
 // Builder helps construct topic strings.
@@ -111,6 +113,17 @@ func (b *Builder) SystemHeartbeat() string {
 // SystemShutdown returns the system shutdown topic.
 func (b *Builder) SystemShutdown() string {
 	return b.System(Shutdown)
+}
+
+// SystemEmergencyStop returns the emergency stop topic.
+// All actuators should subscribe to this and immediately cease motion.
+func (b *Builder) SystemEmergencyStop() string {
+	return b.System(EmergencyStop)
+}
+
+// GlobalEmergencyStop returns the global emergency stop topic (all robots).
+func GlobalEmergencyStop() string {
+	return "gorai.estop"
 }
 
 // All returns a wildcard topic for all messages from this robot.

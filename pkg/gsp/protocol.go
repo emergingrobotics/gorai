@@ -102,12 +102,15 @@ func parsePub(data []byte) (*Message, error) {
 	subject := string(data[:subjectEnd])
 	data = data[subjectEnd+1:]
 
-	// Parse length
+	// Parse length (limit to MaxPayloadSize to prevent integer overflow)
 	payloadLen := 0
 	lenEnd := 0
 	for lenEnd < len(data) && data[lenEnd] >= '0' && data[lenEnd] <= '9' {
 		payloadLen = payloadLen*10 + int(data[lenEnd]-'0')
 		lenEnd++
+		if payloadLen > MaxPayloadSize {
+			return nil, ErrMalformedMsg
+		}
 	}
 	if lenEnd == 0 {
 		return nil, ErrMalformedMsg
@@ -217,12 +220,15 @@ func parseMsg(data []byte) (*Message, error) {
 	id := string(data[:idEnd])
 	data = data[idEnd+1:]
 
-	// Parse length
+	// Parse length (limit to MaxPayloadSize to prevent integer overflow)
 	payloadLen := 0
 	lenEnd := 0
 	for lenEnd < len(data) && data[lenEnd] >= '0' && data[lenEnd] <= '9' {
 		payloadLen = payloadLen*10 + int(data[lenEnd]-'0')
 		lenEnd++
+		if payloadLen > MaxPayloadSize {
+			return nil, ErrMalformedMsg
+		}
 	}
 	if lenEnd == 0 {
 		return nil, ErrMalformedMsg

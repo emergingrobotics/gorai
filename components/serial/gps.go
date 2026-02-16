@@ -1,3 +1,5 @@
+//go:build gorai_gps
+
 // Package serial provides serial port based components.
 package serial
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/micro"
@@ -170,13 +171,19 @@ type apiResponse struct {
 
 func (rs *RegistryService) respond(req micro.Request, data interface{}) {
 	resp := apiResponse{Success: true, Data: data}
-	respData, _ := json.Marshal(resp)
+	respData, err := json.Marshal(resp)
+	if err != nil {
+		respData = []byte(`{"success":false,"error":"failed to marshal response"}`)
+	}
 	req.Respond(respData)
 }
 
 func (rs *RegistryService) respondError(req micro.Request, err error) {
 	resp := apiResponse{Success: false, Error: err.Error()}
-	respData, _ := json.Marshal(resp)
+	respData, marshalErr := json.Marshal(resp)
+	if marshalErr != nil {
+		respData = []byte(`{"success":false,"error":"failed to marshal error response"}`)
+	}
 	req.Respond(respData)
 }
 
@@ -403,7 +410,7 @@ func QueryRegistry(nc *nats.Conn, endpoint string, request, response interface{}
 		}
 	}
 
-	msg, err := nc.Request(subject, reqData, DefaultServiceTTL)
+	msg, err := nc.Request(subject, reqData, 5*time.Second)
 	if err != nil {
 		return fmt.Errorf("registry query failed: %w", err)
 	}

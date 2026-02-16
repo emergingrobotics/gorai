@@ -178,17 +178,15 @@ func (r *Registration) heartbeatLoop(ctx context.Context, interval time.Duration
 
 // sendHeartbeat refreshes the service registration and publishes heartbeat.
 func (r *Registration) sendHeartbeat(ctx context.Context) error {
-	r.mu.RLock()
-	status := r.status
-	r.mu.RUnlock()
-
-	// Update descriptor
+	r.mu.Lock()
 	r.desc.LastSeen = time.Now()
-	r.desc.Status = status
+	r.desc.Status = r.status
+	descCopy := r.desc
+	r.mu.Unlock()
 
 	// Refresh KV entry (resets TTL)
-	key := ServiceKey(r.desc.RobotID, r.desc.Name, r.desc.ID)
-	data, err := json.Marshal(r.desc)
+	key := ServiceKey(descCopy.RobotID, descCopy.Name, descCopy.ID)
+	data, err := json.Marshal(descCopy)
 	if err != nil {
 		return fmt.Errorf("failed to marshal descriptor: %w", err)
 	}
@@ -199,13 +197,16 @@ func (r *Registration) sendHeartbeat(ctx context.Context) error {
 
 	// Publish heartbeat message
 	hb := HeartbeatMessage{
-		ServiceID: r.desc.ID,
-		Status:    status,
-		Timestamp: r.desc.LastSeen,
+		ServiceID: descCopy.ID,
+		Status:    descCopy.Status,
+		Timestamp: descCopy.LastSeen,
 	}
 
-	hbData, _ := json.Marshal(hb)
-	subject := HeartbeatSubject(r.desc.ID)
+	hbData, err := json.Marshal(hb)
+	if err != nil {
+		return fmt.Errorf("failed to marshal heartbeat: %w", err)
+	}
+	subject := HeartbeatSubject(descCopy.ID)
 	if err := r.client.nc.Publish(subject, hbData); err != nil {
 		return fmt.Errorf("failed to publish heartbeat: %w", err)
 	}
@@ -218,7 +219,11 @@ func (r *Registration) deregister(announceLeave bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	key := ServiceKey(r.desc.RobotID, r.desc.Name, r.desc.ID)
+	r.mu.RLock()
+	descCopy := r.desc
+	r.mu.RUnlock()
+
+	key := ServiceKey(descCopy.RobotID, descCopy.Name, descCopy.ID)
 
 	// Delete from KV
 	if err := r.client.kv.Services().Delete(ctx, key); err != nil {
@@ -234,12 +239,12 @@ func (r *Registration) deregister(announceLeave bool) {
 
 	// Announce leave
 	if announceLeave {
-		if err := r.client.announce(ctx, "leave", r.desc); err != nil {
+		if err := r.client.announce(ctx, "leave", descCopy); err != nil {
 			r.logger.Warn("failed to announce leave", "error", err)
 		}
 	}
 
-	r.logger.Info("service deregistered", "id", r.desc.ID, "name", r.desc.Name)
+	r.logger.Info("service deregistered", "id", descCopy.ID, "name", descCopy.Name)
 }
 
 // Deregister stops the heartbeat and removes the service from the registry.
@@ -264,6 +269,8 @@ func (r *Registration) Status() ServiceStatus {
 
 // Descriptor returns a copy of the service descriptor.
 func (r *Registration) Descriptor() ServiceDescriptor {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.desc
 }
 

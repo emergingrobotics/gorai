@@ -83,7 +83,7 @@ Robotics is shifting because **decision-making is moving up the stack**: autonom
 
 We are not trying to serve every robot. We are building the default platform for teams that ask: *"How do we safely decide what the robot should do next—and scale that across systems?"*
 
-For the full strategic context, see [Gorai Overarching Strategy](docs/gorai-overarching-strategy.md).
+For the full strategic context, see [Gorai Overarching Strategy](../gorai-docs/docs/overview/) in the gorai-docs repository.
 
 ---
 
@@ -217,7 +217,7 @@ You'll see GPS NMEA sentences streaming over NATS.
 
 **Not supported:** Pi 3, Pi Zero, Pi 4 (2GB)
 
-See [Hardware Requirements](specs/hardware-requirements.md) for details.
+See Hardware Requirements in the [gorai-docs](../gorai-docs/docs/specifications/) repository for details.
 
 ---
 
@@ -357,7 +357,7 @@ gorai mesh watch
 gorai mesh channels robot-alpha
 ```
 
-See [specs/mesh-service-discovery.md](specs/mesh-service-discovery.md) for complete documentation.
+See the mesh service discovery specification in the [gorai-docs](../gorai-docs/docs/specifications/) repository for complete documentation.
 
 ---
 
@@ -422,7 +422,7 @@ Define **discovery rules** instead of individual devices:
 3. Patrol service's `@discovered:` dependencies resolve
 4. Robot starts patrolling with discovered hardware
 
-See [specs/dynamic-discovery.md](specs/dynamic-discovery.md) for complete documentation.
+See the dynamic discovery specification in the [gorai-docs](../gorai-docs/docs/specifications/) repository for complete documentation.
 
 ---
 
@@ -460,37 +460,23 @@ The current focus is on a simple, single-binary deployment model:
 
 ### Future Roadmap
 
-For production fleets and advanced features, see [Future Roadmap](docs/FUTURE-ROADMAP.md):
+For production fleets and advanced features, see the Future Roadmap in the [gorai-docs](../gorai-docs/docs/plans/) repository:
 - **Phase 2:** Optional containers for ML/vision services
 - **Phase 3:** K3s orchestration for fleet management
 - **Phase 4:** ROS 2 bridge, advanced SLAM
 
-The K3s/container architecture is preserved in [docs/archive/future-state/](docs/archive/future-state/).
+The K3s/container architecture is preserved in the [gorai-docs](../gorai-docs/docs/architecture/) repository.
 
 ---
 
 ## Documentation
 
-### Getting Started
-- [Hardware Requirements](specs/hardware-requirements.md) — Supported platforms
-- [Robot Definition Language](specs/robot-definition-language.md) — RDL configuration
+All documentation has moved to the [gorai-docs](../gorai-docs) repository, including:
 
-### Architecture & Design
-- [Gorai Overarching Strategy](docs/gorai-overarching-strategy.md) — AI-first positioning and future robot market
-- [Vision Analysis](docs/vision-analysis.md) — Strategic architecture assessment
-- [Design Comparison](docs/general-designs.md) — Analysis of ROS 2, Viam, YARP
-- [Strategic Summary](docs/STRATEGIC-SUMMARY.md) — Key decisions and positioning
-- [Mesh Service Discovery](specs/mesh-service-discovery.md) — Runtime service discovery
-- [Dynamic Discovery](specs/dynamic-discovery.md) — Auto-adoption and `@discovered:` dependencies
-
-### For AI Assistants / LLMs
-- [LLM Design Guide](docs/LLM-DESIGN-GUIDE.md) — **Everything an LLM needs to build components/services**
-- [CLAUDE.md](CLAUDE.md) — Project overview for AI assistants
-- [gorai-docs INDEX.md](https://github.com/emergingrobotics/gorai-docs/blob/main/INDEX.md) — AI-navigable index of all documentation
-
-### Future State
-- [Future Roadmap](docs/FUTURE-ROADMAP.md) — Container/K3s expansion plans
-- [K3s Architecture](docs/archive/future-state/) — Preserved K3s/container designs
+- **Getting Started** — Hardware requirements, Robot Definition Language (RDL) configuration
+- **Architecture & Design** — Strategy, vision analysis, design comparisons, mesh service discovery, dynamic discovery
+- **For AI Assistants / LLMs** — [CLAUDE.md](CLAUDE.md) (in this repo), [gorai-docs INDEX.md](https://github.com/emergingrobotics/gorai-docs/blob/main/INDEX.md)
+- **Future State** — Roadmap, K3s/container architecture plans
 
 ---
 
@@ -500,10 +486,10 @@ Gorai is built with [Claude Code](https://claude.ai/claude-code). We believe AI-
 
 ### For Humans
 - See [CLAUDE.md](CLAUDE.md) for contributor guidelines
-- See [docs/PACKAGE-LOCATIONS.md](docs/PACKAGE-LOCATIONS.md) for code organization
+- See the [gorai-docs](../gorai-docs) repository for code organization and package locations
 
 ### For AI Assistants
-- See [docs/LLM-DESIGN-GUIDE.md](docs/LLM-DESIGN-GUIDE.md) — A single document containing everything needed to design new components and services without reading the entire codebase
+- See the LLM Design Guide in the [gorai-docs](../gorai-docs) repository — everything needed to design new components and services without reading the entire codebase
 
 ---
 

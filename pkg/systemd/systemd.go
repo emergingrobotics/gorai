@@ -284,6 +284,14 @@ func (g *Generator) generateService(name string, container config.ContainerConfi
 	sb.WriteString(fmt.Sprintf("ExecStop=/usr/bin/podman stop -t 10 %s\n", serviceName))
 	sb.WriteString("\n")
 
+	// Security hardening
+	sb.WriteString("# Security hardening\n")
+	sb.WriteString("NoNewPrivileges=yes\n")
+	sb.WriteString("ProtectSystem=strict\n")
+	sb.WriteString("ProtectHome=true\n")
+	sb.WriteString("PrivateTmp=true\n")
+	sb.WriteString("\n")
+
 	// [Install] section
 	sb.WriteString("[Install]\n")
 	sb.WriteString(fmt.Sprintf("WantedBy=%s\n", g.wantedBy()))
