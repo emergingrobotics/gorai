@@ -105,30 +105,216 @@ sudo apt update && sudo apt install -y golang-go
 
 Or download from https://go.dev/dl/ for the latest version (1.22+ required).
 
-### 2. Install NATS Server
+### 2. Install NATS Server and Enable JetStream
 
 NATS is a lightweight message broker that gorai uses for all component communication. It must be running before you start your robot.
 
-**macOS:**
+By default, NATS runs in core pub/sub mode -- messages are fire-and-forget. Enabling JetStream adds persistence, replay, and key-value storage. Gorai requires JetStream for:
+
+- **Mesh service discovery** -- the `gorai-services`, `gorai-channels`, and `gorai-schemas` KV buckets require JetStream
+- **Event sourcing / replay** -- satellite services (like gogrowatt-plot) use JetStream consumers with `DeliverByStartTime` to replay historical data on startup
+- **Acknowledged delivery** -- publishers get confirmation that messages were persisted
+
+JetStream is a server-wide capability, not a per-stream setting. You enable it once on the NATS server, and then you can create as many streams as you want. Streams are the individual units that define which subjects to capture, how long to retain messages, and where to store them.
+
+#### Installing nats-server
+
+nats-server is a single static binary with no dependencies. Download it directly from the GitHub releases page rather than using a package manager.
+
+**Do not use Homebrew to install nats-server.** Homebrew's `brew services` overwrites the LaunchAgent plist on every `restart`, which makes it difficult to pass custom flags like `-c` for a config file. Enabling JetStream requires a config file, and fighting Homebrew's service management is not worth the effort.
+
+**macOS (Apple Silicon):**
+
 ```bash
-brew install nats-server
-
-# Start NATS (runs in foreground)
-nats-server
-
-# Or run in background
-brew services start nats-server
+curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-darwin-arm64.tar.gz -o nats-server.tar.gz
+tar xzf nats-server.tar.gz
+sudo mv nats-server-v2.12.4-darwin-arm64/nats-server /usr/local/bin/
+rm -rf nats-server.tar.gz nats-server-v2.12.4-darwin-arm64
 ```
 
-**Ubuntu/Debian:**
+**macOS (Intel):**
+
 ```bash
-sudo apt update && sudo apt install -y nats-server
+curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-darwin-amd64.tar.gz -o nats-server.tar.gz
+tar xzf nats-server.tar.gz
+sudo mv nats-server-v2.12.4-darwin-amd64/nats-server /usr/local/bin/
+rm -rf nats-server.tar.gz nats-server-v2.12.4-darwin-amd64
+```
 
-# Start NATS and enable on boot
-sudo systemctl enable --now nats-server
+**Linux (arm64):**
 
-# Verify it's running
-systemctl status nats-server
+```bash
+curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-linux-arm64.tar.gz -o nats-server.tar.gz
+tar xzf nats-server.tar.gz
+sudo mv nats-server-v2.12.4-linux-arm64/nats-server /usr/local/bin/
+rm -rf nats-server.tar.gz nats-server-v2.12.4-linux-arm64
+```
+
+**Linux (amd64):**
+
+```bash
+curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-linux-amd64.tar.gz -o nats-server.tar.gz
+tar xzf nats-server.tar.gz
+sudo mv nats-server-v2.12.4-linux-amd64/nats-server /usr/local/bin/
+rm -rf nats-server.tar.gz nats-server-v2.12.4-linux-amd64
+```
+
+Verify the install:
+
+```bash
+nats-server --version
+```
+
+#### Removing Homebrew nats-server (if previously installed)
+
+If you previously installed nats-server via Homebrew, remove it before using the native binary to avoid conflicts:
+
+```bash
+# Stop the Homebrew service and remove the LaunchAgent plist
+brew services stop nats-server
+
+# Uninstall the formula
+brew uninstall nats-server
+
+# Clean up any leftover config or data you created for the Homebrew install
+rm -f /opt/homebrew/etc/nats-server.conf
+rm -rf /opt/homebrew/var/nats-jetstream
+
+# Verify the Homebrew binary is gone
+which nats-server
+# Should show /usr/local/bin/nats-server (the native install) or nothing
+```
+
+#### Creating the config file
+
+Create a config file with JetStream enabled:
+
+```bash
+sudo mkdir -p /usr/local/etc
+sudo tee /usr/local/etc/nats-server.conf > /dev/null << 'EOF'
+jetstream {
+  store_dir: /usr/local/var/nats-jetstream
+  max_mem: 256MB
+  max_file: 1GB
+}
+EOF
+
+sudo mkdir -p /usr/local/var/nats-jetstream
+sudo chown -R $(whoami) /usr/local/var/nats-jetstream
+```
+
+`store_dir` is where JetStream writes persistent message data. The `chown` is required because nats-server runs as your user but `/usr/local/var` is typically owned by root. `max_mem` and `max_file` cap the total resources JetStream can use across all streams. Adjust to taste.
+
+#### Running nats-server
+
+**Foreground (for development):**
+
+```bash
+nats-server -c /usr/local/etc/nats-server.conf
+```
+
+Add `-D` for debug output.
+
+**Background:**
+
+```bash
+nats-server -c /usr/local/etc/nats-server.conf &
+```
+
+**As a macOS LaunchAgent (start on login):**
+
+Create `~/Library/LaunchAgents/io.nats.nats-server.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>io.nats.nats-server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/nats-server</string>
+        <string>-c</string>
+        <string>/usr/local/etc/nats-server.conf</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/nats-server.log</string>
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/nats-server.log</string>
+</dict>
+</plist>
+```
+
+Load it:
+
+```bash
+sudo mkdir -p /usr/local/var/log
+launchctl load ~/Library/LaunchAgents/io.nats.nats-server.plist
+```
+
+To stop: `launchctl unload ~/Library/LaunchAgents/io.nats.nats-server.plist`
+
+To restart: unload then load, or `kill $(pgrep nats-server)` (launchd restarts it automatically because `KeepAlive` is true).
+
+**As a Linux systemd service:**
+
+Create `/etc/systemd/system/nats-server.service`:
+
+```ini
+[Unit]
+Description=NATS Server
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/nats-server -c /usr/local/etc/nats-server.conf
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable nats-server
+sudo systemctl start nats-server
+```
+
+#### Verifying JetStream is enabled
+
+```bash
+nats account info
+```
+
+The output should include a `JetStream Account Information` section showing the configured limits. If it says "JetStream is not supported in this account", the config file is not being loaded -- check the nats-server process arguments with `ps aux | grep nats-server`.
+
+#### Creating a stream for robot data
+
+Once JetStream is enabled on the server, create a stream that captures gorai data subjects:
+
+```bash
+nats stream add GORAI_DATA \
+  --subjects "gorai.*.*.data" \
+  --retention limits \
+  --max-age 24h \
+  --storage file \
+  --replicas 1
+```
+
+This tells NATS to persist all messages matching `gorai.*.*.data` for 24 hours. Messages older than 24 hours are automatically pruned. Satellite services that support JetStream (like gogrowatt-plot) use this stream to replay historical data on startup.
+
+To verify the stream is working after a publisher has sent data:
+
+```bash
+nats stream info GORAI_DATA
+nats stream view GORAI_DATA --last 1
 ```
 
 ### 3. Install NATS CLI (optional, for debugging)
