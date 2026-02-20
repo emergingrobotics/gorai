@@ -21,18 +21,24 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	robotName := html.EscapeString(d.robotCfg.Robot.Name)
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gorai Dashboard</title>
+    <title>`))
+	w.Write([]byte(robotName))
+	w.Write([]byte(` - Gorai Dashboard</title>
     <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
     <nav class="nav">
-        <div class="nav-brand">Gorai</div>
+        <div class="nav-brand">Gorai - `))
+	w.Write([]byte(robotName))
+	w.Write([]byte(`</div>
         <ul class="nav-tabs">
             <li><a href="/" class="active">Status</a></li>
             <li><a href="/cameras">Cameras</a></li>`))
@@ -60,19 +66,11 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
                 <div class="label">Configured</div>
             </div>
             <div class="status-card">
-                <h3>Cameras</h3>
+                <h3>Services</h3>
                 <div class="value">`))
-	onlineCount := 0
-	for _, cam := range cameras {
-		if cam.Online {
-			onlineCount++
-		}
-	}
-	w.Write([]byte(strconv.Itoa(onlineCount)))
-	w.Write([]byte(` / `))
-	w.Write([]byte(strconv.Itoa(len(cameras))))
+	w.Write([]byte(strconv.Itoa(len(d.robotCfg.Services))))
 	w.Write([]byte(`</div>
-                <div class="label">Online</div>
+                <div class="label">Configured</div>
             </div>
         </div>
 
@@ -125,7 +123,51 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`                </div>
             </div>
         </div>
-    </main>
+`))
+
+	// Services section
+	if len(d.robotCfg.Services) > 0 {
+		w.Write([]byte(`
+        <div style="margin-top: 2rem;">
+            <div class="status-card">
+                <h3>Services</h3>
+                <div class="component-list">
+`))
+		for _, svc := range d.robotCfg.Services {
+			status := "active"
+			if svc.Disabled {
+				status = "disabled"
+			}
+
+			w.Write([]byte(`                    <div class="component-item">
+                        <div>
+                            <div class="name">`))
+			w.Write([]byte(html.EscapeString(svc.Name)))
+			w.Write([]byte(`</div>
+                            <div class="type">`))
+			w.Write([]byte(html.EscapeString(svc.Type)))
+			if svc.Model != "" {
+				w.Write([]byte(` / `))
+				w.Write([]byte(html.EscapeString(svc.Model)))
+			}
+			w.Write([]byte(`</div>
+                        </div>
+                        <span class="camera-status `))
+			w.Write([]byte(status))
+			w.Write([]byte(`">`))
+			w.Write([]byte(status))
+			w.Write([]byte(`</span>
+                    </div>
+`))
+		}
+
+		w.Write([]byte(`                </div>
+            </div>
+        </div>
+`))
+	}
+
+	w.Write([]byte(`    </main>
 </body>
 </html>
 `))

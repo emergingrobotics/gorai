@@ -225,6 +225,16 @@ main {
     color: var(--warning-text);
 }
 
+.camera-status.active {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.camera-status.disabled {
+    background: var(--bg-header);
+    color: var(--text-muted);
+}
+
 .camera-feed {
     width: 100%;
     height: auto;
