@@ -16,7 +16,7 @@ func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
 	})
@@ -47,6 +47,7 @@ func (d *Dashboard) setupRoutes() {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/status", d.handleStatus)
 		r.Get("/cameras", d.handleCamerasAPI)
+		r.Post("/components/{name}/command", d.handleComponentCommand)
 	})
 
 	// WebSocket for general updates

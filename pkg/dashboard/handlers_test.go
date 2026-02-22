@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/gorai/gorai/pkg/config"
 )
 
@@ -136,6 +137,144 @@ func TestHandleIndexComponentsListed(t *testing.T) {
 	}
 	if !strings.Contains(body, "power_meter / growatt") {
 		t.Error("component type/model not shown")
+	}
+}
+
+// --- Component Command Handler Tests ---
+
+func newTestDashboardWithComponents(t *testing.T, comps []config.ComponentConfig) *Dashboard {
+	t.Helper()
+	d, err := New(
+		&config.DashboardConfig{Listen: "127.0.0.1:0"},
+		&config.RDL{
+			Robot:      config.RobotConfig{Name: "test-robot"},
+			Components: comps,
+		},
+	)
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+	return d
+}
+
+func TestHandleComponentCommand_UnknownComponent(t *testing.T) {
+	d := newTestDashboardWithComponents(t, []config.ComponentConfig{
+		{Name: "plug_a", Type: "switch", Model: "tasmota"},
+	})
+
+	r := chi.NewRouter()
+	r.Post("/api/components/{name}/command", d.handleComponentCommand)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/components/nonexistent/command",
+		strings.NewReader(`{"command":"on"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestHandleComponentCommand_DisabledComponent(t *testing.T) {
+	d := newTestDashboardWithComponents(t, []config.ComponentConfig{
+		{Name: "plug_a", Type: "switch", Model: "tasmota", Disabled: true},
+	})
+
+	// Set status so it gets past the "binary" check
+	d.componentMonitor.SetStatusValue("plug_a", "on", "binary", "")
+
+	r := chi.NewRouter()
+	r.Post("/api/components/{name}/command", d.handleComponentCommand)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/components/plug_a/command",
+		strings.NewReader(`{"command":"on"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for disabled component, got %d", rec.Code)
+	}
+}
+
+func TestHandleComponentCommand_InvalidCommand(t *testing.T) {
+	d := newTestDashboardWithComponents(t, []config.ComponentConfig{
+		{Name: "plug_a", Type: "switch", Model: "tasmota"},
+	})
+	d.componentMonitor.SetStatusValue("plug_a", "on", "binary", "")
+
+	r := chi.NewRouter()
+	r.Post("/api/components/{name}/command", d.handleComponentCommand)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/components/plug_a/command",
+		strings.NewReader(`{"command":"reboot"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestHandleComponentCommand_NoBody(t *testing.T) {
+	d := newTestDashboardWithComponents(t, []config.ComponentConfig{
+		{Name: "plug_a", Type: "switch", Model: "tasmota"},
+	})
+	d.componentMonitor.SetStatusValue("plug_a", "on", "binary", "")
+
+	r := chi.NewRouter()
+	r.Post("/api/components/{name}/command", d.handleComponentCommand)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/components/plug_a/command",
+		strings.NewReader(``))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestHandleComponentCommand_NonBinaryComponent(t *testing.T) {
+	d := newTestDashboardWithComponents(t, []config.ComponentConfig{
+		{Name: "solar", Type: "power_meter", Model: "growatt"},
+	})
+	d.componentMonitor.SetStatusValue("solar", 1234.5, "number", "W")
+
+	r := chi.NewRouter()
+	r.Post("/api/components/{name}/command", d.handleComponentCommand)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/components/solar/command",
+		strings.NewReader(`{"command":"on"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for non-binary component, got %d", rec.Code)
+	}
+}
+
+func TestHandleComponentCommand_NoNATS(t *testing.T) {
+	d := newTestDashboardWithComponents(t, []config.ComponentConfig{
+		{Name: "plug_a", Type: "switch", Model: "tasmota"},
+	})
+	d.componentMonitor.SetStatusValue("plug_a", "on", "binary", "")
+
+	r := chi.NewRouter()
+	r.Post("/api/components/{name}/command", d.handleComponentCommand)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/components/plug_a/command",
+		strings.NewReader(`{"command":"off"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected 503 for no NATS, got %d", rec.Code)
 	}
 }
 

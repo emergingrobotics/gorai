@@ -250,6 +250,75 @@ msg.StatusValueType = "string"
 
 The dashboard subscribes to `gorai.<robot>.*.data` and extracts these fields to display inline next to each component name, replacing the generic "active" label.
 
+### Configuration Hot-Reload Standard
+
+Gorai supports live reloading of `robot.json` while the robot is running. The robot runtime watches the config file for changes and applies safe updates without restart.
+
+#### Structural vs Parameter Changes
+
+Config changes fall into two categories:
+
+| Category | Examples | Behavior |
+|----------|----------|----------|
+| **Structural** | Adding/removing components or services, changing component type/model, renaming components/services, changing NATS URL | **Rejected**. Log error, keep running with current config. |
+| **Parameter** | Schedule offsets, poll intervals, brightness defaults, latitude/longitude, forecast intervals, retry counts, descriptions | **Applied**. Parse and validate new config, then push updated attributes to affected components/services. |
+
+#### Invariants
+
+1. **Parse before apply**: The new config file MUST parse and validate successfully before any changes are applied. If `config.Load()` fails, the robot keeps running with the current config and logs the error.
+2. **Structural diff check**: After successful parse, the robot compares the new config's structural shape (component names/types/models, service names/types/models, NATS config) against the running config. If any structural field changed, the entire reload is rejected with a descriptive error log. No partial application.
+3. **Attribute-only updates**: Only `attributes` maps within components and services are eligible for hot-reload. Top-level fields (`robot.name`, `nats.url`, `dashboard.listen`, `log.level`) are structural.
+4. **Disabled flag changes are structural**: Enabling or disabling a component/service requires lifecycle management (start/stop) and is treated as structural.
+
+#### Robot Runtime Behavior (`pkg/robot`)
+
+The `Robot` struct watches `robot.json` using filesystem notifications (e.g., `fsnotify`). On file change:
+
+1. **Debounce**: Wait 500ms after last write event to handle editors that write in multiple steps.
+2. **Load**: Call `config.Load(path)` on the new file. If it fails, log error and return.
+3. **Structural diff**: Compare new config against `r.cfg`:
+   - Component count, names, types, models, disabled flags must match exactly.
+   - Service count, names, types, models, disabled flags must match exactly.
+   - NATS config must match.
+   - Robot name/namespace must match.
+   - If any mismatch: log `"config reload rejected: structural change detected"` with details of what changed. Return without applying.
+4. **Attribute diff**: For each component and service, compare `Attributes` maps. Build a list of `(name, newAttributes)` pairs where attributes differ.
+5. **Notify**: For each changed component/service, call `Reconfigure(ctx, deps, newConf)` on the running instance (if it implements `resource.Resource`). The component/service is responsible for applying the new attributes and adjusting behavior.
+6. **Update stored config**: Replace `r.cfg` with the new config so subsequent operations use the latest values.
+7. **Publish event**: Publish a `config_reloaded` event to NATS with the list of updated component/service names.
+
+#### Component/Service Reconfigure Contract
+
+Every component and service that supports hot-reload MUST implement `resource.Resource.Reconfigure()` with these semantics:
+
+- **Idempotent**: Calling Reconfigure with identical config is a no-op.
+- **Non-destructive**: Reconfigure MUST NOT stop polling, drop connections, or lose state. It updates internal parameters and adjusts behavior on the next cycle.
+- **Thread-safe**: Reconfigure may be called concurrently with polling/processing goroutines. Use appropriate locking.
+- **Error reporting**: Return an error if the new attributes are invalid. The robot logs the error but does not roll back other successful reconfigurations.
+
+#### NATS Notification
+
+On successful config reload, the robot publishes to `gorai.<robot>.system.config_reloaded`:
+
+```json
+{
+  "timestamp": "2026-02-22T10:30:00Z",
+  "updated_components": ["plug_a", "bulb_a"],
+  "updated_services": ["pool-lights", "bugs"],
+  "rejected": false
+}
+```
+
+On rejected reload (structural change):
+
+```json
+{
+  "timestamp": "2026-02-22T10:30:00Z",
+  "rejected": true,
+  "reason": "structural change: component 'new_plug' added"
+}
+```
+
 ---
 
 ## Development

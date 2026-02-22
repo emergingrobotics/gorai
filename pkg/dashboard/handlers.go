@@ -3,10 +3,12 @@ package dashboard
 import (
 	"encoding/json"
 	"html"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/dashboard/cameras"
 )
@@ -135,11 +137,9 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 					w.Write([]byte(`</div>
                             <div class="type">component</div>
                         </div>
-                        <span class="camera-status `))
-					w.Write([]byte(devStatus))
-					w.Write([]byte(`">`))
-					w.Write([]byte(html.EscapeString(devLabel)))
-					w.Write([]byte(`</span>
+                        `))
+					d.writeStatusBadge(w, devName, devStatus, devLabel)
+					w.Write([]byte(`
                     </div>
 `))
 				}
@@ -184,11 +184,9 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write([]byte(`</div>
                         </div>
-                        <span class="camera-status `))
-		w.Write([]byte(status))
-		w.Write([]byte(`">`))
-		w.Write([]byte(html.EscapeString(statusLabel)))
-		w.Write([]byte(`</span>
+                        `))
+		d.writeStatusBadge(w, comp.Name, status, statusLabel)
+		w.Write([]byte(`
                     </div>
 `))
 	}
@@ -199,6 +197,7 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 `))
 
 	w.Write([]byte(`    </main>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 </html>
 `))
@@ -261,6 +260,99 @@ func (d *Dashboard) handleCamerasAPI(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(cameraList)
 }
 
+// maxCommandBody limits the request body for command endpoints.
+const maxCommandBody = 1024
+
+// handleComponentCommand handles POST /api/components/{name}/command.
+// Publishes an on/off command to the component's NATS command topic.
+func (d *Dashboard) handleComponentCommand(w http.ResponseWriter, r *http.Request) {
+	componentName := chi.URLParam(r, "name")
+	if componentName == "" {
+		http.Error(w, `{"error":"component name required"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validate component exists and is not disabled
+	found := false
+	disabled := false
+	for _, comp := range d.robotCfg.Components {
+		if comp.Name == componentName {
+			found = true
+			disabled = comp.Disabled
+			break
+		}
+	}
+	if !found {
+		http.Error(w, `{"error":"component not found"}`, http.StatusNotFound)
+		return
+	}
+	if disabled {
+		http.Error(w, `{"error":"component is disabled"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validate that this component has a binary status type
+	_, valueType, _, _, hasStatus := d.componentMonitor.GetStatusValue(componentName)
+	if !hasStatus || valueType != "binary" {
+		http.Error(w, `{"error":"component is not a binary switch"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Parse request body
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxCommandBody))
+	if err != nil {
+		http.Error(w, `{"error":"failed to read body"}`, http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Command string `json:"command"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Command != "on" && req.Command != "off" {
+		http.Error(w, `{"error":"command must be on or off"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Check NATS connection
+	if d.nats == nil {
+		http.Error(w, `{"error":"NATS not connected"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	// Publish command to NATS
+	commandTopic := d.topics.ComponentCommand(componentName)
+	commandMsg := map[string]any{
+		"command":   req.Command,
+		"source":    "dashboard",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	data, err := json.Marshal(commandMsg)
+	if err != nil {
+		http.Error(w, `{"error":"failed to marshal command"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if err := d.nats.Publish(commandTopic, data); err != nil {
+		d.logger.Error("failed to publish component command", "component", componentName, "error", err)
+		http.Error(w, `{"error":"failed to publish command"}`, http.StatusInternalServerError)
+		return
+	}
+
+	d.logger.Info("dashboard command sent", "component", componentName, "command", req.Command)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":    "sent",
+		"component": componentName,
+		"command":   req.Command,
+	})
+}
+
 // resolveComponentStatus returns the CSS class and display label for a component.
 func (d *Dashboard) resolveComponentStatus(componentName string, cameras []cameras.CameraInfo) (cssClass string, label string) {
 	// Check if it's a camera
@@ -295,6 +387,34 @@ func (d *Dashboard) resolveComponentStatus(componentName string, cameras []camer
 	default:
 		return "online", statusLabel
 	}
+}
+
+// writeStatusBadge writes a status badge as either a clickable <button> (for binary
+// components) or a <span> (for everything else).
+func (d *Dashboard) writeStatusBadge(w http.ResponseWriter, componentName, cssClass, label string) {
+	value, valueType, _, _, hasStatus := d.componentMonitor.GetStatusValue(componentName)
+	if hasStatus && valueType == "binary" {
+		// Use the raw status_value ("on"/"off") for data-state, not the display label
+		rawState := "off"
+		if s, ok := value.(string); ok {
+			rawState = s
+		}
+		w.Write([]byte(`<button class="camera-status `))
+		w.Write([]byte(cssClass))
+		w.Write([]byte(` component-toggle" data-component="`))
+		w.Write([]byte(html.EscapeString(componentName)))
+		w.Write([]byte(`" data-state="`))
+		w.Write([]byte(html.EscapeString(rawState)))
+		w.Write([]byte(`">`))
+		w.Write([]byte(html.EscapeString(label)))
+		w.Write([]byte(`</button>`))
+		return
+	}
+	w.Write([]byte(`<span class="camera-status `))
+	w.Write([]byte(cssClass))
+	w.Write([]byte(`">`))
+	w.Write([]byte(html.EscapeString(label)))
+	w.Write([]byte(`</span>`))
 }
 
 // getServiceDevices extracts the unique list of device/component names

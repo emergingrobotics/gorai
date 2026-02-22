@@ -235,6 +235,22 @@ main {
     color: var(--text-muted);
 }
 
+.camera-status.pending {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.component-toggle {
+    cursor: pointer;
+    border: none;
+    font: inherit;
+    transition: background-color 0.2s;
+}
+
+.component-toggle:hover {
+    opacity: 0.8;
+}
+
 .camera-feed {
     width: 100%;
     height: auto;

@@ -22,12 +22,17 @@ type ComponentValue struct {
 	LastSeen  time.Time `json:"last_seen"`
 }
 
+// StatusChangeCallback is called when a component's status value changes.
+type StatusChangeCallback func(componentName string, value *ComponentValue)
+
 // Monitor subscribes to component data topics and caches the latest
 // status_value for each component. The dashboard queries this cache
 // when rendering component lists.
 type Monitor struct {
 	mu     sync.RWMutex
 	values map[string]*ComponentValue
+
+	onStatusChange StatusChangeCallback
 
 	nats   *gorainats.Client
 	topics *topics.Builder
@@ -49,6 +54,14 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, log
 		topics: topicsBuilder,
 		logger: logger,
 	}
+}
+
+// OnStatusChange registers a callback that fires when a component's status value
+// is updated. Only one callback is supported; subsequent calls replace the previous.
+func (m *Monitor) OnStatusChange(fn StatusChangeCallback) {
+	m.mu.Lock()
+	m.onStatusChange = fn
+	m.mu.Unlock()
 }
 
 // Start begins monitoring component data topics via NATS wildcard subscription.
@@ -106,14 +119,23 @@ func (m *Monitor) handleDataMessage(msg *nats.Msg) {
 
 	unit, _ := data["status_value_unit"].(string)
 
-	m.mu.Lock()
-	m.values[componentName] = &ComponentValue{
+	cv := &ComponentValue{
 		Value:     statusValue,
 		ValueType: statusValueType,
 		Unit:      unit,
 		LastSeen:  time.Now(),
 	}
+
+	m.mu.Lock()
+	prev := m.values[componentName]
+	changed := prev == nil || fmt.Sprintf("%v", prev.Value) != fmt.Sprintf("%v", cv.Value) || prev.ValueType != cv.ValueType || prev.Unit != cv.Unit
+	m.values[componentName] = cv
+	cb := m.onStatusChange
 	m.mu.Unlock()
+
+	if cb != nil && changed {
+		cb(componentName, cv)
+	}
 }
 
 // extractComponentName pulls the component name from a NATS topic.
@@ -142,6 +164,26 @@ func extractComponentName(subject string) string {
 	}
 
 	return subject[componentStart:componentEnd]
+}
+
+// SetStatusValue stores a status value for a component.
+// Intended for testing and manual injection.
+func (m *Monitor) SetStatusValue(componentName string, value any, valueType string, unit string) {
+	cv := &ComponentValue{
+		Value:     value,
+		ValueType: valueType,
+		Unit:      unit,
+		LastSeen:  time.Now(),
+	}
+
+	m.mu.Lock()
+	m.values[componentName] = cv
+	cb := m.onStatusChange
+	m.mu.Unlock()
+
+	if cb != nil {
+		cb(componentName, cv)
+	}
 }
 
 // GetStatusValue returns the cached status value for a component.

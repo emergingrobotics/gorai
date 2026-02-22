@@ -113,6 +113,17 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		d.logger,
 	)
 
+	// Broadcast component status changes via WebSocket
+	d.componentMonitor.OnStatusChange(func(name string, cv *components.ComponentValue) {
+		d.wsHub.BroadcastJSON(map[string]any{
+			"type":       "component_status",
+			"component":  name,
+			"value":      cv.Value,
+			"value_type": cv.ValueType,
+			"unit":       cv.Unit,
+		})
+	})
+
 	// Create model service monitor
 	d.modelMonitor = models.NewMonitor(
 		d.nats,
