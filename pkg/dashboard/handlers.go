@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gorai/gorai/pkg/config"
+	"github.com/gorai/gorai/pkg/dashboard/cameras"
 )
 
 // handleIndex serves the main dashboard page.
 func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
-	cameras := d.cameraMonitor.GetCameras()
+	cameraList := d.cameraMonitor.GetCameras()
 
 	// Check if there are any external services (AI/ML models)
 	hasModels := false
@@ -74,66 +77,17 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
             </div>
         </div>
 
-        <div style="margin-top: 2rem;">
-            <div class="status-card">
-                <h3>Components</h3>
-                <div class="component-list">
 `))
 
-	for _, comp := range d.robotCfg.Components {
-		status := "offline"
-		statusLabel := "offline"
-		if !comp.Disabled {
-			if comp.Type == "camera" {
-				for _, cam := range cameras {
-					if cam.Name == comp.Name && cam.Online {
-						status = "online"
-						statusLabel = "online"
-						break
-					}
-				}
-			} else {
-				statusLabel = d.componentStatusLabel(comp.Name)
-				if statusLabel == "" {
-					status = "active"
-					statusLabel = "active"
-				} else {
-					status = d.componentStatusClass(comp.Name)
-				}
-			}
-		} else {
-			status = "disabled"
-			statusLabel = "disabled"
+	// Build set of components referenced by services (to exclude from standalone list)
+	serviceComponents := make(map[string]bool)
+	for _, svc := range d.robotCfg.Services {
+		for _, name := range d.getServiceDevices(svc) {
+			serviceComponents[name] = true
 		}
-
-		w.Write([]byte(`                    <div class="component-item">
-                        <div>
-                            <div class="name">`))
-		w.Write([]byte(html.EscapeString(comp.Name)))
-		w.Write([]byte(`</div>
-                            <div class="type">`))
-		w.Write([]byte(html.EscapeString(comp.Type)))
-		if comp.Model != "" {
-			w.Write([]byte(` / `))
-			w.Write([]byte(html.EscapeString(comp.Model)))
-		}
-		w.Write([]byte(`</div>
-                        </div>
-                        <span class="camera-status `))
-		w.Write([]byte(status))
-		w.Write([]byte(`">`))
-		w.Write([]byte(html.EscapeString(statusLabel)))
-		w.Write([]byte(`</span>
-                    </div>
-`))
 	}
 
-	w.Write([]byte(`                </div>
-            </div>
-        </div>
-`))
-
-	// Services section
+	// Services section (rendered first, above components)
 	if len(d.robotCfg.Services) > 0 {
 		w.Write([]byte(`
         <div style="margin-top: 2rem;">
@@ -167,6 +121,29 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(`</span>
                     </div>
 `))
+
+			// List components referenced by this service
+			devices := d.getServiceDevices(svc)
+			if len(devices) > 0 {
+				for _, devName := range devices {
+					devStatus, devLabel := d.resolveComponentStatus(devName, cameraList)
+
+					w.Write([]byte(`                    <div class="component-item" style="padding-left: 2.5rem; border-left: 3px solid #e0e0e0;">
+                        <div>
+                            <div class="name">`))
+					w.Write([]byte(html.EscapeString(devName)))
+					w.Write([]byte(`</div>
+                            <div class="type">component</div>
+                        </div>
+                        <span class="camera-status `))
+					w.Write([]byte(devStatus))
+					w.Write([]byte(`">`))
+					w.Write([]byte(html.EscapeString(devLabel)))
+					w.Write([]byte(`</span>
+                    </div>
+`))
+				}
+			}
 		}
 
 		w.Write([]byte(`                </div>
@@ -174,6 +151,52 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
         </div>
 `))
 	}
+
+	// Components section (only those not already listed under a service)
+	w.Write([]byte(`
+        <div style="margin-top: 2rem;">
+            <div class="status-card">
+                <h3>Components</h3>
+                <div class="component-list">
+`))
+
+	for _, comp := range d.robotCfg.Components {
+		if serviceComponents[comp.Name] {
+			continue
+		}
+
+		status, statusLabel := d.resolveComponentStatus(comp.Name, cameraList)
+		if comp.Disabled {
+			status = "disabled"
+			statusLabel = "disabled"
+		}
+
+		w.Write([]byte(`                    <div class="component-item">
+                        <div>
+                            <div class="name">`))
+		w.Write([]byte(html.EscapeString(comp.Name)))
+		w.Write([]byte(`</div>
+                            <div class="type">`))
+		w.Write([]byte(html.EscapeString(comp.Type)))
+		if comp.Model != "" {
+			w.Write([]byte(` / `))
+			w.Write([]byte(html.EscapeString(comp.Model)))
+		}
+		w.Write([]byte(`</div>
+                        </div>
+                        <span class="camera-status `))
+		w.Write([]byte(status))
+		w.Write([]byte(`">`))
+		w.Write([]byte(html.EscapeString(statusLabel)))
+		w.Write([]byte(`</span>
+                    </div>
+`))
+	}
+
+	w.Write([]byte(`                </div>
+            </div>
+        </div>
+`))
 
 	w.Write([]byte(`    </main>
 </body>
@@ -199,10 +222,10 @@ func (d *Dashboard) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // handleStatus serves the robot status API endpoint.
 func (d *Dashboard) handleStatus(w http.ResponseWriter, r *http.Request) {
-	cameras := d.cameraMonitor.GetCameras()
+	cameraList := d.cameraMonitor.GetCameras()
 
 	onlineCount := 0
-	for _, cam := range cameras {
+	for _, cam := range cameraList {
 		if cam.Online {
 			onlineCount++
 		}
@@ -223,7 +246,7 @@ func (d *Dashboard) handleStatus(w http.ResponseWriter, r *http.Request) {
 		Services:   len(d.robotCfg.Services),
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 	}
-	status.Cameras.Total = len(cameras)
+	status.Cameras.Total = len(cameraList)
 	status.Cameras.Online = onlineCount
 
 	w.Header().Set("Content-Type", "application/json")
@@ -232,33 +255,80 @@ func (d *Dashboard) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 // handleCamerasAPI serves the cameras API endpoint.
 func (d *Dashboard) handleCamerasAPI(w http.ResponseWriter, r *http.Request) {
-	cameras := d.cameraMonitor.GetCameras()
+	cameraList := d.cameraMonitor.GetCameras()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cameras)
+	json.NewEncoder(w).Encode(cameraList)
 }
 
-// componentStatusLabel returns a formatted display string for a component's
-// status value, or empty string if no status value is cached.
-func (d *Dashboard) componentStatusLabel(componentName string) string {
-	return d.componentMonitor.FormatStatusValue(componentName)
-}
+// resolveComponentStatus returns the CSS class and display label for a component.
+func (d *Dashboard) resolveComponentStatus(componentName string, cameras []cameras.CameraInfo) (cssClass string, label string) {
+	// Check if it's a camera
+	for _, comp := range d.robotCfg.Components {
+		if comp.Name == componentName && comp.Type == "camera" {
+			for _, cam := range cameras {
+				if cam.Name == componentName && cam.Online {
+					return "online", "online"
+				}
+			}
+			return "offline", "offline"
+		}
+	}
 
-// componentStatusClass returns the CSS class for a component's status value.
-func (d *Dashboard) componentStatusClass(componentName string) string {
+	// Check component monitor for status_value
+	statusLabel := d.componentMonitor.FormatStatusValue(componentName)
+	if statusLabel == "" {
+		return "active", "active"
+	}
+
 	_, valueType, _, _, ok := d.componentMonitor.GetStatusValue(componentName)
 	if !ok {
-		return "active"
+		return "active", statusLabel
 	}
 	switch valueType {
 	case "binary":
 		value, _, _, _, _ := d.componentMonitor.GetStatusValue(componentName)
 		if s, ok := value.(string); ok && s == "on" {
-			return "online"
+			return "online", statusLabel
 		}
-		return "offline"
+		return "offline", statusLabel
 	default:
-		return "online"
+		return "online", statusLabel
 	}
+}
+
+// getServiceDevices extracts the unique list of device/component names
+// referenced by a service's schedules configuration.
+func (d *Dashboard) getServiceDevices(svc config.ServiceConfig) []string {
+	seen := make(map[string]bool)
+	var devices []string
+
+	schedules, ok := svc.Attributes["schedules"].([]any)
+	if !ok {
+		return nil
+	}
+
+	for _, schedRaw := range schedules {
+		sched, ok := schedRaw.(map[string]any)
+		if !ok {
+			continue
+		}
+		devList, ok := sched["devices"].([]any)
+		if !ok {
+			continue
+		}
+		for _, dev := range devList {
+			name, ok := dev.(string)
+			if !ok || name == "" {
+				continue
+			}
+			if !seen[name] {
+				seen[name] = true
+				devices = append(devices, name)
+			}
+		}
+	}
+
+	return devices
 }
 
