@@ -207,6 +207,49 @@ func init() {
 }
 ```
 
+### Component Status Value Standard
+
+Every component implementing `resource.Sensor` MUST include two keys in its `Readings()` return map and in any data published to NATS `.data` topics. Services publishing heartbeats SHOULD include them.
+
+#### Required Keys
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `status_value` | varies | YES | The headline value for dashboard display |
+| `status_value_type` | string | YES | One of: `"binary"`, `"number"`, `"string"` |
+| `status_value_unit` | string | NO | Unit suffix for number type (e.g., `"W"`, `"kWh"`) |
+
+#### Status Value Types
+
+| Type | Go type | Display | Example |
+|------|---------|---------|---------|
+| `binary` | string (`"on"` / `"off"`) | Badge: green "ON" / gray "OFF" | Switch components |
+| `number` | float64 | Formatted with unit suffix | Power meter: `1234.5 W` |
+| `string` | string | Text as-is | Service health: `"healthy"` |
+
+#### Examples
+
+Switch component:
+```go
+readings["status_value"] = s.state      // "on" or "off"
+readings["status_value_type"] = "binary"
+```
+
+Power meter:
+```go
+readings["status_value"] = pacW          // current AC power
+readings["status_value_type"] = "number"
+readings["status_value_unit"] = "W"
+```
+
+Service heartbeat:
+```go
+msg.StatusValue = "healthy"
+msg.StatusValueType = "string"
+```
+
+The dashboard subscribes to `gorai.<robot>.*.data` and extracts these fields to display inline next to each component name, replacing the generic "active" label.
+
 ---
 
 ## Development

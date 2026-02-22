@@ -82,20 +82,28 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 	for _, comp := range d.robotCfg.Components {
 		status := "offline"
+		statusLabel := "offline"
 		if !comp.Disabled {
-			// Check if it's a camera and if it's online
 			if comp.Type == "camera" {
 				for _, cam := range cameras {
 					if cam.Name == comp.Name && cam.Online {
 						status = "online"
+						statusLabel = "online"
 						break
 					}
 				}
 			} else {
-				status = "active"
+				statusLabel = d.componentStatusLabel(comp.Name)
+				if statusLabel == "" {
+					status = "active"
+					statusLabel = "active"
+				} else {
+					status = d.componentStatusClass(comp.Name)
+				}
 			}
 		} else {
 			status = "disabled"
+			statusLabel = "disabled"
 		}
 
 		w.Write([]byte(`                    <div class="component-item">
@@ -114,7 +122,7 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
                         <span class="camera-status `))
 		w.Write([]byte(status))
 		w.Write([]byte(`">`))
-		w.Write([]byte(status))
+		w.Write([]byte(html.EscapeString(statusLabel)))
 		w.Write([]byte(`</span>
                     </div>
 `))
@@ -228,5 +236,29 @@ func (d *Dashboard) handleCamerasAPI(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(cameras)
+}
+
+// componentStatusLabel returns a formatted display string for a component's
+// status value, or empty string if no status value is cached.
+func (d *Dashboard) componentStatusLabel(componentName string) string {
+	return d.componentMonitor.FormatStatusValue(componentName)
+}
+
+// componentStatusClass returns the CSS class for a component's status value.
+func (d *Dashboard) componentStatusClass(componentName string) string {
+	_, valueType, _, _, ok := d.componentMonitor.GetStatusValue(componentName)
+	if !ok {
+		return "active"
+	}
+	switch valueType {
+	case "binary":
+		value, _, _, _, _ := d.componentMonitor.GetStatusValue(componentName)
+		if s, ok := value.(string); ok && s == "on" {
+			return "online"
+		}
+		return "offline"
+	default:
+		return "online"
+	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/dashboard/cameras"
+	"github.com/gorai/gorai/pkg/dashboard/components"
 	"github.com/gorai/gorai/pkg/dashboard/models"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/topics"
@@ -31,6 +32,9 @@ type Dashboard struct {
 
 	// Camera monitoring
 	cameraMonitor *cameras.Monitor
+
+	// Component status monitoring
+	componentMonitor *components.Monitor
 
 	// Model service monitoring
 	modelMonitor *models.Monitor
@@ -102,6 +106,13 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		d.wsHub.BroadcastJSON(status)
 	})
 
+	// Create component status monitor
+	d.componentMonitor = components.NewMonitor(
+		d.nats,
+		d.topics,
+		d.logger,
+	)
+
 	// Create model service monitor
 	d.modelMonitor = models.NewMonitor(
 		d.nats,
@@ -142,6 +153,11 @@ func (d *Dashboard) Start(ctx context.Context) error {
 		d.logger.Warn("Failed to start camera monitor", "error", err)
 	}
 
+	// Start component status monitor
+	if err := d.componentMonitor.Start(ctx); err != nil {
+		d.logger.Warn("Failed to start component monitor", "error", err)
+	}
+
 	// Start model monitor
 	if err := d.modelMonitor.Start(ctx); err != nil {
 		d.logger.Warn("Failed to start model monitor", "error", err)
@@ -178,6 +194,9 @@ func (d *Dashboard) Stop(ctx context.Context) error {
 
 	// Stop camera monitor
 	d.cameraMonitor.Stop()
+
+	// Stop component monitor
+	d.componentMonitor.Stop()
 
 	// Stop model monitor
 	d.modelMonitor.Stop()
