@@ -46,6 +46,8 @@ const (
 	Shutdown = "shutdown"
 	// EmergencyStop is for emergency stop commands that halt all actuators
 	EmergencyStop = "estop"
+	// ConfigReloaded is for config hot-reload events (success or rejection)
+	ConfigReloaded = "config_reloaded"
 )
 
 // Builder helps construct topic strings.
@@ -121,6 +123,11 @@ func (b *Builder) SystemEmergencyStop() string {
 	return b.System(EmergencyStop)
 }
 
+// SystemConfigReloaded returns the config reload event topic.
+func (b *Builder) SystemConfigReloaded() string {
+	return b.System(ConfigReloaded)
+}
+
 // GlobalEmergencyStop returns the global emergency stop topic (all robots).
 func GlobalEmergencyStop() string {
 	return "gorai.estop"
@@ -154,6 +161,17 @@ type StartupEvent struct {
 	Timestamp string `json:"timestamp"`
 	// Success indicates if the event represents success or failure
 	Success bool `json:"success"`
+}
+
+// ConfigReloadEvent represents a config hot-reload event published to NATS.
+type ConfigReloadEvent struct {
+	Timestamp         string   `json:"timestamp"`
+	Rejected          bool     `json:"rejected"`
+	Reason            string   `json:"reason,omitempty"`
+	UpdatedComponents []string `json:"updated_components,omitempty"`
+	UpdatedServices   []string `json:"updated_services,omitempty"`
+	FailedComponents  []string `json:"failed_components,omitempty"`
+	FailedServices    []string `json:"failed_services,omitempty"`
 }
 
 // Event types for startup events

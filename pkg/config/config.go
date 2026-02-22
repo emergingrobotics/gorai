@@ -407,8 +407,18 @@ type VolumeConfig struct {
 	Options map[string]string `json:"driver_opts,omitempty"`
 }
 
+// maxConfigFileSize is the maximum allowed config file size (1 MB).
+const maxConfigFileSize = 1 << 20
+
 // Load loads configuration from a JSON file.
 func Load(path string) (*RDL, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat config file: %w", err)
+	}
+	if info.Size() > maxConfigFileSize {
+		return nil, fmt.Errorf("config file too large: %d bytes (max %d)", info.Size(), maxConfigFileSize)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

@@ -72,6 +72,14 @@ type Robot struct {
 	externalServices   map[string]*ExternalService
 	externalServicesMu sync.RWMutex
 
+	// Config mutex for thread-safe access
+	cfgMu sync.RWMutex
+
+	// Config file watcher for hot-reload
+	configWatcher     *config.Watcher
+	configWatchCancel context.CancelFunc
+	reloadMu          sync.Mutex
+
 	// Frame counters for logging
 	frameCounters   map[string]uint64
 	frameCountersMu sync.Mutex
@@ -205,6 +213,11 @@ func (r *Robot) Start(ctx context.Context) error {
 				// Don't fail robot startup for service failures
 			}
 		}
+	}
+
+	// Start config file watcher for hot-reload
+	if r.configPath != "" {
+		r.startConfigWatcher()
 	}
 
 	// Publish robot ready event
@@ -498,6 +511,8 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 
 // getNATSURL returns the NATS URL from configuration.
 func (r *Robot) getNATSURL() string {
+	r.cfgMu.RLock()
+	defer r.cfgMu.RUnlock()
 	if r.cfg.NATS != nil && r.cfg.NATS.URL != "" {
 		return r.cfg.NATS.URL
 	}
@@ -900,7 +915,10 @@ func (r *Robot) stopExternalServices(ctx context.Context) {
 
 // Run runs the robot until the context is cancelled.
 func (r *Robot) Run(ctx context.Context) error {
-	r.logger.Info("Robot running", "name", r.cfg.Robot.Name)
+	r.cfgMu.RLock()
+	robotName := r.cfg.Robot.Name
+	r.cfgMu.RUnlock()
+	r.logger.Info("Robot running", "name", robotName)
 
 	// Wait for context cancellation
 	select {
@@ -913,10 +931,18 @@ func (r *Robot) Run(ctx context.Context) error {
 
 // Stop gracefully stops the robot.
 func (r *Robot) Stop(ctx context.Context) error {
-	r.logger.Info("Stopping robot", "name", r.cfg.Robot.Name)
+	r.cfgMu.RLock()
+	robotName := r.cfg.Robot.Name
+	r.cfgMu.RUnlock()
+	r.logger.Info("Stopping robot", "name", robotName)
 
 	// Publish shutdown event
 	r.publishStartupEvent(topics.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
+
+	// Stop config watcher
+	if r.configWatchCancel != nil {
+		r.configWatchCancel()
+	}
 
 	// Stop external services first (they may depend on NATS)
 	r.stopExternalServices(ctx)
@@ -973,22 +999,164 @@ func (r *Robot) Stop(ctx context.Context) error {
 		r.nats.Close()
 	}
 
-	r.logger.Info("Robot stopped", "name", r.cfg.Robot.Name)
+	r.logger.Info("Robot stopped", "name", robotName)
 	return nil
 }
 
-// Reconfigure updates the robot configuration at runtime.
-func (r *Robot) Reconfigure(ctx context.Context, cfg *config.RDL) error {
-	r.logger.Info("Reconfiguring robot", "name", cfg.Robot.Name)
+// startConfigWatcher initializes the filesystem watcher for config hot-reload.
+func (r *Robot) startConfigWatcher() {
+	w, err := config.NewWatcher(r.configPath, r.handleConfigReload, r.logger)
+	if err != nil {
+		r.logger.Warn("Failed to create config watcher", "error", err)
+		return
+	}
 
-	// TODO: Implement hot reconfiguration
-	r.cfg = cfg
+	watchCtx, watchCancel := context.WithCancel(r.ctx)
+	if err := w.Start(watchCtx); err != nil {
+		r.logger.Warn("Failed to start config watcher", "error", err)
+		watchCancel()
+		return
+	}
 
-	return nil
+	r.configWatcher = w
+	r.configWatchCancel = watchCancel
+}
+
+// handleConfigReload processes a newly loaded config file, applying parameter
+// changes to running components and services while rejecting structural changes.
+func (r *Robot) handleConfigReload(newCfg *config.RDL) {
+	// Serialize concurrent reloads
+	r.reloadMu.Lock()
+	defer r.reloadMu.Unlock()
+
+	// Check if robot is shutting down
+	select {
+	case <-r.ctx.Done():
+		r.logger.Debug("Config reload: skipping, robot is shutting down")
+		return
+	default:
+	}
+
+	r.cfgMu.RLock()
+	oldCfg := r.cfg
+	r.cfgMu.RUnlock()
+
+	// Structural diff: reject if any structural field changed
+	if reason, changed := config.StructuralDiff(oldCfg, newCfg); changed {
+		r.logger.Error("Config reload rejected: structural change detected", "reason", reason)
+		r.publishConfigReloadEvent(nil, nil, nil, nil, true, reason)
+		return
+	}
+
+	// Attribute diff: find components/services with changed attributes
+	compChanges, svcChanges := config.AttributeDiff(oldCfg, newCfg)
+	if len(compChanges) == 0 && len(svcChanges) == 0 {
+		r.logger.Info("Config reload: no attribute changes detected")
+		return
+	}
+
+	// Reconfigure components
+	var updatedComponents, failedComponents []string
+	for _, change := range compChanges {
+		r.componentsMu.RLock()
+		comp, ok := r.components[change.Name]
+		r.componentsMu.RUnlock()
+		if !ok {
+			r.logger.Warn("Config reload: component not found", "name", change.Name)
+			failedComponents = append(failedComponents, change.Name)
+			continue
+		}
+		res, ok := comp.(resource.Resource)
+		if !ok {
+			r.logger.Debug("Config reload: component does not implement Resource, skipping", "name", change.Name)
+			continue
+		}
+		conf := resource.NewConfig(change.NewAttributes)
+		deps := &serviceDeps{robot: r}
+		if err := r.safeReconfigure(res, deps, conf, change.Name); err != nil {
+			r.logger.Error("Config reload: component reconfigure failed", "name", change.Name, "error", err)
+			failedComponents = append(failedComponents, change.Name)
+			continue
+		}
+		r.logger.Info("Config reload: component reconfigured", "name", change.Name)
+		updatedComponents = append(updatedComponents, change.Name)
+	}
+
+	// Reconfigure services
+	var updatedServices, failedServices []string
+	for _, change := range svcChanges {
+		r.servicesMu.RLock()
+		svc, ok := r.services[change.Name]
+		r.servicesMu.RUnlock()
+		if !ok {
+			r.logger.Warn("Config reload: service not found", "name", change.Name)
+			failedServices = append(failedServices, change.Name)
+			continue
+		}
+		res, ok := svc.(resource.Resource)
+		if !ok {
+			r.logger.Debug("Config reload: service does not implement Resource, skipping", "name", change.Name)
+			continue
+		}
+		conf := resource.NewConfig(change.NewAttributes)
+		deps := &serviceDeps{robot: r}
+		if err := r.safeReconfigure(res, deps, conf, change.Name); err != nil {
+			r.logger.Error("Config reload: service reconfigure failed", "name", change.Name, "error", err)
+			failedServices = append(failedServices, change.Name)
+			continue
+		}
+		r.logger.Info("Config reload: service reconfigured", "name", change.Name)
+		updatedServices = append(updatedServices, change.Name)
+	}
+
+	// Update stored config
+	r.cfgMu.Lock()
+	r.cfg = newCfg
+	r.cfgMu.Unlock()
+
+	r.publishConfigReloadEvent(updatedComponents, updatedServices, failedComponents, failedServices, false, "")
+}
+
+// safeReconfigure calls Reconfigure with panic recovery so a buggy component
+// cannot crash the robot process.
+func (r *Robot) safeReconfigure(res resource.Resource, deps resource.Dependencies, conf resource.Config, name string) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			r.logger.Error("Config reload: panic in Reconfigure", "name", name, "panic", p)
+			err = fmt.Errorf("panic in Reconfigure for %q: %v", name, p)
+		}
+	}()
+	return res.Reconfigure(r.ctx, deps, conf)
+}
+
+// publishConfigReloadEvent publishes a config reload event to NATS.
+func (r *Robot) publishConfigReloadEvent(updatedComponents, updatedServices, failedComponents, failedServices []string, rejected bool, reason string) {
+	if r.nats == nil {
+		return
+	}
+
+	event := topics.ConfigReloadEvent{
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		Rejected:          rejected,
+		Reason:            reason,
+		UpdatedComponents: updatedComponents,
+		UpdatedServices:   updatedServices,
+		FailedComponents:  failedComponents,
+		FailedServices:    failedServices,
+	}
+
+	subject := r.topics.SystemConfigReloaded()
+	if err := r.nats.PublishJSON(subject, event); err != nil {
+		r.logger.Warn("Failed to publish config reload event", "error", err, "subject", subject)
+	} else {
+		r.logger.Debug("Published config reload event", "subject", subject, "rejected", rejected)
+	}
 }
 
 // Config returns the current robot configuration.
 func (r *Robot) Config() *config.RDL {
+	r.cfgMu.RLock()
+	defer r.cfgMu.RUnlock()
 	return r.cfg
 }
 

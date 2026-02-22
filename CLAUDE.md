@@ -319,6 +319,31 @@ On rejected reload (structural change):
 }
 ```
 
+### Startup-as-Reload
+
+On startup, after all components and services are initialized and running, the robot MUST treat the loaded configuration as if it were a hot-reload event. This means calling `Reconfigure()` on every component and service with their current config attributes.
+
+#### Purpose
+
+When a robot starts (or restarts), the config file may contain parameter values that imply the robot should be in a specific state. For example, a light controller schedule may indicate that lights should currently be on based on the time of day and schedule offsets. Without startup-as-reload, the robot would start "cold" and wait for the next trigger event, potentially leaving devices in the wrong state for hours.
+
+#### Startup Behavior
+
+1. **Initialize**: Start all components and services normally (constructors, NATS connections, initial state).
+2. **Trigger Reconfigure**: After all components and services are running, call `Reconfigure(ctx, deps, conf)` on every component and service with their current config attributes. This is identical to what happens during a hot-reload when attributes change.
+3. **Services check state**: Each service's `Reconfigure()` implementation MUST evaluate the current state of its managed devices against the desired state implied by the config parameters and the current time. If a corrective action is needed (e.g., turn on a light that should be on), the service executes it immediately.
+4. **Components apply defaults**: Each component's `Reconfigure()` applies any parameter defaults (e.g., poll intervals, timeouts) and begins operating with those values.
+
+#### Structural Changes at Startup
+
+Since startup-as-reload uses the same `Reconfigure()` path, and the "old" and "new" configs are identical (both are the loaded config), no structural diff is performed. There is no "previous" config to compare against at initial startup. The robot simply calls `Reconfigure()` on each resource with its own config.
+
+#### Invariants
+
+- **No double-initialization**: Components and services MUST be fully initialized before the startup Reconfigure call. The Reconfigure is additive — it adjusts parameters and checks state, it does not re-initialize.
+- **Idempotent**: Since Reconfigure is required to be idempotent, calling it with the same config the component was just constructed with MUST be a safe no-op for parameters. The key difference is the state-checking behavior: services use Reconfigure as a trigger to evaluate whether corrective actions are needed.
+- **Error tolerance**: If a component's startup Reconfigure fails, log the error and continue with other components. The component is still running with its constructor-provided config.
+
 ---
 
 ## Development
