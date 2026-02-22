@@ -452,6 +452,7 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 		// Pass NATS configuration for components that need it
 		"nats_url":   r.getNATSURL(),
 		"namespace":  "gorai",
+		"robot_id":   r.cfg.Robot.Name,
 		"robot_name": r.cfg.Robot.Name,
 	}
 	// Merge component attributes into conf
@@ -588,6 +589,7 @@ func (r *Robot) startInternalService(ctx context.Context, svc config.ServiceConf
 		"model":      svc.Model,
 		"nats_url":   r.getNATSURL(),
 		"namespace":  "gorai",
+		"robot_id":   r.cfg.Robot.Name,
 		"robot_name": r.cfg.Robot.Name,
 	}
 	// Merge service attributes into conf
