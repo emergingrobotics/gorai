@@ -184,7 +184,7 @@ func (r *Robot) Start(ctx context.Context) error {
 			}
 		default:
 			if err := r.startRegistryComponent(ctx, comp); err != nil {
-				return fmt.Errorf("failed to start component %s: %w", comp.Name, err)
+				r.logger.Error("Failed to start component", "name", comp.Name, "error", err)
 			}
 		}
 	}

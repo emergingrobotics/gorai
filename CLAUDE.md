@@ -242,13 +242,19 @@ readings["status_value_type"] = "number"
 readings["status_value_unit"] = "W"
 ```
 
-Service heartbeat:
+Suntimes service heartbeat (today's sunrise/sunset in short local time):
 ```go
-msg.StatusValue = "healthy"
+msg.StatusValue = "↑07:12 ↓18:03"
 msg.StatusValueType = "string"
 ```
 
-The dashboard subscribes to `gorai.<robot>.*.data` and extracts these fields to display inline next to each component name, replacing the generic "active" label.
+Light controller service heartbeat (schedule summary):
+```go
+msg.StatusValue = "2 schedules, 1 active"
+msg.StatusValueType = "string"
+```
+
+The dashboard subscribes to `gorai.<robot>.*.data` and `gorai.<robot>.*.heartbeat` and extracts these fields to display inline next to each component/service name, replacing the generic "active" label. For services, the dashboard also extracts richer data from the heartbeat (e.g., suntimes `today_sunrise`/`today_sunset`, light-controller `schedules` array with on/off times) to populate the service panel.
 
 ### Configuration Hot-Reload Standard
 

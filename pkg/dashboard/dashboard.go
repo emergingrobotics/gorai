@@ -15,6 +15,7 @@ import (
 	"github.com/gorai/gorai/pkg/dashboard/cameras"
 	"github.com/gorai/gorai/pkg/dashboard/components"
 	"github.com/gorai/gorai/pkg/dashboard/models"
+	"github.com/gorai/gorai/pkg/dashboard/services"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/topics"
 )
@@ -38,6 +39,9 @@ type Dashboard struct {
 
 	// Model service monitoring
 	modelMonitor *models.Monitor
+
+	// Service status monitoring
+	serviceMonitor *services.Monitor
 
 	// WebSocket hub for real-time updates
 	wsHub *WebSocketHub
@@ -131,6 +135,23 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		d.logger,
 	)
 
+	// Create service status monitor
+	d.serviceMonitor = services.NewMonitor(
+		d.nats,
+		d.topics,
+		d.logger,
+	)
+
+	// Broadcast service status changes via WebSocket
+	d.serviceMonitor.OnStatusChange(func(name string, sd *services.ServiceData) {
+		d.wsHub.BroadcastJSON(map[string]any{
+			"type":              "service_status",
+			"service":           name,
+			"status_value":      sd.StatusValue,
+			"status_value_type": sd.StatusValueType,
+		})
+	})
+
 	// Set up routes
 	d.setupRoutes()
 
@@ -174,6 +195,11 @@ func (d *Dashboard) Start(ctx context.Context) error {
 		d.logger.Warn("Failed to start model monitor", "error", err)
 	}
 
+	// Start service monitor
+	if err := d.serviceMonitor.Start(ctx); err != nil {
+		d.logger.Warn("Failed to start service monitor", "error", err)
+	}
+
 	// Warn if binding to all interfaces without authentication
 	if strings.HasPrefix(d.server.Addr, ":") || strings.HasPrefix(d.server.Addr, "0.0.0.0:") {
 		d.logger.Warn("Dashboard is bound to all network interfaces with no authentication",
@@ -211,6 +237,9 @@ func (d *Dashboard) Stop(ctx context.Context) error {
 
 	// Stop model monitor
 	d.modelMonitor.Stop()
+
+	// Stop service monitor
+	d.serviceMonitor.Stop()
 
 	// Shutdown HTTP server
 	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

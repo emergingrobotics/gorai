@@ -99,8 +99,13 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 `))
 		for _, svc := range d.robotCfg.Services {
 			status := "active"
+			statusLabel := "active"
 			if svc.Disabled {
 				status = "disabled"
+				statusLabel = "disabled"
+			} else if sv := d.serviceMonitor.FormatStatusValue(svc.Name); sv != "" {
+				statusLabel = sv
+				status = "online"
 			}
 
 			w.Write([]byte(`                    <div class="component-item">
@@ -118,8 +123,10 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
                         </div>
                         <span class="camera-status `))
 			w.Write([]byte(status))
+			w.Write([]byte(`" data-service="`))
+			w.Write([]byte(html.EscapeString(svc.Name)))
 			w.Write([]byte(`">`))
-			w.Write([]byte(status))
+			w.Write([]byte(html.EscapeString(statusLabel)))
 			w.Write([]byte(`</span>
                     </div>
 `))
@@ -144,6 +151,9 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 `))
 				}
 			}
+
+			// Service detail rows (suntimes sunrise/sunset, light controller schedules)
+			d.writeServiceDetails(w, svc.Name)
 		}
 
 		w.Write([]byte(`                </div>
@@ -415,6 +425,41 @@ func (d *Dashboard) writeStatusBadge(w http.ResponseWriter, componentName, cssCl
 	w.Write([]byte(`">`))
 	w.Write([]byte(html.EscapeString(label)))
 	w.Write([]byte(`</span>`))
+}
+
+// writeServiceDetails renders detail rows for a service (suntimes sunrise/sunset,
+// light controller schedule on/off times).
+func (d *Dashboard) writeServiceDetails(w http.ResponseWriter, serviceName string) {
+	rows := d.serviceMonitor.FormatServiceDetail(serviceName)
+	if len(rows) == 0 {
+		return
+	}
+
+	for _, row := range rows {
+		statusClass := "active"
+		if row.Status == "active" {
+			statusClass = "online"
+		}
+
+		w.Write([]byte(`                    <div class="component-item" style="padding-left: 2.5rem; border-left: 3px solid #e0e0e0;">
+                        <div>
+                            <div class="name">`))
+		w.Write([]byte(html.EscapeString(row.Label)))
+		w.Write([]byte(`</div>
+                            <div class="type">`))
+		w.Write([]byte(html.EscapeString(row.Value)))
+		w.Write([]byte(`</div>
+                        </div>
+                        <span class="camera-status `))
+		w.Write([]byte(statusClass))
+		w.Write([]byte(`">`))
+		if row.Status != "" {
+			w.Write([]byte(html.EscapeString(row.Status)))
+		}
+		w.Write([]byte(`</span>
+                    </div>
+`))
+	}
 }
 
 // getServiceDevices extracts the unique list of device/component names

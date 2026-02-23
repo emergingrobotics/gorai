@@ -66,6 +66,16 @@
                 return;
             }
 
+            if (msg.type === 'service_status') {
+                var svcSelector = '[data-service="' + escapeCSSSelector(msg.service) + '"]';
+                var badges = document.querySelectorAll(svcSelector);
+                for (var j = 0; j < badges.length; j++) {
+                    badges[j].textContent = msg.status_value || 'active';
+                    badges[j].className = 'camera-status online';
+                }
+                return;
+            }
+
             if (msg.type !== 'component_status') {
                 return;
             }
