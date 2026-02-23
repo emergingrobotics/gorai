@@ -248,9 +248,9 @@ msg.StatusValue = "↑07:12 ↓18:03"
 msg.StatusValueType = "string"
 ```
 
-Light controller service heartbeat (schedule summary):
+Light controller service heartbeat (schedule summary with next action):
 ```go
-msg.StatusValue = "2 schedules, 1 active"
+msg.StatusValue = "2 schedules, 1 active | Next: ON 18:30"
 msg.StatusValueType = "string"
 ```
 
