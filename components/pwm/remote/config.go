@@ -30,6 +30,15 @@ type Config struct {
 
 	// InitialPulseUs is the pulse width to set on startup. Default: 1500.
 	InitialPulseUs float64 `json:"initial_pulse_us"`
+
+	// FailsafePulseUs is the pulse width applied when the device enters failsafe.
+	// Default: center of min/max range.
+	FailsafePulseUs float64 `json:"failsafe_pulse_us"`
+
+	// AutoConfigure controls whether Start() sends the GPIO_CONFIG + PWM_CONFIG
+	// provisioning sequence. Set to false for firmware that has pins preconfigured
+	// at compile time (e.g. old TinyGo firmware). Default: true.
+	AutoConfigure bool `json:"auto_configure"`
 }
 
 // NewConfigFromResource parses a resource.Config into a Config.
@@ -39,6 +48,7 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		MinPulseUs:     1000,
 		MaxPulseUs:     2000,
 		InitialPulseUs: 1500,
+		AutoConfigure:  true,
 	}
 
 	if val, ok := conf.Attributes["nats_subject_prefix"].(string); ok {
@@ -84,6 +94,17 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		cfg.InitialPulseUs = float64(val)
 	}
 
+	switch val := conf.Attributes["failsafe_pulse_us"].(type) {
+	case float64:
+		cfg.FailsafePulseUs = val
+	case int:
+		cfg.FailsafePulseUs = float64(val)
+	}
+
+	if val, ok := conf.Attributes["auto_configure"].(bool); ok {
+		cfg.AutoConfigure = val
+	}
+
 	return cfg, nil
 }
 
@@ -115,6 +136,15 @@ func (c *Config) Validate() error {
 
 	if c.InitialPulseUs < c.MinPulseUs || c.InitialPulseUs > c.MaxPulseUs {
 		return fmt.Errorf("initial_pulse_us (%f) must be within min/max range [%f, %f]", c.InitialPulseUs, c.MinPulseUs, c.MaxPulseUs)
+	}
+
+	// Default failsafe to center of range if not set
+	if c.FailsafePulseUs == 0 {
+		c.FailsafePulseUs = (c.MinPulseUs + c.MaxPulseUs) / 2.0
+	}
+
+	if c.FailsafePulseUs < c.MinPulseUs || c.FailsafePulseUs > c.MaxPulseUs {
+		return fmt.Errorf("failsafe_pulse_us (%f) must be within min/max range [%f, %f]", c.FailsafePulseUs, c.MinPulseUs, c.MaxPulseUs)
 	}
 
 	return nil

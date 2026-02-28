@@ -239,6 +239,153 @@ func TestClamp(t *testing.T) {
 	}
 }
 
+func TestFailsafePulseUsDefault(t *testing.T) {
+	cfg := Config{
+		NATSSubjectPrefix: "gsp",
+		DeviceID:          "pico-pwm",
+		Channel:           6,
+		FrequencyHz:       50,
+		MinPulseUs:        1000,
+		MaxPulseUs:        2000,
+		InitialPulseUs:    1500,
+	}
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+
+	want := 1500.0
+	if cfg.FailsafePulseUs != want {
+		t.Errorf("FailsafePulseUs = %f, want %f (center of range)", cfg.FailsafePulseUs, want)
+	}
+}
+
+func TestFailsafePulseUsExplicit(t *testing.T) {
+	cfg := Config{
+		NATSSubjectPrefix: "gsp",
+		DeviceID:          "pico-pwm",
+		Channel:           6,
+		FrequencyHz:       50,
+		MinPulseUs:        500,
+		MaxPulseUs:        2500,
+		InitialPulseUs:    1500,
+		FailsafePulseUs:   1000,
+	}
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+
+	if cfg.FailsafePulseUs != 1000 {
+		t.Errorf("FailsafePulseUs = %f, want 1000", cfg.FailsafePulseUs)
+	}
+}
+
+func TestFailsafePulseUsOutOfRange(t *testing.T) {
+	cfg := Config{
+		NATSSubjectPrefix: "gsp",
+		DeviceID:          "pico-pwm",
+		Channel:           6,
+		FrequencyHz:       50,
+		MinPulseUs:        1000,
+		MaxPulseUs:        2000,
+		InitialPulseUs:    1500,
+		FailsafePulseUs:   3000,
+	}
+
+	if err := cfg.Validate(); err == nil {
+		t.Error("expected error for failsafe_pulse_us out of range")
+	}
+}
+
+func TestAutoConfigureDefault(t *testing.T) {
+	conf := resource.Config{
+		Attributes: map[string]any{
+			"nats_subject_prefix": "gsp",
+			"device_id":           "pico",
+		},
+	}
+
+	cfg, err := NewConfigFromResource(conf)
+	if err != nil {
+		t.Fatalf("NewConfigFromResource() error = %v", err)
+	}
+
+	if !cfg.AutoConfigure {
+		t.Error("AutoConfigure should default to true")
+	}
+}
+
+func TestAutoConfigureExplicitFalse(t *testing.T) {
+	conf := resource.Config{
+		Attributes: map[string]any{
+			"nats_subject_prefix": "gsp",
+			"device_id":           "pico",
+			"auto_configure":      false,
+		},
+	}
+
+	cfg, err := NewConfigFromResource(conf)
+	if err != nil {
+		t.Fatalf("NewConfigFromResource() error = %v", err)
+	}
+
+	if cfg.AutoConfigure {
+		t.Error("AutoConfigure should be false when explicitly set")
+	}
+}
+
+func TestProvisioningSubjects(t *testing.T) {
+	cfg := &Config{
+		NATSSubjectPrefix: "gsp",
+		DeviceID:          "gsp-pico",
+		Channel:           6,
+	}
+
+	tests := []struct {
+		command_type string
+		want         string
+	}{
+		{"gpio_config", "gsp.gsp-pico.tx.command.gpio_config"},
+		{"pwm_config", "gsp.gsp-pico.tx.command.pwm_config"},
+		{"pwm_enable", "gsp.gsp-pico.tx.command.pwm_enable"},
+		{"pwm_set", "gsp.gsp-pico.tx.command.pwm_set"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.command_type, func(t *testing.T) {
+			got := cfg.CommandSubject(tt.command_type)
+			if got != tt.want {
+				t.Errorf("CommandSubject(%q) = %q, want %q", tt.command_type, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewConfigFromResourceWithNewFields(t *testing.T) {
+	conf := resource.Config{
+		Attributes: map[string]any{
+			"nats_subject_prefix": "gsp",
+			"device_id":           "gsp-pico",
+			"channel":             float64(6),
+			"failsafe_pulse_us":   float64(1200),
+			"auto_configure":      false,
+		},
+	}
+
+	cfg, err := NewConfigFromResource(conf)
+	if err != nil {
+		t.Fatalf("NewConfigFromResource() error = %v", err)
+	}
+
+	if cfg.FailsafePulseUs != 1200 {
+		t.Errorf("FailsafePulseUs = %f, want 1200", cfg.FailsafePulseUs)
+	}
+	if cfg.AutoConfigure {
+		t.Error("AutoConfigure should be false")
+	}
+}
+
 func TestNormalizedToPulseConversion(t *testing.T) {
 	cfg := &Config{
 		MinPulseUs: 1000,

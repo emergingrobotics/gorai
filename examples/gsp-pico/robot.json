@@ -1,0 +1,82 @@
+{
+  "$schema": "https://gorai.dev/schemas/rdl-v2.json",
+  "version": "2",
+
+  "robot": {
+    "name": "gsp-pico-demo",
+    "namespace": "examples",
+    "description": "Demonstrates PWM servo and GPIO control via gsp-pico-fw over USB"
+  },
+
+  "nats": {
+    "url": "nats://0.0.0.0:4222"
+  },
+
+  "components": [
+    {
+      "name": "servo_0",
+      "type": "pwm",
+      "model": "remote",
+      "attributes": {
+        "nats_subject_prefix": "gsp",
+        "device_id": "gsp-pico",
+        "channel": 6,
+        "frequency_hz": 50,
+        "min_pulse_us": 500,
+        "max_pulse_us": 2500,
+        "initial_pulse_us": 1500,
+        "failsafe_pulse_us": 1500,
+        "auto_configure": true
+      }
+    },
+
+    {
+      "name": "servo_1",
+      "type": "pwm",
+      "model": "remote",
+      "attributes": {
+        "nats_subject_prefix": "gsp",
+        "device_id": "gsp-pico",
+        "channel": 7,
+        "frequency_hz": 50,
+        "min_pulse_us": 500,
+        "max_pulse_us": 2500,
+        "initial_pulse_us": 1500,
+        "failsafe_pulse_us": 1500,
+        "auto_configure": true
+      }
+    },
+
+    {
+      "name": "led_pin",
+      "type": "gpio",
+      "model": "remote",
+      "attributes": {
+        "nats_subject_prefix": "gsp",
+        "device_id": "gsp-pico",
+        "pin": 15,
+        "mode": "output",
+        "initial_value": 0
+      }
+    },
+
+    {
+      "name": "button_pin",
+      "type": "gpio",
+      "model": "remote",
+      "attributes": {
+        "nats_subject_prefix": "gsp",
+        "device_id": "gsp-pico",
+        "pin": 14,
+        "mode": "input",
+        "pull": "up"
+      }
+    }
+  ],
+
+  "log": {
+    "level": "debug",
+    "format": "text",
+    "output": "stdout"
+  }
+}

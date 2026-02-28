@@ -21,6 +21,9 @@ import (
 	_ "github.com/gorai/gorai/components/pwm/gpiod"
 	_ "github.com/gorai/gorai/components/pwm/remote"
 
+	// GPIO components
+	_ "github.com/gorai/gorai/components/gpio/remote"
+
 	// Bridge services
 	_ "github.com/gorai/gorai/services/bridge/keyboard_publisher"
 
