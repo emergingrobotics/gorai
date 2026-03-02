@@ -20,7 +20,7 @@
       "attributes": {
         "nats_subject_prefix": "gsp",
         "device_id": "gsp-pico",
-        "channel": 6,
+        "pin": 6,
         "frequency_hz": 50,
         "min_pulse_us": 500,
         "max_pulse_us": 2500,
@@ -37,7 +37,7 @@
       "attributes": {
         "nats_subject_prefix": "gsp",
         "device_id": "gsp-pico",
-        "channel": 7,
+        "pin": 7,
         "frequency_hz": 50,
         "min_pulse_us": 500,
         "max_pulse_us": 2500,

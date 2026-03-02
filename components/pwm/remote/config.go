@@ -16,8 +16,9 @@ type Config struct {
 	// DeviceID is the device identifier in gorai-nats-gw (e.g., "pico-pwm").
 	DeviceID string `json:"device_id"`
 
-	// Channel is the GSP/2 PWM channel number on the device (e.g., 6 for GPIO6).
-	Channel int `json:"channel"`
+	// Pin is the GPIO pin number on the device (e.g., 6 for GPIO6).
+	// Used as both the GPIO pin for configuration and the PWM channel for commands.
+	Pin int `json:"pin"`
 
 	// FrequencyHz is the PWM frequency in Hz. Default: 50 (servo).
 	FrequencyHz float64 `json:"frequency_hz"`
@@ -59,11 +60,11 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		cfg.DeviceID = val
 	}
 
-	switch val := conf.Attributes["channel"].(type) {
+	switch val := conf.Attributes["pin"].(type) {
 	case float64:
-		cfg.Channel = int(val)
+		cfg.Pin = int(val)
 	case int:
-		cfg.Channel = val
+		cfg.Pin = val
 	}
 
 	switch val := conf.Attributes["frequency_hz"].(type) {
@@ -118,8 +119,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("device_id is required")
 	}
 
-	if c.Channel < 0 || c.Channel > 255 {
-		return fmt.Errorf("channel must be between 0 and 255, got %d", c.Channel)
+	if c.Pin < 0 || c.Pin > 28 {
+		return fmt.Errorf("pin must be between 0 and 28, got %d", c.Pin)
 	}
 
 	if c.FrequencyHz <= 0 {

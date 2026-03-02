@@ -126,7 +126,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 
 	r.logger.Info("remote PWM component created",
 		"device_id", cfg.DeviceID,
-		"channel", cfg.Channel,
+		"pin", cfg.Pin,
 		"prefix", cfg.NATSSubjectPrefix,
 	)
 
@@ -153,7 +153,7 @@ func (r *RemotePWM) Start(ctx context.Context) error {
 	}
 
 	r.logger.Info("provisioning PWM pin",
-		"channel", cfg.Channel,
+		"pin", cfg.Pin,
 		"frequency_hz", cfg.FrequencyHz,
 		"min_us", cfg.MinPulseUs,
 		"max_us", cfg.MaxPulseUs,
@@ -161,7 +161,7 @@ func (r *RemotePWM) Start(ctx context.Context) error {
 
 	// 1. GPIO_CONFIG -- claim pin as PWM
 	gpio_cfg := gpioConfigPayload{
-		Pin:  uint8(cfg.Channel),
+		Pin:  uint8(cfg.Pin),
 		Mode: gpioModePWM,
 	}
 	if err := r.publishCommand("gpio_config", gpio_cfg); err != nil {
@@ -171,7 +171,7 @@ func (r *RemotePWM) Start(ctx context.Context) error {
 	// 2. PWM_CONFIG -- set limits and failsafe
 	center_us := uint16((cfg.MinPulseUs + cfg.MaxPulseUs) / 2.0)
 	pwm_cfg := pwmConfigPayload{
-		Channel:    uint8(cfg.Channel),
+		Channel:    uint8(cfg.Pin),
 		MinUs:      uint16(cfg.MinPulseUs),
 		MaxUs:      uint16(cfg.MaxPulseUs),
 		CenterUs:   center_us,
@@ -207,7 +207,7 @@ func (r *RemotePWM) subscribeState() {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		for _, ch := range state.Channels {
-			if int(ch.Channel) == cfg.Channel {
+			if int(ch.Channel) == cfg.Pin {
 				r.current_pulse = float64(ch.PulseUS)
 				r.is_enabled = ch.Flags&0x01 != 0
 			}
@@ -250,7 +250,7 @@ func (r *RemotePWM) SetPulse(ctx context.Context, pulseUs float64) error {
 
 	payload := pwmSetPayload{
 		Channels: []pwmSetChannel{
-			{Channel: uint8(cfg.Channel), PulseUS: uint16(pulseUs)},
+			{Channel: uint8(cfg.Pin), PulseUS: uint16(pulseUs)},
 		},
 	}
 
@@ -262,7 +262,7 @@ func (r *RemotePWM) SetPulse(ctx context.Context, pulseUs float64) error {
 	r.current_pulse = pulseUs
 	r.mu.Unlock()
 
-	r.logger.Debug("pulse set", "channel", cfg.Channel, "pulse_us", pulseUs)
+	r.logger.Debug("pulse set", "pin", cfg.Pin, "pulse_us", pulseUs)
 	return nil
 }
 
@@ -303,7 +303,7 @@ func (r *RemotePWM) Enable(ctx context.Context) error {
 
 	payload := pwmEnablePayload{
 		Channels: []pwmEnableChannel{
-			{Channel: uint8(cfg.Channel), Enabled: true},
+			{Channel: uint8(cfg.Pin), Enabled: true},
 		},
 	}
 
@@ -315,7 +315,7 @@ func (r *RemotePWM) Enable(ctx context.Context) error {
 	r.is_enabled = true
 	r.mu.Unlock()
 
-	r.logger.Debug("channel enabled", "channel", cfg.Channel)
+	r.logger.Debug("pin enabled", "pin", cfg.Pin)
 	return nil
 }
 
@@ -327,7 +327,7 @@ func (r *RemotePWM) Disable(ctx context.Context) error {
 
 	payload := pwmEnablePayload{
 		Channels: []pwmEnableChannel{
-			{Channel: uint8(cfg.Channel), Enabled: false},
+			{Channel: uint8(cfg.Pin), Enabled: false},
 		},
 	}
 
@@ -339,7 +339,7 @@ func (r *RemotePWM) Disable(ctx context.Context) error {
 	r.is_enabled = false
 	r.mu.Unlock()
 
-	r.logger.Debug("channel disabled", "channel", cfg.Channel)
+	r.logger.Debug("pin disabled", "pin", cfg.Pin)
 	return nil
 }
 
@@ -382,7 +382,7 @@ func (r *RemotePWM) Properties(ctx context.Context) (pwm.Properties, error) {
 		FrequencyHz: cfg.FrequencyHz,
 		MinPulseUs:  cfg.MinPulseUs,
 		MaxPulseUs:  cfg.MaxPulseUs,
-		Pin:         cfg.Channel,
+		Pin:         cfg.Pin,
 		Mode:        "remote",
 	}, nil
 }
@@ -396,7 +396,7 @@ func (r *RemotePWM) DoCommand(ctx context.Context, cmd map[string]any) (map[stri
 		r.mu.RLock()
 		defer r.mu.RUnlock()
 		return map[string]any{
-			"channel":       r.config.Channel,
+			"pin":           r.config.Pin,
 			"device_id":     r.config.DeviceID,
 			"current_pulse": r.current_pulse,
 			"is_enabled":    r.is_enabled,

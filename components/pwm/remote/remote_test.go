@@ -17,7 +17,7 @@ func TestConfigValidation(t *testing.T) {
 			config: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "pico-pwm",
-				Channel:           6,
+				Pin:               6,
 				FrequencyHz:       50,
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
@@ -29,7 +29,7 @@ func TestConfigValidation(t *testing.T) {
 			name: "missing prefix",
 			config: Config{
 				DeviceID:       "pico-pwm",
-				Channel:        6,
+				Pin:            6,
 				FrequencyHz:    50,
 				MinPulseUs:     1000,
 				MaxPulseUs:     2000,
@@ -41,7 +41,7 @@ func TestConfigValidation(t *testing.T) {
 			name: "missing device_id",
 			config: Config{
 				NATSSubjectPrefix: "gsp",
-				Channel:           6,
+				Pin:               6,
 				FrequencyHz:       50,
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
@@ -50,11 +50,11 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "channel out of range",
+			name: "pin out of range",
 			config: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "pico-pwm",
-				Channel:           256,
+				Pin:               29,
 				FrequencyHz:       50,
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
@@ -63,11 +63,11 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "negative channel",
+			name: "negative pin",
 			config: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "pico-pwm",
-				Channel:           -1,
+				Pin:               -1,
 				FrequencyHz:       50,
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
@@ -80,7 +80,7 @@ func TestConfigValidation(t *testing.T) {
 			config: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "pico-pwm",
-				Channel:           6,
+				Pin:               6,
 				FrequencyHz:       0,
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
@@ -93,7 +93,7 @@ func TestConfigValidation(t *testing.T) {
 			config: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "pico-pwm",
-				Channel:           6,
+				Pin:               6,
 				FrequencyHz:       50,
 				MinPulseUs:        2000,
 				MaxPulseUs:        1000,
@@ -106,7 +106,7 @@ func TestConfigValidation(t *testing.T) {
 			config: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "pico-pwm",
-				Channel:           6,
+				Pin:               6,
 				FrequencyHz:       50,
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
@@ -130,7 +130,7 @@ func TestCommandSubject(t *testing.T) {
 	cfg := &Config{
 		NATSSubjectPrefix: "gsp",
 		DeviceID:          "pico-pwm",
-		Channel:           6,
+		Pin:               6,
 	}
 
 	tests := []struct {
@@ -157,7 +157,7 @@ func TestNewConfigFromResource(t *testing.T) {
 		Attributes: map[string]any{
 			"nats_subject_prefix": "gsp",
 			"device_id":           "pico-pwm",
-			"channel":             float64(6),
+			"pin":                 float64(6),
 			"frequency_hz":        float64(50),
 			"min_pulse_us":        float64(1000),
 			"max_pulse_us":        float64(2000),
@@ -176,8 +176,8 @@ func TestNewConfigFromResource(t *testing.T) {
 	if cfg.DeviceID != "pico-pwm" {
 		t.Errorf("DeviceID = %q, want %q", cfg.DeviceID, "pico-pwm")
 	}
-	if cfg.Channel != 6 {
-		t.Errorf("Channel = %d, want %d", cfg.Channel, 6)
+	if cfg.Pin != 6 {
+		t.Errorf("Pin = %d, want %d", cfg.Pin, 6)
 	}
 	if cfg.FrequencyHz != 50 {
 		t.Errorf("FrequencyHz = %f, want %f", cfg.FrequencyHz, 50.0)
@@ -243,7 +243,7 @@ func TestFailsafePulseUsDefault(t *testing.T) {
 	cfg := Config{
 		NATSSubjectPrefix: "gsp",
 		DeviceID:          "pico-pwm",
-		Channel:           6,
+		Pin:               6,
 		FrequencyHz:       50,
 		MinPulseUs:        1000,
 		MaxPulseUs:        2000,
@@ -264,7 +264,7 @@ func TestFailsafePulseUsExplicit(t *testing.T) {
 	cfg := Config{
 		NATSSubjectPrefix: "gsp",
 		DeviceID:          "pico-pwm",
-		Channel:           6,
+		Pin:               6,
 		FrequencyHz:       50,
 		MinPulseUs:        500,
 		MaxPulseUs:        2500,
@@ -285,7 +285,7 @@ func TestFailsafePulseUsOutOfRange(t *testing.T) {
 	cfg := Config{
 		NATSSubjectPrefix: "gsp",
 		DeviceID:          "pico-pwm",
-		Channel:           6,
+		Pin:               6,
 		FrequencyHz:       50,
 		MinPulseUs:        1000,
 		MaxPulseUs:        2000,
@@ -339,7 +339,7 @@ func TestProvisioningSubjects(t *testing.T) {
 	cfg := &Config{
 		NATSSubjectPrefix: "gsp",
 		DeviceID:          "gsp-pico",
-		Channel:           6,
+		Pin:               6,
 	}
 
 	tests := []struct {
@@ -367,7 +367,7 @@ func TestNewConfigFromResourceWithNewFields(t *testing.T) {
 		Attributes: map[string]any{
 			"nats_subject_prefix": "gsp",
 			"device_id":           "gsp-pico",
-			"channel":             float64(6),
+			"pin":                 float64(6),
 			"failsafe_pulse_us":   float64(1200),
 			"auto_configure":      false,
 		},
