@@ -139,9 +139,11 @@ func (r *RemotePWMInput) Start(ctx context.Context) error {
 func (r *RemotePWMInput) subscribeState() {
 	cfg := r.config
 	subject := fmt.Sprintf("%s.%s.rx.sensor.pwm_input_data", cfg.NATSSubjectPrefix, cfg.DeviceID)
+	r.logger.Info("subscribing to PWM_INPUT_DATA", "subject", subject)
 	sub, err := r.nc.Subscribe(subject, func(msg *nats.Msg) {
 		var data pwmInputDataPayload
 		if err := json.Unmarshal(msg.Data, &data); err != nil {
+			r.logger.Warn("failed to unmarshal PWM_INPUT_DATA", "error", err)
 			return
 		}
 		r.mu.Lock()
@@ -151,6 +153,16 @@ func (r *RemotePWMInput) subscribeState() {
 				r.pulse_us = float64(ch.PulseUs)
 				r.period_us = float64(ch.PeriodUs)
 				r.last_seen = time.Now()
+				freq_hz := 0.0
+				if ch.PeriodUs > 0 {
+					freq_hz = 1_000_000.0 / float64(ch.PeriodUs)
+				}
+				r.logger.Debug("PWM_INPUT_DATA",
+					"pin", cfg.Pin,
+					"pulse_us", ch.PulseUs,
+					"period_us", ch.PeriodUs,
+					"freq_hz", fmt.Sprintf("%.1f", freq_hz),
+				)
 			}
 		}
 	})

@@ -272,16 +272,31 @@ func (r *RemoteGPIO) Close(ctx context.Context) error {
 func (r *RemoteGPIO) subscribeState() {
 	cfg := r.config
 	subject := fmt.Sprintf("%s.%s.rx.response.gpio_state", cfg.NATSSubjectPrefix, cfg.DeviceID)
+	r.logger.Info("subscribing to GPIO_STATE", "subject", subject)
 	sub, err := r.nc.Subscribe(subject, func(msg *nats.Msg) {
 		var state gpioStatePayload
 		if err := json.Unmarshal(msg.Data, &state); err != nil {
+			r.logger.Warn("failed to unmarshal GPIO_STATE", "error", err)
 			return
 		}
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		for _, entry := range state.Pins {
 			if int(entry.Pin) == cfg.Pin {
+				prev := r.current_value
 				r.current_value = entry.Value
+				if entry.Value != prev {
+					r.logger.Info("GPIO_STATE changed",
+						"pin", cfg.Pin,
+						"value", entry.Value,
+						"prev", prev,
+					)
+				} else {
+					r.logger.Debug("GPIO_STATE",
+						"pin", cfg.Pin,
+						"value", entry.Value,
+					)
+				}
 			}
 		}
 	})
