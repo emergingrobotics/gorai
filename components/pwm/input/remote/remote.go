@@ -38,6 +38,11 @@ type pwmInputChannelPayload struct {
 	Flags    uint8  `json:"flags"`
 }
 
+// resetPayload matches the JSON format for RESET.
+type resetPayload struct {
+	Subsystem uint8 `json:"subsystem"`
+}
+
 const stale_threshold = 2 * time.Second
 
 // RemotePWMInput implements pwm_input.PWMInput by subscribing to
@@ -141,9 +146,16 @@ func (r *RemotePWMInput) subscribeState() {
 	subject := fmt.Sprintf("%s.%s.rx.sensor.pwm_input_data", cfg.NATSSubjectPrefix, cfg.DeviceID)
 	r.logger.Info("subscribing to PWM_INPUT_DATA", "subject", subject)
 	sub, err := r.nc.Subscribe(subject, func(msg *nats.Msg) {
+		var env struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(msg.Data, &env); err != nil {
+			r.logger.Warn("failed to unmarshal PWM_INPUT_DATA envelope", "error", err)
+			return
+		}
 		var data pwmInputDataPayload
-		if err := json.Unmarshal(msg.Data, &data); err != nil {
-			r.logger.Warn("failed to unmarshal PWM_INPUT_DATA", "error", err)
+		if err := json.Unmarshal(env.Data, &data); err != nil {
+			r.logger.Warn("failed to unmarshal PWM_INPUT_DATA payload", "error", err)
 			return
 		}
 		r.mu.Lock()
@@ -240,6 +252,17 @@ func (r *RemotePWMInput) Reconfigure(ctx context.Context, deps resource.Dependen
 	return nil
 }
 
+// ResetDevice sends a full RESET command to the remote device, returning it
+// to listening state with all subsystems cleared.
+func (r *RemotePWMInput) ResetDevice(ctx context.Context) error {
+	payload := resetPayload{Subsystem: 0}
+	if err := r.publishCommand("reset", payload); err != nil {
+		return fmt.Errorf("failed to send RESET: %w", err)
+	}
+	r.logger.Info("device reset sent", "device_id", r.config.DeviceID)
+	return nil
+}
+
 // DoCommand handles arbitrary commands.
 func (r *RemotePWMInput) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
 	cmd_name, _ := cmd["command"].(string)
@@ -256,6 +279,9 @@ func (r *RemotePWMInput) DoCommand(ctx context.Context, cmd map[string]any) (map
 			"period_us": r.period_us,
 			"is_active": is_active,
 		}, nil
+
+	case "reset_device":
+		return nil, r.ResetDevice(ctx)
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd_name)

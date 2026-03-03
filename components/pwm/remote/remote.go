@@ -73,6 +73,11 @@ type configSetPayload struct {
 	Value []byte `json:"value"`
 }
 
+// resetPayload matches the JSON format expected by gorai-nats-gw for RESET.
+type resetPayload struct {
+	Subsystem uint8 `json:"subsystem"`
+}
+
 const (
 	gpioModePWM           = 0x02
 	configKeyPWMFrequency = 0x10
@@ -222,8 +227,14 @@ func (r *RemotePWM) subscribeState() {
 	cfg := r.config
 	subject := fmt.Sprintf("%s.%s.rx.response.pwm_state", cfg.NATSSubjectPrefix, cfg.DeviceID)
 	sub, err := r.nc.Subscribe(subject, func(msg *nats.Msg) {
+		var env struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(msg.Data, &env); err != nil {
+			return
+		}
 		var state pwmStatePayload
-		if err := json.Unmarshal(msg.Data, &state); err != nil {
+		if err := json.Unmarshal(env.Data, &state); err != nil {
 			return
 		}
 		r.mu.Lock()
@@ -409,6 +420,17 @@ func (r *RemotePWM) Properties(ctx context.Context) (pwm.Properties, error) {
 	}, nil
 }
 
+// ResetDevice sends a full RESET command to the remote device, returning it
+// to listening state with all subsystems cleared.
+func (r *RemotePWM) ResetDevice(ctx context.Context) error {
+	payload := resetPayload{Subsystem: 0}
+	if err := r.publishCommand("reset", payload); err != nil {
+		return fmt.Errorf("failed to send RESET: %w", err)
+	}
+	r.logger.Info("device reset sent", "device_id", r.config.DeviceID)
+	return nil
+}
+
 // DoCommand handles arbitrary commands.
 func (r *RemotePWM) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
 	cmdName, _ := cmd["command"].(string)
@@ -423,6 +445,9 @@ func (r *RemotePWM) DoCommand(ctx context.Context, cmd map[string]any) (map[stri
 			"current_pulse": r.current_pulse,
 			"is_enabled":    r.is_enabled,
 		}, nil
+
+	case "reset_device":
+		return nil, r.ResetDevice(ctx)
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmdName)

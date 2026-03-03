@@ -40,6 +40,11 @@ type gpioQueryPayload struct {
 	Pin uint8 `json:"pin"`
 }
 
+// resetPayload matches the JSON format for RESET.
+type resetPayload struct {
+	Subsystem uint8 `json:"subsystem"`
+}
+
 // gpioStatePayload represents the device-reported GPIO state.
 type gpioStatePayload struct {
 	Pins []gpioStateEntry `json:"pins"`
@@ -232,6 +237,17 @@ func (r *RemoteGPIO) Reconfigure(ctx context.Context, deps resource.Dependencies
 	return nil
 }
 
+// ResetDevice sends a full RESET command to the remote device, returning it
+// to listening state with all subsystems cleared.
+func (r *RemoteGPIO) ResetDevice(ctx context.Context) error {
+	payload := resetPayload{Subsystem: 0}
+	if err := r.publishCommand("reset", payload); err != nil {
+		return fmt.Errorf("failed to send RESET: %w", err)
+	}
+	r.logger.Info("device reset sent", "device_id", r.config.DeviceID)
+	return nil
+}
+
 // DoCommand handles arbitrary commands.
 func (r *RemoteGPIO) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
 	cmd_name, _ := cmd["command"].(string)
@@ -247,6 +263,9 @@ func (r *RemoteGPIO) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 			"current_value": r.current_value,
 			"is_configured": r.is_configured,
 		}, nil
+
+	case "reset_device":
+		return nil, r.ResetDevice(ctx)
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd_name)
@@ -274,9 +293,16 @@ func (r *RemoteGPIO) subscribeState() {
 	subject := fmt.Sprintf("%s.%s.rx.response.gpio_state", cfg.NATSSubjectPrefix, cfg.DeviceID)
 	r.logger.Info("subscribing to GPIO_STATE", "subject", subject)
 	sub, err := r.nc.Subscribe(subject, func(msg *nats.Msg) {
+		var env struct {
+			Data json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(msg.Data, &env); err != nil {
+			r.logger.Warn("failed to unmarshal GPIO_STATE envelope", "error", err)
+			return
+		}
 		var state gpioStatePayload
-		if err := json.Unmarshal(msg.Data, &state); err != nil {
-			r.logger.Warn("failed to unmarshal GPIO_STATE", "error", err)
+		if err := json.Unmarshal(env.Data, &state); err != nil {
+			r.logger.Warn("failed to unmarshal GPIO_STATE payload", "error", err)
 			return
 		}
 		r.mu.Lock()
