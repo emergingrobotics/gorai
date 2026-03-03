@@ -35,6 +35,11 @@ var knownComponents = map[string]componentInfo{
 	"arm":      {"Robot Arm", []string{"custom", "fake"}},
 	"base":     {"Mobile Base", []string{"differential", "mecanum", "ackermann", "fake"}},
 
+	// I/O
+	"pwm":       {"PWM Output", []string{"gpiod", "remote"}},
+	"pwm_input": {"PWM Input", []string{"remote"}},
+	"gpio":      {"Digital GPIO", []string{"remote"}},
+
 	// Infrastructure
 	"power": {"Power Source", []string{"battery", "adc", "ina219", "fake"}},
 	"space": {"Virtual Container", []string{"container", "tank", "fake"}},
