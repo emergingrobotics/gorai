@@ -19,6 +19,7 @@ import (
 
 	// PWM components
 	_ "github.com/gorai/gorai/components/pwm/gpiod"
+	_ "github.com/gorai/gorai/components/pwm/input/remote"
 	_ "github.com/gorai/gorai/components/pwm/remote"
 
 	// GPIO components

@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -66,7 +67,16 @@ type pwmStateChannel struct {
 	Flags   uint8  `json:"flags"`
 }
 
-const gpioModePWM = 0x02
+// configSetPayload matches the JSON format expected by gorai-nats-gw for CONFIG_SET.
+type configSetPayload struct {
+	Key   uint8  `json:"key"`
+	Value []byte `json:"value"`
+}
+
+const (
+	gpioModePWM           = 0x02
+	configKeyPWMFrequency = 0x10
+)
 
 // RemotePWM implements pwm.PWM by publishing commands to NATS,
 // which gorai-nats-gw bridges to a physical device via GSP/2.
@@ -168,7 +178,19 @@ func (r *RemotePWM) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to send GPIO_CONFIG: %w", err)
 	}
 
-	// 2. PWM_CONFIG -- set limits and failsafe
+	// 2. CONFIG_SET PWM_FREQUENCY -- set slice frequency
+	freq_value := make([]byte, 5)
+	freq_value[0] = uint8(cfg.Pin)
+	binary.BigEndian.PutUint32(freq_value[1:], uint32(cfg.FrequencyHz))
+	config_set := configSetPayload{
+		Key:   configKeyPWMFrequency,
+		Value: freq_value,
+	}
+	if err := r.publishCommand("config_set", config_set); err != nil {
+		return fmt.Errorf("failed to send CONFIG_SET PWM_FREQUENCY: %w", err)
+	}
+
+	// 3. PWM_CONFIG -- set limits and failsafe
 	center_us := uint16((cfg.MinPulseUs + cfg.MaxPulseUs) / 2.0)
 	pwm_cfg := pwmConfigPayload{
 		Channel:    uint8(cfg.Pin),
@@ -181,12 +203,12 @@ func (r *RemotePWM) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to send PWM_CONFIG: %w", err)
 	}
 
-	// 3. PWM_ENABLE
+	// 4. PWM_ENABLE
 	if err := r.Enable(ctx); err != nil {
 		return fmt.Errorf("failed to enable PWM: %w", err)
 	}
 
-	// 4. PWM_SET -- initial pulse
+	// 5. PWM_SET -- initial pulse
 	if err := r.SetPulse(ctx, cfg.InitialPulseUs); err != nil {
 		return fmt.Errorf("failed to set initial pulse: %w", err)
 	}
