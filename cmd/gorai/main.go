@@ -25,11 +25,19 @@ import (
 	// GPIO components
 	_ "github.com/gorai/gorai/components/gpio/remote"
 
+	// Motor components
+	_ "github.com/gorai/gorai/components/motor/remote"
+
+	// Encoder components
+	_ "github.com/gorai/gorai/components/sensor/encoder/remote"
+
 	// Bridge services
 	_ "github.com/gorai/gorai/services/bridge/keyboard_publisher"
 
 	// Control services
 	_ "github.com/gorai/gorai/services/control/keypress_motor"
+	_ "github.com/gorai/gorai/services/control/mecanum"
+	_ "github.com/gorai/gorai/services/control/velocity_input"
 )
 
 func main() {
