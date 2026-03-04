@@ -36,6 +36,7 @@ import (
 
 	// Control services
 	_ "github.com/gorai/gorai/services/control/keypress_motor"
+	_ "github.com/gorai/gorai/services/control/l298n"
 	_ "github.com/gorai/gorai/services/control/mecanum"
 	_ "github.com/gorai/gorai/services/control/velocity_input"
 )

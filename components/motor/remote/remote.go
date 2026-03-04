@@ -37,12 +37,16 @@ type motorEnableEntry struct {
 }
 
 type motorConfigPayload struct {
-	Motor    uint8  `json:"motor"`
-	MaxRPM   uint16 `json:"max_rpm"`
-	MaxAccel uint16 `json:"max_accel"`
-	PPR      uint16 `json:"ppr"`
+	Motor     uint8  `json:"motor"`
+	MaxRPM    uint16 `json:"max_rpm"`
+	MaxAccel  uint16 `json:"max_accel"`
+	PPR       uint16 `json:"ppr"`
 	GearRatio uint16 `json:"gear_ratio"`
-	Flags    uint8  `json:"flags"`
+	Flags     uint8  `json:"flags"`
+}
+
+type natsPowerPayload struct {
+	Power float64 `json:"power"`
 }
 
 type RemoteMotor struct {
@@ -96,10 +100,18 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		return nil, fmt.Errorf("NATS connection not available")
 	}
 
-	r.logger.Info("remote motor component created",
-		"device_id", cfg.DeviceID,
-		"motor_index", cfg.MotorIndex,
-	)
+	if cfg.IsNATSMode() {
+		r.logger.Info("remote motor component created",
+			"output_mode", cfg.OutputMode,
+			"motor_topic", cfg.MotorTopic,
+		)
+	} else {
+		r.logger.Info("remote motor component created",
+			"output_mode", cfg.OutputMode,
+			"device_id", cfg.DeviceID,
+			"motor_index", cfg.MotorIndex,
+		)
+	}
 
 	return r, nil
 }
@@ -112,6 +124,11 @@ func (r *RemoteMotor) Start(ctx context.Context) error {
 	r.mu.RLock()
 	cfg := r.config
 	r.mu.RUnlock()
+
+	if cfg.IsNATSMode() {
+		r.logger.Info("motor ready in nats output mode", "motor_topic", cfg.MotorTopic)
+		return nil
+	}
 
 	if !cfg.AutoConfigure {
 		r.logger.Info("auto_configure disabled, skipping motor provisioning")
@@ -169,6 +186,34 @@ func (r *RemoteMotor) SetPower(ctx context.Context, power float64) error {
 	r.mu.RUnlock()
 
 	power = clamp(power, -1.0, 1.0)
+
+	if cfg.IsNATSMode() {
+		return r.setPowerNATS(power)
+	}
+	return r.setPowerFirmware(power)
+}
+
+func (r *RemoteMotor) setPowerNATS(power float64) error {
+	payload := natsPowerPayload{Power: power}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal power payload: %w", err)
+	}
+	if err := r.nc.Publish(r.config.MotorTopic, data); err != nil {
+		return fmt.Errorf("failed to publish to %s: %w", r.config.MotorTopic, err)
+	}
+
+	r.mu.Lock()
+	r.current_power = power
+	r.is_powered = power != 0
+	r.mu.Unlock()
+
+	r.logger.Debug("motor power published", "topic", r.config.MotorTopic, "power", power)
+	return nil
+}
+
+func (r *RemoteMotor) setPowerFirmware(power float64) error {
+	cfg := r.config
 	speed := int16(power * float64(cfg.MaxSpeed))
 
 	payload := motorSetPayload{
@@ -258,12 +303,18 @@ func (r *RemoteMotor) DoCommand(ctx context.Context, cmd map[string]any) (map[st
 	case "get_state":
 		r.mu.RLock()
 		defer r.mu.RUnlock()
-		return map[string]any{
-			"motor_index":   r.config.MotorIndex,
-			"device_id":     r.config.DeviceID,
+		result := map[string]any{
+			"output_mode":   r.config.OutputMode,
 			"current_power": r.current_power,
 			"is_powered":    r.is_powered,
-		}, nil
+		}
+		if r.config.IsNATSMode() {
+			result["motor_topic"] = r.config.MotorTopic
+		} else {
+			result["motor_index"] = r.config.MotorIndex
+			result["device_id"] = r.config.DeviceID
+		}
+		return result, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd_name)
 	}
@@ -273,6 +324,12 @@ func (r *RemoteMotor) Close(ctx context.Context) error {
 	r.mu.RLock()
 	cfg := r.config
 	r.mu.RUnlock()
+
+	if cfg.IsNATSMode() {
+		_ = r.setPowerNATS(0)
+		r.logger.Info("remote motor component closed", "output_mode", "nats")
+		return nil
+	}
 
 	stop_payload := motorSetPayload{
 		Motors: []motorSetEntry{
@@ -288,7 +345,7 @@ func (r *RemoteMotor) Close(ctx context.Context) error {
 	}
 	_ = r.publishCommand("motor_enable", disable_payload)
 
-	r.logger.Info("remote motor component closed")
+	r.logger.Info("remote motor component closed", "output_mode", "firmware")
 	return nil
 }
 

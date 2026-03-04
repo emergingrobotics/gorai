@@ -6,7 +6,22 @@ import (
 	"github.com/gorai/gorai/pkg/resource"
 )
 
+const (
+	OutputModeFirmware = "firmware"
+	OutputModeNATS     = "nats"
+)
+
 type Config struct {
+	// OutputMode selects how SetPower commands are delivered:
+	//   "firmware" (default) - sends MOTOR_SET/MOTOR_CONFIG/MOTOR_ENABLE via GSP2
+	//   "nats" - publishes {"power": float64} to MotorTopic
+	OutputMode string `json:"output_mode"`
+
+	// MotorTopic is the NATS subject to publish motor power commands to.
+	// Required when OutputMode is "nats".
+	MotorTopic string `json:"motor_topic"`
+
+	// Firmware-mode fields (used when OutputMode is "firmware")
 	NATSSubjectPrefix string `json:"nats_subject_prefix"`
 	DeviceID          string `json:"device_id"`
 	MotorIndex        int    `json:"motor_index"`
@@ -25,6 +40,7 @@ type Config struct {
 
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	cfg := &Config{
+		OutputMode:    OutputModeFirmware,
 		MaxSpeed:      1000,
 		AutoConfigure: true,
 		MaxRPM:        200,
@@ -32,6 +48,12 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		GearRatio:     100,
 	}
 
+	if v, ok := conf.GetString("output_mode"); ok {
+		cfg.OutputMode = v
+	}
+	if v, ok := conf.GetString("motor_topic"); ok {
+		cfg.MotorTopic = v
+	}
 	if v, ok := conf.GetString("nats_subject_prefix"); ok {
 		cfg.NATSSubjectPrefix = v
 	}
@@ -76,19 +98,32 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 }
 
 func (c *Config) Validate() error {
-	if c.NATSSubjectPrefix == "" {
-		return fmt.Errorf("nats_subject_prefix is required")
-	}
-	if c.DeviceID == "" {
-		return fmt.Errorf("device_id is required")
-	}
-	if c.MotorIndex < 0 || c.MotorIndex > 3 {
-		return fmt.Errorf("motor_index must be 0-3")
-	}
-	if c.MaxSpeed <= 0 {
-		return fmt.Errorf("max_speed must be positive")
+	switch c.OutputMode {
+	case OutputModeFirmware:
+		if c.NATSSubjectPrefix == "" {
+			return fmt.Errorf("nats_subject_prefix is required for firmware output_mode")
+		}
+		if c.DeviceID == "" {
+			return fmt.Errorf("device_id is required for firmware output_mode")
+		}
+		if c.MotorIndex < 0 || c.MotorIndex > 3 {
+			return fmt.Errorf("motor_index must be 0-3")
+		}
+		if c.MaxSpeed <= 0 {
+			return fmt.Errorf("max_speed must be positive")
+		}
+	case OutputModeNATS:
+		if c.MotorTopic == "" {
+			return fmt.Errorf("motor_topic is required for nats output_mode")
+		}
+	default:
+		return fmt.Errorf("output_mode must be %q or %q, got %q", OutputModeFirmware, OutputModeNATS, c.OutputMode)
 	}
 	return nil
+}
+
+func (c *Config) IsNATSMode() bool {
+	return c.OutputMode == OutputModeNATS
 }
 
 func (c *Config) CommandSubject(command_type string) string {
