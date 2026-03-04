@@ -1,0 +1,368 @@
+// Package l298n provides a motor controller service for L298N H-bridge drivers.
+//
+// The service subscribes to motor power commands on NATS topics and translates
+// them into raw GPIO (direction) and PWM (speed) signals sent to the Pico via
+// the existing gorai-nats-gw bridge. Motor control intelligence lives here in
+// Go rather than in Pico firmware.
+package l298n
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"sync"
+
+	"github.com/gorai/gorai/components/pwm"
+	"github.com/gorai/gorai/pkg/registry"
+	"github.com/gorai/gorai/pkg/resource"
+	"github.com/nats-io/nats.go"
+)
+
+func init() {
+	registry.RegisterService("control", "l298n", New)
+}
+
+type gpioConfigPayload struct {
+	Pin     uint8 `json:"pin"`
+	Mode    uint8 `json:"mode"`
+	Pull    uint8 `json:"pull"`
+	Options uint8 `json:"options"`
+}
+
+type gpioSetPayload struct {
+	Pins []gpioSetEntry `json:"pins"`
+}
+
+type gpioSetEntry struct {
+	Pin   uint8 `json:"pin"`
+	Value uint8 `json:"value"`
+}
+
+type motorPowerMessage struct {
+	Power float64 `json:"power"`
+}
+
+type motorBinding struct {
+	def           MotorDef
+	pwm_component pwm.PWM
+	sub           *nats.Subscription
+}
+
+type Controller struct {
+	name   resource.Name
+	config *Config
+	logger *slog.Logger
+	nc     *nats.Conn
+
+	mu       sync.RWMutex
+	bindings map[string]*motorBinding
+	running  bool
+}
+
+func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) (any, error) {
+	res_conf := resource.NewConfig(conf)
+
+	cfg, err := NewConfigFromResource(res_conf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
+
+	name := "l298n_controller"
+	if n, ok := conf["name"].(string); ok {
+		name = n
+	}
+
+	logger := slog.Default()
+	if deps != nil {
+		if logger_val, err := deps.Get("logger"); err == nil {
+			if l, ok := logger_val.(*slog.Logger); ok && l != nil {
+				logger = l
+			}
+		}
+	}
+	logger = logger.With("service", "l298n_controller", "name", name)
+
+	c := &Controller{
+		name:     resource.NewServiceName("gorai", "control", name),
+		config:   cfg,
+		logger:   logger,
+		bindings: make(map[string]*motorBinding),
+	}
+
+	if deps != nil {
+		if nats_val, err := deps.Get("nats"); err == nil {
+			if nc, ok := nats_val.(*nats.Conn); ok {
+				c.nc = nc
+			}
+		}
+	}
+
+	motor_names := make([]string, len(cfg.Motors))
+	for i, m := range cfg.Motors {
+		motor_names[i] = m.Name
+	}
+	c.logger.Info("l298n controller created", "motors", motor_names)
+
+	return c, nil
+}
+
+func (c *Controller) Name() resource.Name {
+	return c.name
+}
+
+func (c *Controller) Start(ctx context.Context) error {
+	return nil
+}
+
+func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	cfg, err := NewConfigFromResource(conf)
+	if err != nil {
+		return fmt.Errorf("failed to parse config: %w", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	c.stopAll()
+
+	bindings := make(map[string]*motorBinding)
+	for _, motor_def := range cfg.Motors {
+		pwm_name := resource.NewComponentName("gorai", "pwm", motor_def.PWMComponent)
+		pwm_res, err := deps.Get(pwm_name)
+		if err != nil {
+			return fmt.Errorf("motor %q: pwm component %q not found: %w",
+				motor_def.Name, motor_def.PWMComponent, err)
+		}
+		pwm_comp, ok := pwm_res.(pwm.PWM)
+		if !ok {
+			return fmt.Errorf("motor %q: component %q is not a PWM",
+				motor_def.Name, motor_def.PWMComponent)
+		}
+		bindings[motor_def.Name] = &motorBinding{
+			def:           motor_def,
+			pwm_component: pwm_comp,
+		}
+	}
+
+	c.mu.Lock()
+	c.config = cfg
+	c.bindings = bindings
+	c.mu.Unlock()
+
+	if err := c.configureDirectionPins(); err != nil {
+		return fmt.Errorf("failed to configure direction pins: %w", err)
+	}
+
+	if err := c.subscribeAll(); err != nil {
+		return fmt.Errorf("failed to subscribe to motor topics: %w", err)
+	}
+
+	c.logger.Info("l298n controller reconfigured")
+	return nil
+}
+
+// configureDirectionPins sends GPIO_CONFIG (output mode) for all IN1/IN2 pins
+// and sets them to low (motor off).
+func (c *Controller) configureDirectionPins() error {
+	c.mu.RLock()
+	cfg := c.config
+	bindings := c.bindings
+	c.mu.RUnlock()
+
+	if c.nc == nil {
+		return fmt.Errorf("NATS connection not available")
+	}
+
+	for _, b := range bindings {
+		for _, pin := range []uint8{b.def.IN1Pin, b.def.IN2Pin} {
+			gpio_cfg := gpioConfigPayload{
+				Pin:  pin,
+				Mode: 0x01, // output
+				Pull: 0x00, // none
+			}
+			if err := c.publishCommand(cfg.CommandSubject("gpio_config"), gpio_cfg); err != nil {
+				return fmt.Errorf("motor %q: failed to configure pin %d: %w",
+					b.def.Name, pin, err)
+			}
+		}
+
+		if err := c.setDirectionPins(b.def, 0, 0); err != nil {
+			return fmt.Errorf("motor %q: failed to set initial pin state: %w",
+				b.def.Name, err)
+		}
+	}
+
+	return nil
+}
+
+func (c *Controller) subscribeAll() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.nc == nil {
+		return fmt.Errorf("NATS connection not available")
+	}
+
+	for name, b := range c.bindings {
+		binding := b
+		sub, err := c.nc.Subscribe(binding.def.MotorTopic, func(msg *nats.Msg) {
+			c.handleMotorCommand(binding, msg)
+		})
+		if err != nil {
+			return fmt.Errorf("motor %q: failed to subscribe to %s: %w",
+				name, binding.def.MotorTopic, err)
+		}
+		binding.sub = sub
+		c.logger.Debug("subscribed to motor topic",
+			"motor", name, "topic", binding.def.MotorTopic)
+	}
+
+	c.running = true
+	return nil
+}
+
+func (c *Controller) handleMotorCommand(binding *motorBinding, msg *nats.Msg) {
+	var cmd motorPowerMessage
+	if err := json.Unmarshal(msg.Data, &cmd); err != nil {
+		c.logger.Warn("failed to unmarshal motor command",
+			"motor", binding.def.Name, "error", err)
+		return
+	}
+
+	power := clamp(cmd.Power, -1.0, 1.0)
+	def := binding.def
+
+	if def.Invert {
+		power = -power
+	}
+
+	var in1, in2 uint8
+	switch {
+	case power > 0:
+		in1 = 1
+		in2 = 0
+	case power < 0:
+		in1 = 0
+		in2 = 1
+	default:
+		if def.BrakeOnStop {
+			in1 = 1
+			in2 = 1
+		} else {
+			in1 = 0
+			in2 = 0
+		}
+	}
+
+	if err := c.setDirectionPins(def, in1, in2); err != nil {
+		c.logger.Error("failed to set direction",
+			"motor", def.Name, "error", err)
+		return
+	}
+
+	abs_power := power
+	if abs_power < 0 {
+		abs_power = -abs_power
+	}
+
+	// SetNormalized maps -1..1 to min_pulse..max_pulse.
+	// For L298N ENA/ENB: 0 power -> min_pulse (1000us = stopped),
+	// full power -> max_pulse (2000us = full speed).
+	// We map [0, 1] to [-1, 1] normalized: normalized = abs_power*2 - 1
+	normalized := abs_power*2.0 - 1.0
+
+	ctx := context.Background()
+	if err := binding.pwm_component.SetNormalized(ctx, normalized); err != nil {
+		c.logger.Error("failed to set speed",
+			"motor", def.Name, "error", err)
+		return
+	}
+
+	c.logger.Debug("motor command applied",
+		"motor", def.Name, "power", cmd.Power,
+		"in1", in1, "in2", in2, "normalized_pwm", normalized)
+}
+
+func (c *Controller) setDirectionPins(def MotorDef, in1, in2 uint8) error {
+	c.mu.RLock()
+	cfg := c.config
+	c.mu.RUnlock()
+
+	payload := gpioSetPayload{
+		Pins: []gpioSetEntry{
+			{Pin: def.IN1Pin, Value: in1},
+			{Pin: def.IN2Pin, Value: in2},
+		},
+	}
+	return c.publishCommand(cfg.CommandSubject("gpio_set"), payload)
+}
+
+func (c *Controller) stopAll() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, b := range c.bindings {
+		if b.sub != nil {
+			_ = b.sub.Unsubscribe()
+			b.sub = nil
+		}
+	}
+
+	if c.running && c.nc != nil {
+		ctx := context.Background()
+		for _, b := range c.bindings {
+			_ = c.setDirectionPinsLocked(b.def, 0, 0)
+			_ = b.pwm_component.SetNormalized(ctx, -1.0)
+		}
+	}
+	c.running = false
+}
+
+func (c *Controller) setDirectionPinsLocked(def MotorDef, in1, in2 uint8) error {
+	payload := gpioSetPayload{
+		Pins: []gpioSetEntry{
+			{Pin: def.IN1Pin, Value: in1},
+			{Pin: def.IN2Pin, Value: in2},
+		},
+	}
+	return c.publishCommand(c.config.CommandSubject("gpio_set"), payload)
+}
+
+func (c *Controller) publishCommand(subject string, payload any) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+	return c.nc.Publish(subject, data)
+}
+
+func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
+	cmd_name, _ := cmd["command"].(string)
+	switch cmd_name {
+	case "stop":
+		c.stopAll()
+		return map[string]any{"success": true}, nil
+	default:
+		return nil, fmt.Errorf("unknown command: %s", cmd_name)
+	}
+}
+
+func (c *Controller) Close(ctx context.Context) error {
+	c.stopAll()
+	c.logger.Info("l298n controller closed")
+	return nil
+}
+
+func clamp(value, min_val, max_val float64) float64 {
+	if value < min_val {
+		return min_val
+	}
+	if value > max_val {
+		return max_val
+	}
+	return value
+}

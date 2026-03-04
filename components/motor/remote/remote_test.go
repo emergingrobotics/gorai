@@ -13,8 +13,9 @@ func TestConfigValidation(t *testing.T) {
 		want_ok bool
 	}{
 		{
-			name: "valid config",
+			name: "valid firmware config",
 			cfg: Config{
+				OutputMode:        OutputModeFirmware,
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				MotorIndex:        0,
@@ -23,8 +24,19 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: true,
 		},
 		{
-			name: "missing prefix",
+			name: "firmware default when empty",
 			cfg: Config{
+				OutputMode:        "",
+				NATSSubjectPrefix: "gsp",
+				DeviceID:          "gsp-pico",
+				MaxSpeed:          1000,
+			},
+			want_ok: false,
+		},
+		{
+			name: "firmware missing prefix",
+			cfg: Config{
+				OutputMode: OutputModeFirmware,
 				DeviceID:   "gsp-pico",
 				MotorIndex: 0,
 				MaxSpeed:   1000,
@@ -32,8 +44,9 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: false,
 		},
 		{
-			name: "missing device id",
+			name: "firmware missing device id",
 			cfg: Config{
+				OutputMode:        OutputModeFirmware,
 				NATSSubjectPrefix: "gsp",
 				MotorIndex:        0,
 				MaxSpeed:          1000,
@@ -41,8 +54,9 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: false,
 		},
 		{
-			name: "invalid motor index high",
+			name: "firmware invalid motor index high",
 			cfg: Config{
+				OutputMode:        OutputModeFirmware,
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				MotorIndex:        5,
@@ -51,8 +65,9 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: false,
 		},
 		{
-			name: "invalid motor index negative",
+			name: "firmware invalid motor index negative",
 			cfg: Config{
+				OutputMode:        OutputModeFirmware,
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				MotorIndex:        -1,
@@ -61,8 +76,9 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: false,
 		},
 		{
-			name: "zero max speed",
+			name: "firmware zero max speed",
 			cfg: Config{
+				OutputMode:        OutputModeFirmware,
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				MotorIndex:        0,
@@ -71,14 +87,45 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: false,
 		},
 		{
-			name: "max motor index",
+			name: "firmware max motor index",
 			cfg: Config{
+				OutputMode:        OutputModeFirmware,
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				MotorIndex:        3,
 				MaxSpeed:          1000,
 			},
 			want_ok: true,
+		},
+		{
+			name: "valid nats config",
+			cfg: Config{
+				OutputMode: OutputModeNATS,
+				MotorTopic: "gorai.main-robot.motor.motor_fl.command",
+			},
+			want_ok: true,
+		},
+		{
+			name: "nats missing motor_topic",
+			cfg: Config{
+				OutputMode: OutputModeNATS,
+			},
+			want_ok: false,
+		},
+		{
+			name: "nats does not require firmware fields",
+			cfg: Config{
+				OutputMode: OutputModeNATS,
+				MotorTopic: "gorai.main-robot.motor.motor_fl.command",
+			},
+			want_ok: true,
+		},
+		{
+			name: "invalid output_mode",
+			cfg: Config{
+				OutputMode: "unknown",
+			},
+			want_ok: false,
 		},
 	}
 
@@ -120,9 +167,10 @@ func TestCommandSubject(t *testing.T) {
 	}
 }
 
-func TestNewConfigFromResource(t *testing.T) {
+func TestNewConfigFromResourceFirmware(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
+			"output_mode":         "firmware",
 			"nats_subject_prefix": "gsp",
 			"device_id":          "gsp-pico",
 			"motor_index":        float64(2),
@@ -144,6 +192,9 @@ func TestNewConfigFromResource(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	if cfg.OutputMode != OutputModeFirmware {
+		t.Errorf("OutputMode = %q, want %q", cfg.OutputMode, OutputModeFirmware)
+	}
 	if cfg.NATSSubjectPrefix != "gsp" {
 		t.Errorf("NATSSubjectPrefix = %q, want %q", cfg.NATSSubjectPrefix, "gsp")
 	}
@@ -182,6 +233,30 @@ func TestNewConfigFromResource(t *testing.T) {
 	}
 }
 
+func TestNewConfigFromResourceNATS(t *testing.T) {
+	conf := resource.Config{
+		Attributes: map[string]any{
+			"output_mode": "nats",
+			"motor_topic": "gorai.main-robot.motor.motor_fl.command",
+		},
+	}
+
+	cfg, err := NewConfigFromResource(conf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.OutputMode != OutputModeNATS {
+		t.Errorf("OutputMode = %q, want %q", cfg.OutputMode, OutputModeNATS)
+	}
+	if cfg.MotorTopic != "gorai.main-robot.motor.motor_fl.command" {
+		t.Errorf("MotorTopic = %q, want %q", cfg.MotorTopic, "gorai.main-robot.motor.motor_fl.command")
+	}
+	if !cfg.IsNATSMode() {
+		t.Error("IsNATSMode() should return true")
+	}
+}
+
 func TestNewConfigFromResourceDefaults(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
@@ -195,6 +270,9 @@ func TestNewConfigFromResourceDefaults(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	if cfg.OutputMode != OutputModeFirmware {
+		t.Errorf("OutputMode default = %q, want %q", cfg.OutputMode, OutputModeFirmware)
+	}
 	if cfg.MaxSpeed != 1000 {
 		t.Errorf("MaxSpeed default = %d, want 1000", cfg.MaxSpeed)
 	}
@@ -209,6 +287,9 @@ func TestNewConfigFromResourceDefaults(t *testing.T) {
 	}
 	if cfg.GearRatio != 100 {
 		t.Errorf("GearRatio default = %d, want 100", cfg.GearRatio)
+	}
+	if cfg.IsNATSMode() {
+		t.Error("IsNATSMode() should return false for default config")
 	}
 }
 
