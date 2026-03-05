@@ -434,14 +434,28 @@ func (c *Controller) eventLoop(eventsCh <-chan input.KeyEvent) {
 				return
 			}
 
-			// Skip repeat events
-			if event.Repeat {
+			if event.Repeat && !c.isHoldEnabledForKey(event.Key) {
 				continue
 			}
 
 			c.processKeyEvent(ctx, event)
 		}
 	}
+}
+
+// isHoldEnabledForKey returns true if the given key is bound to a motor that
+// has HoldEnabled set, meaning OS repeat events should be forwarded.
+func (c *Controller) isHoldEnabledForKey(key string) bool {
+	normalizedKey := strings.ToUpper(key)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if motor := c.forwardKeyMap[normalizedKey]; motor != nil && motor.HoldEnabled {
+		return true
+	}
+	if motor := c.reverseKeyMap[normalizedKey]; motor != nil && motor.HoldEnabled {
+		return true
+	}
+	return false
 }
 
 // processKeyEvent handles a single key event.

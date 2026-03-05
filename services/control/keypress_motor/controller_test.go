@@ -799,6 +799,7 @@ func TestConfigDefaults(t *testing.T) {
 	// Check defaults
 	assert.Equal(t, "keyboard", cfg.KeyboardComponent)
 	assert.True(t, cfg.Motors[0].StopOnRelease)
+	assert.False(t, cfg.Motors[0].HoldEnabled)
 
 	// Check angle behavior defaults
 	require.NotNil(t, cfg.Motors[0].Behavior.Angle)
@@ -807,6 +808,75 @@ func TestConfigDefaults(t *testing.T) {
 	assert.Equal(t, 90.0, cfg.Motors[0].Behavior.Angle.MaxAngle)
 	assert.Equal(t, 0.0, cfg.Motors[0].Behavior.Angle.InitialAngle)
 	assert.Equal(t, 1.0, cfg.Motors[0].Behavior.Angle.Speed)
+}
+
+func TestHoldEnabledParsing(t *testing.T) {
+	attrs := map[string]any{
+		"motors": []any{
+			map[string]any{
+				"name":                 "pan",
+				"type":                 "pwm",
+				"controlled_component": "pan_pwm",
+				"forward_key":          "l",
+				"reverse_key":          "j",
+				"hold_enabled":         true,
+				"behavior": map[string]any{
+					"type": "angle",
+					"angle": map[string]any{
+						"angle_step": 2.5,
+					},
+				},
+			},
+			map[string]any{
+				"name":                 "drive",
+				"type":                 "pwm",
+				"controlled_component": "drive_pwm",
+				"forward_key":          "w",
+				"reverse_key":          "s",
+				"behavior": map[string]any{
+					"type": "continuous",
+					"continuous": map[string]any{
+						"speed": 0.5,
+					},
+				},
+			},
+		},
+	}
+
+	conf := resource.NewConfig(attrs)
+	cfg, err := NewConfigFromResource(conf)
+	require.NoError(t, err)
+	require.Len(t, cfg.Motors, 2)
+
+	assert.True(t, cfg.Motors[0].HoldEnabled, "pan should have hold_enabled=true")
+	assert.False(t, cfg.Motors[1].HoldEnabled, "drive should default to hold_enabled=false")
+}
+
+func TestHoldEnabledValidation(t *testing.T) {
+	cfg := &Config{
+		KeyboardComponent: "keyboard",
+		Motors: []MotorConfig{
+			{
+				Name:                "pan",
+				Type:                DriveTypePWM,
+				ControlledComponent: "pan_pwm",
+				ForwardKey:          "l",
+				ReverseKey:          "j",
+				HoldEnabled:         true,
+				Behavior: BehaviorConfig{
+					Type: BehaviorTypeAngle,
+					Angle: &AngleBehaviorConfig{
+						AngleStep:    2.5,
+						MinAngle:     -90.0,
+						MaxAngle:     90.0,
+						InitialAngle: 0.0,
+						Speed:        1.0,
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, cfg.Validate())
 }
 
 func TestStateString(t *testing.T) {

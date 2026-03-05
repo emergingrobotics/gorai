@@ -98,6 +98,10 @@ type MotorConfig struct {
 	// StopOnRelease stops the motor when the key is released (continuous/DC only).
 	StopOnRelease bool `json:"stop_on_release"`
 
+	// HoldEnabled allows OS key-repeat events to fire additional commands while
+	// a key is held down. When false (default), repeat events are discarded.
+	HoldEnabled bool `json:"hold_enabled"`
+
 	// Behavior holds the behavior-specific configuration.
 	Behavior BehaviorConfig `json:"behavior"`
 }
@@ -175,6 +179,9 @@ func parseMotorConfig(m map[string]any, index int) (*MotorConfig, error) {
 	// Optional fields
 	if stop, ok := m["stop_on_release"].(bool); ok {
 		cfg.StopOnRelease = stop
+	}
+	if hold, ok := m["hold_enabled"].(bool); ok {
+		cfg.HoldEnabled = hold
 	}
 
 	// Parse behavior
