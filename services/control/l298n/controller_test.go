@@ -19,11 +19,11 @@ func TestConfigValidation(t *testing.T) {
 				DeviceID:          "gsp-pico",
 				Motors: []MotorDef{
 					{
-						Name:         "motor_fl",
-						MotorTopic:   "gorai.main-robot.motor.motor_fl.command",
-						PWMComponent: "motor_fl_speed",
-						IN1Pin:       3,
-						IN2Pin:       4,
+						Name:       "motor_fl",
+						MotorTopic: "gorai.main-robot.motor.motor_fl.command",
+						SpeedPin:   2,
+						IN1Pin:     3,
+						IN2Pin:     4,
 					},
 				},
 			},
@@ -35,10 +35,10 @@ func TestConfigValidation(t *testing.T) {
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				Motors: []MotorDef{
-					{Name: "fl", MotorTopic: "t.fl", PWMComponent: "p_fl", IN1Pin: 3, IN2Pin: 4},
-					{Name: "fr", MotorTopic: "t.fr", PWMComponent: "p_fr", IN1Pin: 11, IN2Pin: 12},
-					{Name: "rl", MotorTopic: "t.rl", PWMComponent: "p_rl", IN1Pin: 14, IN2Pin: 15},
-					{Name: "rr", MotorTopic: "t.rr", PWMComponent: "p_rr", IN1Pin: 17, IN2Pin: 18},
+					{Name: "fl", MotorTopic: "t.fl", SpeedPin: 2, IN1Pin: 3, IN2Pin: 4},
+					{Name: "fr", MotorTopic: "t.fr", SpeedPin: 10, IN1Pin: 11, IN2Pin: 12},
+					{Name: "rl", MotorTopic: "t.rl", SpeedPin: 13, IN1Pin: 14, IN2Pin: 15},
+					{Name: "rr", MotorTopic: "t.rr", SpeedPin: 16, IN1Pin: 17, IN2Pin: 18},
 				},
 			},
 			want_ok: true,
@@ -48,7 +48,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg: Config{
 				DeviceID: "gsp-pico",
 				Motors: []MotorDef{
-					{Name: "m", MotorTopic: "t", PWMComponent: "p", IN1Pin: 3, IN2Pin: 4},
+					{Name: "m", MotorTopic: "t", SpeedPin: 2, IN1Pin: 3, IN2Pin: 4},
 				},
 			},
 			want_ok: false,
@@ -58,7 +58,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg: Config{
 				NATSSubjectPrefix: "gsp",
 				Motors: []MotorDef{
-					{Name: "m", MotorTopic: "t", PWMComponent: "p", IN1Pin: 3, IN2Pin: 4},
+					{Name: "m", MotorTopic: "t", SpeedPin: 2, IN1Pin: 3, IN2Pin: 4},
 				},
 			},
 			want_ok: false,
@@ -74,18 +74,7 @@ func TestConfigValidation(t *testing.T) {
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				Motors: []MotorDef{
-					{Name: "m", PWMComponent: "p", IN1Pin: 3, IN2Pin: 4},
-				},
-			},
-			want_ok: false,
-		},
-		{
-			name: "motor missing pwm_component",
-			cfg: Config{
-				NATSSubjectPrefix: "gsp",
-				DeviceID:          "gsp-pico",
-				Motors: []MotorDef{
-					{Name: "m", MotorTopic: "t", IN1Pin: 3, IN2Pin: 4},
+					{Name: "m", SpeedPin: 2, IN1Pin: 3, IN2Pin: 4},
 				},
 			},
 			want_ok: false,
@@ -96,7 +85,29 @@ func TestConfigValidation(t *testing.T) {
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				Motors: []MotorDef{
-					{Name: "m", MotorTopic: "t", PWMComponent: "p", IN1Pin: 3, IN2Pin: 3},
+					{Name: "m", MotorTopic: "t", SpeedPin: 2, IN1Pin: 3, IN2Pin: 3},
+				},
+			},
+			want_ok: false,
+		},
+		{
+			name: "motor speed_pin same as in1_pin",
+			cfg: Config{
+				NATSSubjectPrefix: "gsp",
+				DeviceID:          "gsp-pico",
+				Motors: []MotorDef{
+					{Name: "m", MotorTopic: "t", SpeedPin: 3, IN1Pin: 3, IN2Pin: 4},
+				},
+			},
+			want_ok: false,
+		},
+		{
+			name: "motor speed_pin same as in2_pin",
+			cfg: Config{
+				NATSSubjectPrefix: "gsp",
+				DeviceID:          "gsp-pico",
+				Motors: []MotorDef{
+					{Name: "m", MotorTopic: "t", SpeedPin: 4, IN1Pin: 3, IN2Pin: 4},
 				},
 			},
 			want_ok: false,
@@ -107,8 +118,8 @@ func TestConfigValidation(t *testing.T) {
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
 				Motors: []MotorDef{
-					{Name: "m", MotorTopic: "t1", PWMComponent: "p1", IN1Pin: 3, IN2Pin: 4},
-					{Name: "m", MotorTopic: "t2", PWMComponent: "p2", IN1Pin: 5, IN2Pin: 6},
+					{Name: "m", MotorTopic: "t1", SpeedPin: 2, IN1Pin: 3, IN2Pin: 4},
+					{Name: "m", MotorTopic: "t2", SpeedPin: 5, IN1Pin: 6, IN2Pin: 7},
 				},
 			},
 			want_ok: false,
@@ -120,7 +131,7 @@ func TestConfigValidation(t *testing.T) {
 				DeviceID:          "gsp-pico",
 				Motors: []MotorDef{
 					{
-						Name: "m", MotorTopic: "t", PWMComponent: "p",
+						Name: "m", MotorTopic: "t", SpeedPin: 2,
 						IN1Pin: 3, IN2Pin: 4, Invert: true, BrakeOnStop: true,
 					},
 				},
@@ -175,7 +186,7 @@ func TestNewConfigFromResource(t *testing.T) {
 				map[string]any{
 					"name":          "motor_fl",
 					"motor_topic":   "gorai.main-robot.motor.motor_fl.command",
-					"pwm_component": "motor_fl_speed",
+					"speed_pin":     float64(2),
 					"in1_pin":       float64(3),
 					"in2_pin":       float64(4),
 					"invert":        false,
@@ -184,7 +195,7 @@ func TestNewConfigFromResource(t *testing.T) {
 				map[string]any{
 					"name":          "motor_fr",
 					"motor_topic":   "gorai.main-robot.motor.motor_fr.command",
-					"pwm_component": "motor_fr_speed",
+					"speed_pin":     float64(10),
 					"in1_pin":       float64(11),
 					"in2_pin":       float64(12),
 					"invert":        true,
@@ -216,8 +227,8 @@ func TestNewConfigFromResource(t *testing.T) {
 	if fl.MotorTopic != "gorai.main-robot.motor.motor_fl.command" {
 		t.Errorf("Motors[0].MotorTopic = %q", fl.MotorTopic)
 	}
-	if fl.PWMComponent != "motor_fl_speed" {
-		t.Errorf("Motors[0].PWMComponent = %q", fl.PWMComponent)
+	if fl.SpeedPin != 2 {
+		t.Errorf("Motors[0].SpeedPin = %d, want 2", fl.SpeedPin)
 	}
 	if fl.IN1Pin != 3 {
 		t.Errorf("Motors[0].IN1Pin = %d, want 3", fl.IN1Pin)
@@ -232,6 +243,9 @@ func TestNewConfigFromResource(t *testing.T) {
 	fr := cfg.Motors[1]
 	if fr.Name != "motor_fr" {
 		t.Errorf("Motors[1].Name = %q, want %q", fr.Name, "motor_fr")
+	}
+	if fr.SpeedPin != 10 {
+		t.Errorf("Motors[1].SpeedPin = %d, want 10", fr.SpeedPin)
 	}
 	if !fr.Invert {
 		t.Error("Motors[1].Invert should be true")

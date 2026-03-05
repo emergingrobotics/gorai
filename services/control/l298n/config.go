@@ -8,13 +8,13 @@ import (
 
 // MotorDef describes a single motor controlled by an L298N board.
 type MotorDef struct {
-	Name         string `json:"name"`
-	MotorTopic   string `json:"motor_topic"`
-	PWMComponent string `json:"pwm_component"`
-	IN1Pin       uint8  `json:"in1_pin"`
-	IN2Pin       uint8  `json:"in2_pin"`
-	Invert       bool   `json:"invert"`
-	BrakeOnStop  bool   `json:"brake_on_stop"`
+	Name        string `json:"name"`
+	MotorTopic  string `json:"motor_topic"`
+	SpeedPin    uint8  `json:"speed_pin"`
+	IN1Pin      uint8  `json:"in1_pin"`
+	IN2Pin      uint8  `json:"in2_pin"`
+	Invert      bool   `json:"invert"`
+	BrakeOnStop bool   `json:"brake_on_stop"`
 }
 
 // Config holds the configuration for the L298N motor controller service.
@@ -71,8 +71,8 @@ func parseMotorDef(m map[string]any, idx int) (*MotorDef, error) {
 	if v, ok := m["motor_topic"].(string); ok {
 		def.MotorTopic = v
 	}
-	if v, ok := m["pwm_component"].(string); ok {
-		def.PWMComponent = v
+	if v, ok := m["speed_pin"].(float64); ok {
+		def.SpeedPin = uint8(v)
 	}
 	if v, ok := m["in1_pin"].(float64); ok {
 		def.IN1Pin = uint8(v)
@@ -114,8 +114,8 @@ func (c *Config) Validate() error {
 		if m.MotorTopic == "" {
 			return fmt.Errorf("motors[%d] (%s): motor_topic is required", i, m.Name)
 		}
-		if m.PWMComponent == "" {
-			return fmt.Errorf("motors[%d] (%s): pwm_component is required", i, m.Name)
+		if m.SpeedPin > 28 {
+			return fmt.Errorf("motors[%d] (%s): speed_pin must be 0-28", i, m.Name)
 		}
 		if m.IN1Pin > 28 {
 			return fmt.Errorf("motors[%d] (%s): in1_pin must be 0-28", i, m.Name)
@@ -125,6 +125,9 @@ func (c *Config) Validate() error {
 		}
 		if m.IN1Pin == m.IN2Pin {
 			return fmt.Errorf("motors[%d] (%s): in1_pin and in2_pin must be different", i, m.Name)
+		}
+		if m.SpeedPin == m.IN1Pin || m.SpeedPin == m.IN2Pin {
+			return fmt.Errorf("motors[%d] (%s): speed_pin must differ from in1_pin and in2_pin", i, m.Name)
 		}
 	}
 

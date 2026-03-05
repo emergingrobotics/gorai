@@ -34,12 +34,23 @@ type Config struct {
 	KeyboardComponent string                     `json:"keyboard_component"`
 	VelocityTopic     string                     `json:"velocity_topic"`
 	SpeedScale        float64                    `json:"speed_scale"`
+	MinSpeed          float64                    `json:"min_speed"`
+	RampSteps         int                        `json:"ramp_steps"`
 	KeyBindings       map[string]VelocityBinding `json:"key_bindings"`
+}
+
+func (c *Config) StepSize() float64 {
+	if c.RampSteps <= 0 {
+		return 0
+	}
+	return (1.0 - c.MinSpeed) / float64(c.RampSteps)
 }
 
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	cfg := &Config{
 		SpeedScale:  1.0,
+		MinSpeed:    0.3,
+		RampSteps:   10,
 		KeyBindings: make(map[string]VelocityBinding),
 	}
 
@@ -51,6 +62,12 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	}
 	if v, ok := conf.GetFloat("speed_scale"); ok {
 		cfg.SpeedScale = v
+	}
+	if v, ok := conf.GetFloat("min_speed"); ok {
+		cfg.MinSpeed = v
+	}
+	if v, ok := conf.GetFloat("ramp_steps"); ok {
+		cfg.RampSteps = int(v)
 	}
 
 	if v, ok := conf.Get("key_bindings"); ok {
@@ -89,6 +106,12 @@ func (c *Config) Validate() error {
 	if len(c.KeyBindings) == 0 {
 		return fmt.Errorf("at least one key_binding is required")
 	}
+	if c.MinSpeed <= 0 || c.MinSpeed > 1.0 {
+		return fmt.Errorf("min_speed must be in (0, 1], got %f", c.MinSpeed)
+	}
+	if c.RampSteps < 1 {
+		return fmt.Errorf("ramp_steps must be >= 1, got %d", c.RampSteps)
+	}
 	return nil
 }
 
@@ -100,7 +123,7 @@ type Controller struct {
 
 	mu          sync.RWMutex
 	keyboard    input.Keyboard
-	active_keys map[string]bool
+	active_keys map[string]float64
 	stop_ch     chan struct{}
 	done_ch     chan struct{}
 	running     bool
@@ -136,7 +159,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name:        resource.NewServiceName("gorai", "control", name),
 		config:      cfg,
 		logger:      logger,
-		active_keys: make(map[string]bool),
+		active_keys: make(map[string]float64),
 	}
 
 	if deps != nil {
@@ -184,7 +207,7 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 	c.mu.Lock()
 	c.config = cfg
 	c.keyboard = keyboard
-	c.active_keys = make(map[string]bool)
+	c.active_keys = make(map[string]float64)
 	c.mu.Unlock()
 
 	if err := c.startEventLoop(ctx); err != nil {
@@ -251,9 +274,6 @@ func (c *Controller) eventLoop(events_ch <-chan input.KeyEvent) {
 				c.logger.Error("keyboard event channel closed")
 				return
 			}
-			if event.Repeat {
-				continue
-			}
 			c.processKeyEvent(event)
 		}
 	}
@@ -270,8 +290,16 @@ func (c *Controller) processKeyEvent(event input.KeyEvent) {
 		return
 	}
 
-	if event.Pressed {
-		c.active_keys[normalized_key] = true
+	if event.Pressed && !event.Repeat {
+		c.active_keys[normalized_key] = cfg.MinSpeed
+	} else if event.Pressed && event.Repeat {
+		if current, ok := c.active_keys[normalized_key]; ok {
+			next := current + cfg.StepSize()
+			if next > 1.0 {
+				next = 1.0
+			}
+			c.active_keys[normalized_key] = next
+		}
 	} else {
 		delete(c.active_keys, normalized_key)
 	}
@@ -282,16 +310,16 @@ func (c *Controller) processKeyEvent(event input.KeyEvent) {
 	c.publishVelocity(cmd)
 }
 
-// computeVelocity sums all active key bindings and applies speed_scale.
+// computeVelocity sums all active key bindings weighted by their ramp magnitude.
 // Must be called while holding c.mu (at least RLock).
 func (c *Controller) computeVelocity() VelocityCommand {
 	var vx, vy, omega float64
 
-	for key := range c.active_keys {
+	for key, magnitude := range c.active_keys {
 		if binding, ok := c.config.KeyBindings[key]; ok {
-			vx += binding.VX
-			vy += binding.VY
-			omega += binding.Omega
+			vx += binding.VX * magnitude
+			vy += binding.VY * magnitude
+			omega += binding.Omega * magnitude
 		}
 	}
 
@@ -340,7 +368,7 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		}, nil
 	case "stop":
 		c.mu.Lock()
-		c.active_keys = make(map[string]bool)
+		c.active_keys = make(map[string]float64)
 		c.mu.Unlock()
 		c.publishVelocity(VelocityCommand{})
 		return map[string]any{"success": true}, nil

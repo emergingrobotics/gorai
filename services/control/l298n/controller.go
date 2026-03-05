@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/gorai/gorai/components/pwm"
+	pwm_remote "github.com/gorai/gorai/components/pwm/remote"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
@@ -43,10 +44,32 @@ type motorPowerMessage struct {
 	Power float64 `json:"power"`
 }
 
+// simpleDeps adapts a NATS connection and logger into the registry.Dependencies
+// interface so we can call pwm remote.New() internally.
+type simpleDeps struct {
+	nc     *nats.Conn
+	logger *slog.Logger
+}
+
+func (d *simpleDeps) Get(name string) (any, error) {
+	switch name {
+	case "nats":
+		return d.nc, nil
+	case "logger":
+		return d.logger, nil
+	default:
+		return nil, fmt.Errorf("unknown dependency: %s", name)
+	}
+}
+
+func (d *simpleDeps) GetByType(subtype string) ([]any, error) {
+	return nil, fmt.Errorf("not supported")
+}
+
 type motorBinding struct {
-	def           MotorDef
-	pwm_component pwm.PWM
-	sub           *nats.Subscription
+	def          MotorDef
+	pwm_instance pwm.PWM
+	sub          *nats.Subscription
 }
 
 type Controller struct {
@@ -131,20 +154,14 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 
 	bindings := make(map[string]*motorBinding)
 	for _, motor_def := range cfg.Motors {
-		pwm_name := resource.NewComponentName("gorai", "pwm", motor_def.PWMComponent)
-		pwm_res, err := deps.Get(pwm_name)
+		pwm_inst, err := c.createPWMInstance(ctx, cfg, motor_def)
 		if err != nil {
-			return fmt.Errorf("motor %q: pwm component %q not found: %w",
-				motor_def.Name, motor_def.PWMComponent, err)
-		}
-		pwm_comp, ok := pwm_res.(pwm.PWM)
-		if !ok {
-			return fmt.Errorf("motor %q: component %q is not a PWM",
-				motor_def.Name, motor_def.PWMComponent)
+			return fmt.Errorf("motor %q: failed to create PWM instance: %w",
+				motor_def.Name, err)
 		}
 		bindings[motor_def.Name] = &motorBinding{
-			def:           motor_def,
-			pwm_component: pwm_comp,
+			def:          motor_def,
+			pwm_instance: pwm_inst,
 		}
 	}
 
@@ -163,6 +180,47 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 
 	c.logger.Info("l298n controller reconfigured")
 	return nil
+}
+
+// createPWMInstance builds a remote.RemotePWM internally for a motor's speed pin.
+func (c *Controller) createPWMInstance(ctx context.Context, cfg *Config, motor_def MotorDef) (pwm.PWM, error) {
+	pwm_conf := registry.Config{
+		"name":               fmt.Sprintf("%s_speed", motor_def.Name),
+		"nats_subject_prefix": cfg.NATSSubjectPrefix,
+		"device_id":          cfg.DeviceID,
+		"pin":                float64(motor_def.SpeedPin),
+		"frequency_hz":       float64(50),
+		"min_pulse_us":       float64(1000),
+		"max_pulse_us":       float64(2000),
+		"initial_pulse_us":   float64(1000),
+		"failsafe_pulse_us":  float64(1000),
+		"auto_configure":     true,
+	}
+
+	deps := &simpleDeps{nc: c.nc, logger: c.logger}
+
+	instance, err := pwm_remote.New(ctx, deps, pwm_conf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create PWM for pin %d: %w", motor_def.SpeedPin, err)
+	}
+
+	pwm_comp, ok := instance.(pwm.PWM)
+	if !ok {
+		return nil, fmt.Errorf("PWM instance for pin %d does not implement pwm.PWM", motor_def.SpeedPin)
+	}
+
+	type startable interface {
+		Start(context.Context) error
+	}
+	if s, ok := instance.(startable); ok {
+		if err := s.Start(ctx); err != nil {
+			return nil, fmt.Errorf("failed to start PWM for pin %d: %w", motor_def.SpeedPin, err)
+		}
+	}
+
+	c.logger.Debug("created internal PWM instance",
+		"motor", motor_def.Name, "speed_pin", motor_def.SpeedPin)
+	return pwm_comp, nil
 }
 
 // configureDirectionPins sends GPIO_CONFIG (output mode) for all IN1/IN2 pins
@@ -276,7 +334,7 @@ func (c *Controller) handleMotorCommand(binding *motorBinding, msg *nats.Msg) {
 	normalized := abs_power*2.0 - 1.0
 
 	ctx := context.Background()
-	if err := binding.pwm_component.SetNormalized(ctx, normalized); err != nil {
+	if err := binding.pwm_instance.SetNormalized(ctx, normalized); err != nil {
 		c.logger.Error("failed to set speed",
 			"motor", def.Name, "error", err)
 		return
@@ -312,13 +370,21 @@ func (c *Controller) stopAll() {
 		}
 	}
 
+	ctx := context.Background()
 	if c.running && c.nc != nil {
-		ctx := context.Background()
 		for _, b := range c.bindings {
 			_ = c.setDirectionPinsLocked(b.def, 0, 0)
-			_ = b.pwm_component.SetNormalized(ctx, -1.0)
+			_ = b.pwm_instance.SetNormalized(ctx, -1.0)
 		}
 	}
+
+	for _, b := range c.bindings {
+		if b.pwm_instance != nil {
+			_ = b.pwm_instance.Close(ctx)
+			b.pwm_instance = nil
+		}
+	}
+
 	c.running = false
 }
 
