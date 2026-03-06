@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 
 	"github.com/gorai/gorai/components/motor"
@@ -12,6 +13,10 @@ import (
 	"github.com/gorai/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
 )
+
+func maxAbs3(a, b, c float64) float64 {
+	return math.Max(math.Max(math.Abs(a), math.Abs(b)), math.Abs(c))
+}
 
 func init() {
 	registry.RegisterService("control", "mecanum_controller", New)
@@ -268,16 +273,15 @@ func (c *Controller) handleVelocityCommand(cmd VelocityCommand) {
 		return
 	}
 
-	// Map NATS VelocityCommand fields to standard body frame:
-	//   body vx (forward)  = cmd.VY  (RDL: W/S keys set vy)
-	//   body vy (right)    = cmd.VX  (RDL: A/D keys set vx)
-	ws := InverseKinematics(cmd.VY, cmd.VX, cmd.Omega,
-		cfg.WheelBaseX, cfg.WheelBaseY, cfg.WheelRadius)
+	mix := ComputeWheelMix(cmd.VX, cmd.VY, cmd.Omega, cfg.WheelBaseX, cfg.WheelBaseY)
+	duty := NormalizeSpeeds(mix)
+	speed := maxAbs3(cmd.VX, cmd.VY, cmd.Omega)
+	ws := ScaleWheelSpeeds(duty, speed)
 
 	ctx := context.Background()
 
 	c.logger.Debug("velocity command received",
-		"body_vx", cmd.VY, "body_vy", cmd.VX, "omega", cmd.Omega,
+		"vx", cmd.VX, "vy", cmd.VY, "omega", cmd.Omega,
 		"fl", ws.FL, "fr", ws.FR, "rl", ws.RL, "rr", ws.RR,
 	)
 

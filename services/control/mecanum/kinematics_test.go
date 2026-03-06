@@ -7,103 +7,173 @@ import (
 
 const epsilon = 1e-9
 
-// Standard test parameters (meters).
 const (
 	test_lx = 0.1
 	test_ly = 0.1
-	test_r  = 0.03
 )
 
 func approxEqual(a, b float64) bool {
 	return math.Abs(a-b) < epsilon
 }
 
+// fullPipeline runs ComputeWheelMix -> NormalizeSpeeds -> ScaleWheelSpeeds.
+func fullPipeline(vx, vy, omega, lx, ly float64) WheelSpeeds {
+	mix := ComputeWheelMix(vx, vy, omega, lx, ly)
+	duty := NormalizeSpeeds(mix)
+	speed := math.Max(math.Max(math.Abs(vx), math.Abs(vy)), math.Abs(omega))
+	return ScaleWheelSpeeds(duty, speed)
+}
+
 // Body frame: vx = forward (+), vy = right (+), omega = CCW (+).
 
-func TestForward(t *testing.T) {
-	ws := InverseKinematics(1, 0, 0, test_lx, test_ly, test_r)
+func TestComputeWheelMixForward(t *testing.T) {
+	ws := ComputeWheelMix(1, 0, 0, test_lx, test_ly)
 	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, 1.0) ||
 		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, 1.0) {
 		t.Errorf("forward: FL=%f FR=%f RL=%f RR=%f, expected all 1.0", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestBackward(t *testing.T) {
-	ws := InverseKinematics(-1, 0, 0, test_lx, test_ly, test_r)
-	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, -1.0) ||
-		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, -1.0) {
-		t.Errorf("backward: FL=%f FR=%f RL=%f RR=%f, expected all -1.0", ws.FL, ws.FR, ws.RL, ws.RR)
-	}
-}
-
-func TestStrafeRight(t *testing.T) {
-	ws := InverseKinematics(0, 1, 0, test_lx, test_ly, test_r)
-	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, 1.0) ||
-		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, -1.0) {
+func TestComputeWheelMixStrafeRight(t *testing.T) {
+	ws := ComputeWheelMix(0, 1, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, -1.0) ||
+		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, 1.0) {
 		t.Errorf("strafe right: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestStrafeLeft(t *testing.T) {
-	ws := InverseKinematics(0, -1, 0, test_lx, test_ly, test_r)
-	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, -1.0) ||
-		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, 1.0) {
+func TestComputeWheelMixStrafeLeft(t *testing.T) {
+	ws := ComputeWheelMix(0, -1, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, 1.0) ||
+		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, -1.0) {
 		t.Errorf("strafe left: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestRotateCCW(t *testing.T) {
-	ws := InverseKinematics(0, 0, 1, test_lx, test_ly, test_r)
-	// Pure rotation: raw values are ±k/r which exceed 1.0, so normalization kicks in.
+func TestComputeWheelMixRotateCCW(t *testing.T) {
+	k := test_lx + test_ly
+	ws := ComputeWheelMix(0, 0, 1, test_lx, test_ly)
+	if !approxEqual(ws.FL, -k) || !approxEqual(ws.FR, k) ||
+		!approxEqual(ws.RL, -k) || !approxEqual(ws.RR, k) {
+		t.Errorf("rotate CCW: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestNormalizeSpeedsAlwaysNormalizes(t *testing.T) {
+	ws := NormalizeSpeeds(WheelSpeeds{FL: 0.1, FR: 0.2, RL: 0.15, RR: 0.05})
+	max_abs := math.Max(
+		math.Max(math.Abs(ws.FL), math.Abs(ws.FR)),
+		math.Max(math.Abs(ws.RL), math.Abs(ws.RR)),
+	)
+	if !approxEqual(max_abs, 1.0) {
+		t.Errorf("expected max_abs=1.0 after normalize, got %f", max_abs)
+	}
+	if !approxEqual(ws.FR, 1.0) {
+		t.Errorf("FR should be 1.0 (was max), got %f", ws.FR)
+	}
+}
+
+func TestNormalizeSpeedsZeroInput(t *testing.T) {
+	ws := NormalizeSpeeds(WheelSpeeds{})
+	if ws.FL != 0 || ws.FR != 0 || ws.RL != 0 || ws.RR != 0 {
+		t.Errorf("zero input should give zero output")
+	}
+}
+
+func TestScaleWheelSpeeds(t *testing.T) {
+	ws := ScaleWheelSpeeds(WheelSpeeds{FL: 1, FR: -1, RL: 0, RR: 0.5}, 0.25)
+	if !approxEqual(ws.FL, 0.25) || !approxEqual(ws.FR, -0.25) ||
+		!approxEqual(ws.RL, 0) || !approxEqual(ws.RR, 0.125) {
+		t.Errorf("scale: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestFullPipelineForward(t *testing.T) {
+	ws := fullPipeline(1, 0, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, 1.0) ||
+		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, 1.0) {
+		t.Errorf("forward: FL=%f FR=%f RL=%f RR=%f, expected all 1.0", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestFullPipelineBackward(t *testing.T) {
+	ws := fullPipeline(-1, 0, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, -1.0) ||
+		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, -1.0) {
+		t.Errorf("backward: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestFullPipelineStrafeRight(t *testing.T) {
+	ws := fullPipeline(0, 1, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, -1.0) ||
+		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, 1.0) {
+		t.Errorf("strafe right: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestFullPipelineStrafeLeft(t *testing.T) {
+	ws := fullPipeline(0, -1, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, 1.0) ||
+		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, -1.0) {
+		t.Errorf("strafe left: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestFullPipelineRotateCCW(t *testing.T) {
+	ws := fullPipeline(0, 0, 1, test_lx, test_ly)
 	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, 1.0) ||
 		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, 1.0) {
 		t.Errorf("rotate CCW: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestRotateCW(t *testing.T) {
-	ws := InverseKinematics(0, 0, -1, test_lx, test_ly, test_r)
+func TestFullPipelineRotateCW(t *testing.T) {
+	ws := fullPipeline(0, 0, -1, test_lx, test_ly)
 	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, -1.0) ||
 		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, -1.0) {
 		t.Errorf("rotate CW: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestZeroInput(t *testing.T) {
-	ws := InverseKinematics(0, 0, 0, test_lx, test_ly, test_r)
+func TestFullPipelineZeroInput(t *testing.T) {
+	ws := fullPipeline(0, 0, 0, test_lx, test_ly)
 	if !approxEqual(ws.FL, 0) || !approxEqual(ws.FR, 0) ||
 		!approxEqual(ws.RL, 0) || !approxEqual(ws.RR, 0) {
 		t.Errorf("zero: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestDiagonalForwardRight(t *testing.T) {
-	ws := InverseKinematics(1, 1, 0, test_lx, test_ly, test_r)
-	// vx=1, vy=1 → fl=0, fr=2/r, rl=2/r, rr=0 → normalized: 0, 1, 1, 0
-	if !approxEqual(ws.FL, 0) || !approxEqual(ws.FR, 1.0) ||
-		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, 0) {
+func TestFullPipelineDiagonalForwardRight(t *testing.T) {
+	ws := fullPipeline(1, 1, 0, test_lx, test_ly)
+	// vx=1, vy=1 -> mix fl=2, fr=0, rl=0, rr=2 -> duty fl=1, fr=0, rl=0, rr=1
+	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, 0) ||
+		!approxEqual(ws.RL, 0) || !approxEqual(ws.RR, 1.0) {
 		t.Errorf("diag fwd-right: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestNormalization(t *testing.T) {
-	ws := InverseKinematics(2, 2, 0, test_lx, test_ly, test_r)
-	if math.Abs(ws.FL) > 1.0+epsilon || math.Abs(ws.FR) > 1.0+epsilon ||
-		math.Abs(ws.RL) > 1.0+epsilon || math.Abs(ws.RR) > 1.0+epsilon {
-		t.Errorf("normalization failed: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+func TestFullPipelineSpeedScaling(t *testing.T) {
+	ws := fullPipeline(0.25, 0, 0, test_lx, test_ly)
+	if !approxEqual(ws.FL, 0.25) || !approxEqual(ws.FR, 0.25) ||
+		!approxEqual(ws.RL, 0.25) || !approxEqual(ws.RR, 0.25) {
+		t.Errorf("speed scaling: FL=%f FR=%f RL=%f RR=%f, expected all 0.25", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
+}
+
+func TestFullPipelineRotationSpeedScaling(t *testing.T) {
+	ws := fullPipeline(0, 0, 0.25, test_lx, test_ly)
 	max_abs := math.Max(
 		math.Max(math.Abs(ws.FL), math.Abs(ws.FR)),
 		math.Max(math.Abs(ws.RL), math.Abs(ws.RR)),
 	)
-	if !approxEqual(max_abs, 1.0) {
-		t.Errorf("max_abs=%f, expected 1.0", max_abs)
+	if !approxEqual(max_abs, 0.25) {
+		t.Errorf("rotation at 0.25 should scale to max 0.25, got max_abs=%f", max_abs)
 	}
 }
 
-func TestForwardWithRotation(t *testing.T) {
-	ws := InverseKinematics(1, 0, 0.5, test_lx, test_ly, test_r)
-	// Forward + CCW rotation: FL should be less than FR
+func TestFullPipelineForwardWithRotation(t *testing.T) {
+	ws := fullPipeline(1, 0, 0.5, test_lx, test_ly)
 	if ws.FL >= ws.FR {
 		t.Errorf("forward+CCW: FL=%f should be < FR=%f", ws.FL, ws.FR)
 	}
