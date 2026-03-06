@@ -295,7 +295,7 @@ func (r *RemotePWM) SetPulse(ctx context.Context, pulseUs float64) error {
 	r.current_pulse = pulseUs
 	r.mu.Unlock()
 
-	r.logger.Debug("pulse set", "pin", cfg.Pin, "pulse_us", pulseUs)
+	r.logger.Log(ctx, slog.LevelDebug-4, "pulse set", "pin", cfg.Pin, "pulse_us", pulseUs)
 	return nil
 }
 
@@ -325,7 +325,13 @@ func (r *RemotePWM) SetDuty(ctx context.Context, duty float64) error {
 	period_us := 1_000_000.0 / cfg.FrequencyHz
 	pulseUs := duty * period_us
 
-	return r.SetPulse(ctx, pulseUs)
+	if err := r.SetPulse(ctx, pulseUs); err != nil {
+		return err
+	}
+
+	r.logger.Debug("duty set", "pin", cfg.Pin, "duty", duty,
+		"frequency_hz", cfg.FrequencyHz)
+	return nil
 }
 
 // Enable starts PWM signal generation on the remote device.

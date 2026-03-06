@@ -453,6 +453,110 @@ func TestProcessKeyEventRepeatWithoutPress(t *testing.T) {
 	}
 }
 
+func TestProcessKeyEventDedup(t *testing.T) {
+	cfg := &Config{
+		SpeedScale: 1.0,
+		MinSpeed:   0.5,
+		RampSteps:  2,
+		KeyBindings: map[string]VelocityBinding{
+			"W": {VY: 1.0},
+		},
+	}
+	// step = (1.0 - 0.5) / 2 = 0.25
+
+	publish_count := 0
+	c := &Controller{
+		config:      cfg,
+		active_keys: make(map[string]float64),
+	}
+
+	orig := c.publishVelocity
+	_ = orig
+
+	// We can't easily mock nc.Publish, so we test the dedup state directly.
+	// Simulate the processKeyEvent logic and verify has_published/last_published.
+
+	// Press: min_speed=0.5, velocity = {0, 0.5, 0} — should publish (first time)
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
+	if !c.has_published {
+		t.Fatal("should have published after first press")
+	}
+	if c.last_published.VY != 0.5 {
+		t.Errorf("last_published.VY = %f, want 0.5", c.last_published.VY)
+	}
+	publish_count++
+
+	// Repeat 1: 0.5 + 0.25 = 0.75, velocity changes — should publish
+	prev := c.last_published
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
+	if c.last_published == prev {
+		t.Error("repeat 1 should have changed last_published (velocity changed)")
+	}
+	if c.last_published.VY != 0.75 {
+		t.Errorf("last_published.VY = %f, want 0.75", c.last_published.VY)
+	}
+
+	// Repeat 2: 0.75 + 0.25 = 1.0, velocity changes — should publish
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
+	if c.last_published.VY != 1.0 {
+		t.Errorf("last_published.VY = %f, want 1.0", c.last_published.VY)
+	}
+
+	// Repeat 3+: capped at 1.0, velocity unchanged — should NOT publish
+	snapshot := c.last_published
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
+	if c.last_published != snapshot {
+		t.Error("repeat at max should not update last_published (velocity unchanged)")
+	}
+
+	// More repeats at max — all should be suppressed
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
+	if c.last_published != snapshot {
+		t.Error("repeated max-velocity repeats should all be suppressed")
+	}
+
+	// Release: velocity goes to zero — should publish (different from last)
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: false, Repeat: false})
+	if c.last_published.VY != 0 {
+		t.Errorf("last_published.VY after release = %f, want 0", c.last_published.VY)
+	}
+}
+
+func TestProcessKeyEventDedupResetOnReconfigure(t *testing.T) {
+	cfg := &Config{
+		SpeedScale: 1.0,
+		MinSpeed:   1.0,
+		RampSteps:  1,
+		KeyBindings: map[string]VelocityBinding{
+			"W": {VY: 1.0},
+		},
+	}
+
+	c := &Controller{
+		config:      cfg,
+		active_keys: make(map[string]float64),
+	}
+
+	// Press: sets last_published
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
+	if !c.has_published {
+		t.Fatal("should have published")
+	}
+
+	// Simulate reconfigure clearing dedup state
+	c.mu.Lock()
+	c.active_keys = make(map[string]float64)
+	c.has_published = false
+	c.mu.Unlock()
+
+	// Same press again should now publish (dedup was reset)
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
+	if c.last_published.VY != 1.0 {
+		t.Errorf("after reset, press should publish, got VY=%f", c.last_published.VY)
+	}
+}
+
 func TestComputeVelocityMixedMagnitudes(t *testing.T) {
 	c := &Controller{
 		config: &Config{

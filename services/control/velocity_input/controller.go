@@ -121,12 +121,14 @@ type Controller struct {
 	logger *slog.Logger
 	nc     *nats.Conn
 
-	mu          sync.RWMutex
-	keyboard    input.Keyboard
-	active_keys map[string]float64
-	stop_ch     chan struct{}
-	done_ch     chan struct{}
-	running     bool
+	mu             sync.RWMutex
+	keyboard       input.Keyboard
+	active_keys    map[string]float64
+	last_published VelocityCommand
+	has_published  bool
+	stop_ch        chan struct{}
+	done_ch        chan struct{}
+	running        bool
 }
 
 func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) (any, error) {
@@ -208,6 +210,7 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 	c.config = cfg
 	c.keyboard = keyboard
 	c.active_keys = make(map[string]float64)
+	c.has_published = false
 	c.mu.Unlock()
 
 	if err := c.startEventLoop(ctx); err != nil {
@@ -305,6 +308,13 @@ func (c *Controller) processKeyEvent(event input.KeyEvent) {
 	}
 
 	cmd := c.computeVelocity()
+
+	if c.has_published && cmd == c.last_published {
+		c.mu.Unlock()
+		return
+	}
+	c.last_published = cmd
+	c.has_published = true
 	c.mu.Unlock()
 
 	c.publishVelocity(cmd)

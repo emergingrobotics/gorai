@@ -70,6 +70,11 @@ type motorBinding struct {
 	def          MotorDef
 	pwm_instance pwm.PWM
 	sub          *nats.Subscription
+
+	last_in1  uint8
+	last_in2  uint8
+	last_duty float64
+	has_state bool
 }
 
 type Controller struct {
@@ -221,6 +226,8 @@ func (c *Controller) createPWMInstance(ctx context.Context, cfg *Config, motor_d
 
 	c.logger.Debug("created internal PWM instance",
 		"motor", motor_def.Name, "speed_pin", motor_def.SpeedPin,
+		"in1_pin", motor_def.IN1Pin, "in2_pin", motor_def.IN2Pin,
+		"invert", motor_def.Invert, "brake_on_stop", motor_def.BrakeOnStop,
 		"frequency_hz", cfg.PWMFrequencyHz, "period_us", period_us)
 	return pwm_comp, nil
 }
@@ -318,26 +325,42 @@ func (c *Controller) handleMotorCommand(binding *motorBinding, msg *nats.Msg) {
 		}
 	}
 
-	if err := c.setDirectionPins(def, in1, in2); err != nil {
-		c.logger.Error("failed to set direction",
-			"motor", def.Name, "error", err)
-		return
-	}
-
 	abs_power := power
 	if abs_power < 0 {
 		abs_power = -abs_power
 	}
 
-	ctx := context.Background()
-	if err := binding.pwm_instance.SetDuty(ctx, abs_power); err != nil {
-		c.logger.Error("failed to set speed",
-			"motor", def.Name, "error", err)
+	dir_changed := !binding.has_state || binding.last_in1 != in1 || binding.last_in2 != in2
+	duty_changed := !binding.has_state || binding.last_duty != abs_power
+
+	if !dir_changed && !duty_changed {
 		return
 	}
 
+	if dir_changed {
+		if err := c.setDirectionPins(def, in1, in2); err != nil {
+			c.logger.Error("failed to set direction",
+				"motor", def.Name, "error", err)
+			return
+		}
+	}
+
+	if duty_changed {
+		ctx := context.Background()
+		if err := binding.pwm_instance.SetDuty(ctx, abs_power); err != nil {
+			c.logger.Error("failed to set speed",
+				"motor", def.Name, "error", err)
+			return
+		}
+	}
+
+	binding.last_in1 = in1
+	binding.last_in2 = in2
+	binding.last_duty = abs_power
+	binding.has_state = true
+
 	c.logger.Debug("motor command applied",
-		"motor", def.Name, "power", cmd.Power,
+		"motor", def.Name, "power", cmd.Power, "invert", def.Invert,
 		"in1", in1, "in2", in2, "duty", abs_power)
 }
 

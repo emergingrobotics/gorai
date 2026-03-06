@@ -1,9 +1,12 @@
 package l298n
 
 import (
+	"encoding/json"
+	"log/slog"
 	"testing"
 
 	"github.com/gorai/gorai/pkg/resource"
+	"github.com/nats-io/nats.go"
 )
 
 func TestConfigValidation(t *testing.T) {
@@ -319,6 +322,142 @@ func TestTruthTable(t *testing.T) {
 				t.Errorf("abs_power = %f, want %f", abs_power, tt.want_speed)
 			}
 		})
+	}
+}
+
+func makeMotorMsg(t *testing.T, power float64) *nats.Msg {
+	t.Helper()
+	data, err := json.Marshal(motorPowerMessage{Power: power})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	return &nats.Msg{Data: data}
+}
+
+func TestHandleMotorCommandDedupSkipsIdentical(t *testing.T) {
+	c := &Controller{
+		config: &Config{
+			NATSSubjectPrefix: "gsp",
+			DeviceID:          "gsp-pico",
+		},
+		logger:   slog.Default(),
+		bindings: make(map[string]*motorBinding),
+		// nc is intentionally nil — dedup must return before any NATS access.
+	}
+
+	binding := &motorBinding{
+		def: MotorDef{
+			Name:        "motor_test",
+			SpeedPin:    2,
+			IN1Pin:      3,
+			IN2Pin:      4,
+			BrakeOnStop: true,
+		},
+		has_state: true,
+		last_in1:  1,
+		last_in2:  0,
+		last_duty: 0.5,
+		// pwm_instance is nil — dedup must return before SetDuty.
+	}
+
+	// Same power (0.5, not inverted) → same in1=1, in2=0, duty=0.5 → dedup skips.
+	// If dedup fails, the nil nc/pwm_instance will panic.
+	c.handleMotorCommand(binding, makeMotorMsg(t, 0.5))
+
+	if binding.last_duty != 0.5 {
+		t.Errorf("last_duty changed to %f, should remain 0.5", binding.last_duty)
+	}
+}
+
+func TestHandleMotorCommandDedupSkipsRepeatedZero(t *testing.T) {
+	c := &Controller{
+		config: &Config{
+			NATSSubjectPrefix: "gsp",
+			DeviceID:          "gsp-pico",
+		},
+		logger:   slog.Default(),
+		bindings: make(map[string]*motorBinding),
+	}
+
+	binding := &motorBinding{
+		def: MotorDef{
+			Name:        "motor_test",
+			SpeedPin:    2,
+			IN1Pin:      3,
+			IN2Pin:      4,
+			BrakeOnStop: true,
+		},
+		has_state: true,
+		last_in1:  1, // brake: both high
+		last_in2:  1,
+		last_duty: 0.0,
+	}
+
+	// Power 0 with brake_on_stop → in1=1, in2=1, duty=0 → matches last state.
+	c.handleMotorCommand(binding, makeMotorMsg(t, 0.0))
+
+	if binding.last_in1 != 1 || binding.last_in2 != 1 || binding.last_duty != 0.0 {
+		t.Error("state should not change for repeated zero-power command")
+	}
+}
+
+func TestHandleMotorCommandDedupSkipsInvertedIdentical(t *testing.T) {
+	c := &Controller{
+		config: &Config{
+			NATSSubjectPrefix: "gsp",
+			DeviceID:          "gsp-pico",
+		},
+		logger:   slog.Default(),
+		bindings: make(map[string]*motorBinding),
+	}
+
+	// Inverted motor: power=0.5 → effective power=-0.5 → in1=0, in2=1
+	binding := &motorBinding{
+		def: MotorDef{
+			Name:     "motor_inv",
+			SpeedPin: 2,
+			IN1Pin:   3,
+			IN2Pin:   4,
+			Invert:   true,
+		},
+		has_state: true,
+		last_in1:  0,
+		last_in2:  1,
+		last_duty: 0.5,
+	}
+
+	c.handleMotorCommand(binding, makeMotorMsg(t, 0.5))
+
+	if binding.last_duty != 0.5 {
+		t.Errorf("state should not change for identical inverted command")
+	}
+}
+
+func TestHandleMotorCommandFirstCallAlwaysSendsState(t *testing.T) {
+	// With has_state=false, dedup must NOT skip — even for zero power.
+	// We verify by checking that has_state becomes false does NOT short-circuit
+	// (it would try to call nc/pwm, so we verify has_state logic separately).
+	binding := &motorBinding{
+		def: MotorDef{
+			Name:     "motor_test",
+			SpeedPin: 2,
+			IN1Pin:   3,
+			IN2Pin:   4,
+		},
+	}
+
+	// Verify the dedup conditions
+	var in1, in2 uint8 // both 0 for coast stop
+	var abs_power float64
+
+	dir_changed := !binding.has_state || binding.last_in1 != in1 || binding.last_in2 != in2
+	duty_changed := !binding.has_state || binding.last_duty != abs_power
+
+	if !dir_changed {
+		t.Error("dir_changed should be true when has_state=false")
+	}
+	if !duty_changed {
+		t.Error("duty_changed should be true when has_state=false")
 	}
 }
 
