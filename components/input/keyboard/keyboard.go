@@ -48,6 +48,11 @@ func (s State) String() string {
 	}
 }
 
+type eventSubscriber struct {
+	ch  chan input.KeyEvent
+	ctx context.Context
+}
+
 // Keyboard implements the input.Keyboard interface using Linux evdev.
 type Keyboard struct {
 	name   resource.Name
@@ -74,9 +79,10 @@ type Keyboard struct {
 	stopCh chan struct{}
 	doneCh chan struct{}
 
-	eventCh       chan input.KeyEvent
-	eventChMu     sync.Mutex
-	eventChClosed bool
+	// Fan-out event subscribers
+	subscribers   []*eventSubscriber
+	subscribersMu sync.Mutex
+	closed        bool
 
 	eventsReceived  atomic.Uint64
 	eventsPublished atomic.Uint64
@@ -120,7 +126,6 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		pressedKeys: make(map[uint16]bool),
 		stopCh:      make(chan struct{}),
 		doneCh:      make(chan struct{}),
-		eventCh:     make(chan input.KeyEvent, 100),
 	}
 
 	if err := k.open(); err != nil {
@@ -355,22 +360,23 @@ func (k *Keyboard) updateModifiers(code uint16, pressed bool) {
 	}
 }
 
-// publishEvent sends an event to all subscribers.
+// publishEvent broadcasts an event to all subscriber channels.
 func (k *Keyboard) publishEvent(event input.KeyEvent) {
-	k.eventChMu.Lock()
-	defer k.eventChMu.Unlock()
+	k.subscribersMu.Lock()
+	defer k.subscribersMu.Unlock()
 
-	if k.eventChClosed {
+	if k.closed {
 		return
 	}
 
-	select {
-	case k.eventCh <- event:
-		k.eventsPublished.Add(1)
-	default:
-		// Channel full, drop event
-		k.logger.Warn("event channel full, dropping event", "key", event.Key)
+	for _, sub := range k.subscribers {
+		select {
+		case sub.ch <- event:
+		default:
+			k.logger.Warn("subscriber buffer full, dropping event", "key", event.Key)
+		}
 	}
+	k.eventsPublished.Add(1)
 }
 
 // Name returns the resource name.
@@ -403,8 +409,7 @@ func (k *Keyboard) Reconfigure(ctx context.Context, deps resource.Dependencies, 
 		k.config = cfg
 		k.stopCh = make(chan struct{})
 		k.doneCh = make(chan struct{})
-		k.eventCh = make(chan input.KeyEvent, 100)
-		k.eventChClosed = false
+		k.closed = false
 
 		if err := k.open(); err != nil {
 			return fmt.Errorf("failed to reopen: %w", err)
@@ -455,13 +460,14 @@ func (k *Keyboard) Close(ctx context.Context) error {
 	// Signal stop
 	close(k.stopCh)
 
-	// Close event channel
-	k.eventChMu.Lock()
-	if !k.eventChClosed {
-		k.eventChClosed = true
-		close(k.eventCh)
+	// Close all subscriber channels
+	k.subscribersMu.Lock()
+	k.closed = true
+	for _, sub := range k.subscribers {
+		close(sub.ch)
 	}
-	k.eventChMu.Unlock()
+	k.subscribers = nil
+	k.subscribersMu.Unlock()
 
 	// Wait for event loop to finish
 	select {
@@ -497,7 +503,8 @@ func (k *Keyboard) Close(ctx context.Context) error {
 	return nil
 }
 
-// Events returns a channel of key events.
+// Events returns a new channel of key events for this caller.
+// Each caller gets an independent channel; every event is broadcast to all.
 func (k *Keyboard) Events(ctx context.Context) (<-chan input.KeyEvent, error) {
 	k.mu.RLock()
 	state := k.state
@@ -507,7 +514,40 @@ func (k *Keyboard) Events(ctx context.Context) (<-chan input.KeyEvent, error) {
 		return nil, fmt.Errorf("keyboard not running (state: %s)", state.String())
 	}
 
-	return k.eventCh, nil
+	ch := make(chan input.KeyEvent, 100)
+	sub := &eventSubscriber{ch: ch, ctx: ctx}
+
+	k.subscribersMu.Lock()
+	if k.closed {
+		k.subscribersMu.Unlock()
+		close(ch)
+		return nil, fmt.Errorf("keyboard is closed")
+	}
+	k.subscribers = append(k.subscribers, sub)
+	k.subscribersMu.Unlock()
+
+	go k.watchSubscriberContext(sub)
+	return ch, nil
+}
+
+// watchSubscriberContext removes and closes a subscriber when its context is done.
+func (k *Keyboard) watchSubscriberContext(sub *eventSubscriber) {
+	<-sub.ctx.Done()
+	k.removeSubscriber(sub)
+}
+
+// removeSubscriber unregisters a subscriber and closes its channel.
+func (k *Keyboard) removeSubscriber(sub *eventSubscriber) {
+	k.subscribersMu.Lock()
+	defer k.subscribersMu.Unlock()
+
+	for i, s := range k.subscribers {
+		if s == sub {
+			k.subscribers = append(k.subscribers[:i], k.subscribers[i+1:]...)
+			close(sub.ch)
+			return
+		}
+	}
 }
 
 // IsPressed returns true if the specified key is currently pressed.

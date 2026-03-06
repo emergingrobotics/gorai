@@ -94,6 +94,11 @@ type ModifiersData struct {
 	NumLock  bool `json:"num_lock"`
 }
 
+type eventSubscriber struct {
+	ch  chan input.KeyEvent
+	ctx context.Context
+}
+
 // RemoteKeyboard implements input.Keyboard by subscribing to NATS events.
 type RemoteKeyboard struct {
 	name   resource.Name
@@ -112,10 +117,10 @@ type RemoteKeyboard struct {
 	modifiers     input.Modifiers
 	lastEventTime time.Time
 
-	// Event channel
-	eventCh       chan input.KeyEvent
-	eventChMu     sync.Mutex
-	eventChClosed bool
+	// Fan-out event subscribers
+	subscribers   []*eventSubscriber
+	subscribersMu sync.Mutex
+	closed        bool
 
 	// Statistics
 	eventsReceived atomic.Uint64
@@ -164,7 +169,6 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		logger:       logger.With("component", "remote_keyboard", "name", name),
 		state:        StateClosed,
 		pressedKeys:  make(map[uint16]bool),
-		eventCh:      make(chan input.KeyEvent, cfg.BufferSize),
 		receiveTimes: make([]time.Time, 0, 100),
 		stopCh:       make(chan struct{}),
 		doneCh:       make(chan struct{}),
@@ -318,29 +322,30 @@ func (r *RemoteKeyboard) handleStatusMessage(msg KeyEventMessage) {
 	}
 }
 
-// sendEvent sends an event to the Events() channel, handling overflow.
+// sendEvent broadcasts an event to all subscriber channels.
 func (r *RemoteKeyboard) sendEvent(event input.KeyEvent) {
-	r.eventChMu.Lock()
-	defer r.eventChMu.Unlock()
+	r.subscribersMu.Lock()
+	defer r.subscribersMu.Unlock()
 
-	if r.eventChClosed {
+	if r.closed {
 		return
 	}
 
-	select {
-	case r.eventCh <- event:
-		// Sent successfully
-	default:
-		// Channel full, drop oldest and retry
+	for _, sub := range r.subscribers {
 		select {
-		case <-r.eventCh:
-			r.logger.Debug("dropped oldest event due to buffer overflow")
+		case sub.ch <- event:
 		default:
-		}
-		select {
-		case r.eventCh <- event:
-		default:
-			r.logger.Warn("failed to send event, buffer full")
+			// Buffer full for this subscriber, drop oldest and retry
+			select {
+			case <-sub.ch:
+				r.logger.Debug("dropped oldest event due to subscriber buffer overflow")
+			default:
+			}
+			select {
+			case sub.ch <- event:
+			default:
+				r.logger.Warn("failed to send event to subscriber, buffer full")
+			}
 		}
 	}
 }
@@ -422,16 +427,7 @@ func (r *RemoteKeyboard) releaseAllKeysLocked() {
 			Pressed: false,
 			Repeat:  false,
 		}
-
-		// Send release event (non-blocking, mutex already held)
-		r.eventChMu.Lock()
-		if !r.eventChClosed {
-			select {
-			case r.eventCh <- event:
-			default:
-			}
-		}
-		r.eventChMu.Unlock()
+		r.sendEvent(event)
 	}
 
 	r.pressedKeys = make(map[uint16]bool)
@@ -552,19 +548,21 @@ func (r *RemoteKeyboard) Close(ctx context.Context) error {
 	r.state = StateClosed
 	r.mu.Unlock()
 
-	// Close event channel
-	r.eventChMu.Lock()
-	if !r.eventChClosed {
-		r.eventChClosed = true
-		close(r.eventCh)
+	// Close all subscriber channels
+	r.subscribersMu.Lock()
+	r.closed = true
+	for _, sub := range r.subscribers {
+		close(sub.ch)
 	}
-	r.eventChMu.Unlock()
+	r.subscribers = nil
+	r.subscribersMu.Unlock()
 
 	r.logger.Info("Remote keyboard closed")
 	return nil
 }
 
-// Events returns a channel of key events.
+// Events returns a new channel of key events for this caller.
+// Each caller gets an independent channel; every event is broadcast to all.
 func (r *RemoteKeyboard) Events(ctx context.Context) (<-chan input.KeyEvent, error) {
 	r.mu.RLock()
 	state := r.state
@@ -574,7 +572,40 @@ func (r *RemoteKeyboard) Events(ctx context.Context) (<-chan input.KeyEvent, err
 		return nil, fmt.Errorf("not connected (state: %s)", state.String())
 	}
 
-	return r.eventCh, nil
+	ch := make(chan input.KeyEvent, r.config.BufferSize)
+	sub := &eventSubscriber{ch: ch, ctx: ctx}
+
+	r.subscribersMu.Lock()
+	if r.closed {
+		r.subscribersMu.Unlock()
+		close(ch)
+		return nil, fmt.Errorf("keyboard is closed")
+	}
+	r.subscribers = append(r.subscribers, sub)
+	r.subscribersMu.Unlock()
+
+	go r.watchSubscriberContext(sub)
+	return ch, nil
+}
+
+// watchSubscriberContext removes and closes a subscriber when its context is done.
+func (r *RemoteKeyboard) watchSubscriberContext(sub *eventSubscriber) {
+	<-sub.ctx.Done()
+	r.removeSubscriber(sub)
+}
+
+// removeSubscriber unregisters a subscriber and closes its channel.
+func (r *RemoteKeyboard) removeSubscriber(sub *eventSubscriber) {
+	r.subscribersMu.Lock()
+	defer r.subscribersMu.Unlock()
+
+	for i, s := range r.subscribers {
+		if s == sub {
+			r.subscribers = append(r.subscribers[:i], r.subscribers[i+1:]...)
+			close(sub.ch)
+			return
+		}
+	}
 }
 
 // IsPressed returns true if the specified key is currently pressed.

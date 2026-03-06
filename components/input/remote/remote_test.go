@@ -1,7 +1,9 @@
 package remote
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -289,6 +291,118 @@ func TestAutoReleaseOnDisconnect(t *testing.T) {
 	// Clear pressed keys
 	pressedKeys = make(map[uint16]bool)
 	assert.Equal(t, 0, len(pressedKeys))
+}
+
+func TestFanOutMultipleConsumers(t *testing.T) {
+	cfg := &Config{
+		Topic:            "gorai.test.keyboard.events",
+		BufferSize:       100,
+		StaleThresholdMs: 5000,
+	}
+
+	r := &RemoteKeyboard{
+		name:         resource.NewComponentName("gorai", "input", "test_remote_keyboard"),
+		config:       cfg,
+		logger:       slog.Default(),
+		state:        StateConnected,
+		pressedKeys:  make(map[uint16]bool),
+		receiveTimes: make([]time.Time, 0, 100),
+		stopCh:       make(chan struct{}),
+		doneCh:       make(chan struct{}),
+	}
+
+	go func() {
+		<-r.stopCh
+		close(r.doneCh)
+	}()
+
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+
+	ch1, err := r.Events(ctx1)
+	require.NoError(t, err)
+
+	ch2, err := r.Events(ctx2)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, ch1, ch2, "each caller should get a unique channel")
+
+	event := input.KeyEvent{
+		Key:     "W",
+		Code:    17,
+		Pressed: true,
+	}
+
+	r.sendEvent(event)
+
+	// Both consumers should receive the same event
+	select {
+	case got := <-ch1:
+		assert.Equal(t, event, got)
+	case <-time.After(time.Second):
+		t.Fatal("consumer 1 did not receive event")
+	}
+
+	select {
+	case got := <-ch2:
+		assert.Equal(t, event, got)
+	case <-time.After(time.Second):
+		t.Fatal("consumer 2 did not receive event")
+	}
+}
+
+func TestFanOutContextCleanup(t *testing.T) {
+	cfg := &Config{
+		Topic:            "gorai.test.keyboard.events",
+		BufferSize:       100,
+		StaleThresholdMs: 5000,
+	}
+
+	r := &RemoteKeyboard{
+		name:         resource.NewComponentName("gorai", "input", "test_remote_keyboard"),
+		config:       cfg,
+		logger:       slog.Default(),
+		state:        StateConnected,
+		pressedKeys:  make(map[uint16]bool),
+		receiveTimes: make([]time.Time, 0, 100),
+		stopCh:       make(chan struct{}),
+		doneCh:       make(chan struct{}),
+	}
+
+	go func() {
+		<-r.stopCh
+		close(r.doneCh)
+	}()
+
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+
+	_, err := r.Events(ctx1)
+	require.NoError(t, err)
+
+	_, err = r.Events(ctx2)
+	require.NoError(t, err)
+
+	r.subscribersMu.Lock()
+	assert.Len(t, r.subscribers, 2)
+	r.subscribersMu.Unlock()
+
+	// Cancel first consumer's context
+	cancel1()
+	time.Sleep(50 * time.Millisecond)
+
+	r.subscribersMu.Lock()
+	assert.Len(t, r.subscribers, 1)
+	r.subscribersMu.Unlock()
+
+	// Cleanup
+	cancel2()
+	time.Sleep(50 * time.Millisecond)
+	close(r.stopCh)
+	<-r.doneCh
 }
 
 func TestRateTracking(t *testing.T) {

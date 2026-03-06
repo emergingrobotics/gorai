@@ -141,6 +141,9 @@ func (r *Robot) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
 	}
 
+	// Reset configured devices before provisioning
+	r.resetDevices()
+
 	// Start dashboard if enabled
 	if err := r.startDashboard(ctx); err != nil {
 		r.logger.Warn("Failed to start dashboard", "error", err)
@@ -240,6 +243,41 @@ func (r *Robot) connectNATS(ctx context.Context) error {
 	r.nats = client
 	r.logger.Info("Connected to NATS", "url", natsURL)
 	return nil
+}
+
+// resetDevices sends a GSP/2 RESET command to each configured device
+// that has reset_on_startup enabled. Best-effort: failures are logged
+// but do not block startup.
+func (r *Robot) resetDevices() {
+	if r.nats == nil || len(r.cfg.Devices) == 0 {
+		return
+	}
+
+	reset_count := 0
+	for _, dev := range r.cfg.Devices {
+		if !dev.ResetOnStartup {
+			continue
+		}
+
+		subject := fmt.Sprintf("%s.%s.tx.system.reset", dev.NATSPrefix, dev.ID)
+		payload := []byte(`{"subsystem":0}`)
+
+		if err := r.nats.Publish(subject, payload); err != nil {
+			r.logger.Warn("Failed to send device reset", "device", dev.ID, "subject", subject, "error", err)
+			continue
+		}
+
+		r.logger.Info("Sent device reset", "device", dev.ID, "subject", subject)
+		reset_count++
+	}
+
+	if reset_count > 0 {
+		if err := r.nats.Conn().Flush(); err != nil {
+			r.logger.Warn("Failed to flush NATS after device reset", "error", err)
+		}
+		time.Sleep(500 * time.Millisecond)
+		r.logger.Info("Device reset complete, waiting for devices to enter listening state", "devices_reset", reset_count)
+	}
 }
 
 // startDashboard creates and starts the web dashboard if enabled.

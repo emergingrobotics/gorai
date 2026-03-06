@@ -58,6 +58,11 @@ type Frame struct {
 	Timestamp time.Time
 }
 
+type streamSubscriber struct {
+	ch  chan image.Image
+	ctx context.Context
+}
+
 // RemoteCamera implements camera.Camera by subscribing to NATS frames.
 type RemoteCamera struct {
 	name   resource.Name
@@ -80,10 +85,10 @@ type RemoteCamera struct {
 	frameCount int
 	frameMu    sync.RWMutex
 
-	// Stream channel
-	streamCh     chan image.Image
-	streamChMu   sync.Mutex
-	streamChOpen bool
+	// Fan-out stream subscribers
+	streamSubs   []*streamSubscriber
+	streamSubsMu sync.Mutex
+	streamClosed bool
 
 	// Statistics
 	framesReceived  atomic.Uint64
@@ -134,8 +139,6 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		state:        StateClosed,
 		frames:       make([]Frame, cfg.BufferSize),
 		receiveTimes: make([]time.Time, 0, 100),
-		streamCh:     make(chan image.Image, 5),
-		streamChOpen: true,
 		stopCh:       make(chan struct{}),
 		doneCh:       make(chan struct{}),
 	}
@@ -244,27 +247,26 @@ func (r *RemoteCamera) handleFrame(msg *nats.Msg) {
 	r.sendToStream(msg.Data)
 }
 
-// sendToStream decodes the frame and sends it to the stream channel.
+// sendToStream decodes the frame and broadcasts it to all stream subscribers.
 func (r *RemoteCamera) sendToStream(jpegData []byte) {
-	r.streamChMu.Lock()
-	defer r.streamChMu.Unlock()
+	r.streamSubsMu.Lock()
+	defer r.streamSubsMu.Unlock()
 
-	if !r.streamChOpen {
+	if r.streamClosed || len(r.streamSubs) == 0 {
 		return
 	}
 
-	// Decode JPEG to image
 	img, err := jpeg.Decode(bytes.NewReader(jpegData))
 	if err != nil {
 		r.logger.Debug("failed to decode JPEG frame", "error", err)
 		return
 	}
 
-	// Non-blocking send
-	select {
-	case r.streamCh <- img:
-	default:
-		// Channel full, drop frame
+	for _, sub := range r.streamSubs {
+		select {
+		case sub.ch <- img:
+		default:
+		}
 	}
 }
 
@@ -465,13 +467,14 @@ func (r *RemoteCamera) Close(ctx context.Context) error {
 		r.sub.Unsubscribe()
 	}
 
-	// Close stream channel
-	r.streamChMu.Lock()
-	if r.streamChOpen {
-		r.streamChOpen = false
-		close(r.streamCh)
+	// Close all stream subscriber channels
+	r.streamSubsMu.Lock()
+	r.streamClosed = true
+	for _, sub := range r.streamSubs {
+		close(sub.ch)
 	}
-	r.streamChMu.Unlock()
+	r.streamSubs = nil
+	r.streamSubsMu.Unlock()
 
 	r.mu.Lock()
 	r.state = StateClosed
@@ -500,7 +503,8 @@ func (r *RemoteCamera) Image(ctx context.Context) (image.Image, error) {
 	return jpeg.Decode(bytes.NewReader(frame.Data))
 }
 
-// Stream returns a channel of images for continuous streaming.
+// Stream returns a new channel of images for this caller.
+// Each caller gets an independent channel; every frame is broadcast to all.
 func (r *RemoteCamera) Stream(ctx context.Context) (<-chan image.Image, error) {
 	r.mu.RLock()
 	state := r.state
@@ -510,7 +514,38 @@ func (r *RemoteCamera) Stream(ctx context.Context) (<-chan image.Image, error) {
 		return nil, fmt.Errorf("not connected (state: %s)", state.String())
 	}
 
-	return r.streamCh, nil
+	ch := make(chan image.Image, 5)
+	sub := &streamSubscriber{ch: ch, ctx: ctx}
+
+	r.streamSubsMu.Lock()
+	if r.streamClosed {
+		r.streamSubsMu.Unlock()
+		close(ch)
+		return nil, fmt.Errorf("camera is closed")
+	}
+	r.streamSubs = append(r.streamSubs, sub)
+	r.streamSubsMu.Unlock()
+
+	go r.watchStreamSubscriberContext(sub)
+	return ch, nil
+}
+
+func (r *RemoteCamera) watchStreamSubscriberContext(sub *streamSubscriber) {
+	<-sub.ctx.Done()
+	r.removeStreamSubscriber(sub)
+}
+
+func (r *RemoteCamera) removeStreamSubscriber(sub *streamSubscriber) {
+	r.streamSubsMu.Lock()
+	defer r.streamSubsMu.Unlock()
+
+	for i, s := range r.streamSubs {
+		if s == sub {
+			r.streamSubs = append(r.streamSubs[:i], r.streamSubs[i+1:]...)
+			close(sub.ch)
+			return
+		}
+	}
 }
 
 // Properties returns the camera's properties.

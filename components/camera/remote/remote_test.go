@@ -1,7 +1,12 @@
 package remote
 
 import (
+	"context"
+	"image"
+	"image/color"
+	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/gorai/gorai/pkg/resource"
 	"github.com/stretchr/testify/assert"
@@ -209,4 +214,69 @@ func TestGetLatestFrameEmpty(t *testing.T) {
 	_, err := r.getLatestFrame()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no frames available")
+}
+
+func TestStreamFanOutMultipleConsumers(t *testing.T) {
+	r := &RemoteCamera{
+		config: &Config{
+			Topic:            "gorai.test.camera.data",
+			Width:            640,
+			Height:           480,
+			BufferSize:       10,
+			StaleThresholdMs: 5000,
+		},
+		logger:       slog.Default(),
+		state:        StateConnected,
+		frames:       make([]Frame, 10),
+		receiveTimes: make([]time.Time, 0, 100),
+		stopCh:       make(chan struct{}),
+		doneCh:       make(chan struct{}),
+	}
+
+	go func() {
+		<-r.stopCh
+		close(r.doneCh)
+	}()
+
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+
+	ch1, err := r.Stream(ctx1)
+	require.NoError(t, err)
+
+	ch2, err := r.Stream(ctx2)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, ch1, ch2)
+
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	img.Set(0, 0, color.RGBA{R: 255, G: 0, B: 0, A: 255})
+
+	r.streamSubsMu.Lock()
+	for _, sub := range r.streamSubs {
+		sub.ch <- img
+	}
+	r.streamSubsMu.Unlock()
+
+	select {
+	case got := <-ch1:
+		assert.NotNil(t, got)
+	case <-time.After(time.Second):
+		t.Fatal("consumer 1 did not receive frame")
+	}
+
+	select {
+	case got := <-ch2:
+		assert.NotNil(t, got)
+	case <-time.After(time.Second):
+		t.Fatal("consumer 2 did not receive frame")
+	}
+
+	cancel1()
+	cancel2()
+	time.Sleep(50 * time.Millisecond)
+	close(r.stopCh)
+	<-r.doneCh
 }

@@ -15,6 +15,11 @@ func init() {
 	registry.RegisterComponent("input", "fake_keyboard", New)
 }
 
+type eventSubscriber struct {
+	ch  chan input.KeyEvent
+	ctx context.Context
+}
+
 // FakeKeyboard is a fake keyboard for testing.
 type FakeKeyboard struct {
 	name resource.Name
@@ -22,8 +27,11 @@ type FakeKeyboard struct {
 	mu          sync.RWMutex
 	pressedKeys map[string]bool
 	modifiers   input.Modifiers
-	eventCh     chan input.KeyEvent
-	closed      bool
+
+	// Fan-out event subscribers
+	subscribers   []*eventSubscriber
+	subscribersMu sync.Mutex
+	closed        bool
 
 	// Call tracking for test verification
 	EventsSent []input.KeyEvent
@@ -39,7 +47,6 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	return &FakeKeyboard{
 		name:        resource.NewComponentName("gorai", "input", name),
 		pressedKeys: make(map[string]bool),
-		eventCh:     make(chan input.KeyEvent, 100),
 		EventsSent:  make([]input.KeyEvent, 0),
 	}, nil
 }
@@ -61,19 +68,71 @@ func (f *FakeKeyboard) DoCommand(ctx context.Context, cmd map[string]any) (map[s
 
 // Close releases all resources.
 func (f *FakeKeyboard) Close(ctx context.Context) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	f.subscribersMu.Lock()
+	defer f.subscribersMu.Unlock()
 
 	if !f.closed {
 		f.closed = true
-		close(f.eventCh)
+		for _, sub := range f.subscribers {
+			close(sub.ch)
+		}
+		f.subscribers = nil
 	}
 	return nil
 }
 
-// Events returns a channel of key events.
+// Events returns a new channel of key events for this caller.
+// Each caller gets an independent channel; every event is broadcast to all.
 func (f *FakeKeyboard) Events(ctx context.Context) (<-chan input.KeyEvent, error) {
-	return f.eventCh, nil
+	ch := make(chan input.KeyEvent, 100)
+	sub := &eventSubscriber{ch: ch, ctx: ctx}
+
+	f.subscribersMu.Lock()
+	if f.closed {
+		f.subscribersMu.Unlock()
+		close(ch)
+		return nil, nil
+	}
+	f.subscribers = append(f.subscribers, sub)
+	f.subscribersMu.Unlock()
+
+	go f.watchSubscriberContext(sub)
+	return ch, nil
+}
+
+func (f *FakeKeyboard) watchSubscriberContext(sub *eventSubscriber) {
+	<-sub.ctx.Done()
+	f.removeSubscriber(sub)
+}
+
+func (f *FakeKeyboard) removeSubscriber(sub *eventSubscriber) {
+	f.subscribersMu.Lock()
+	defer f.subscribersMu.Unlock()
+
+	for i, s := range f.subscribers {
+		if s == sub {
+			f.subscribers = append(f.subscribers[:i], f.subscribers[i+1:]...)
+			close(sub.ch)
+			return
+		}
+	}
+}
+
+// broadcastEvent sends an event to all subscriber channels (non-blocking).
+func (f *FakeKeyboard) broadcastEvent(event input.KeyEvent) {
+	f.subscribersMu.Lock()
+	defer f.subscribersMu.Unlock()
+
+	if f.closed {
+		return
+	}
+
+	for _, sub := range f.subscribers {
+		select {
+		case sub.ch <- event:
+		default:
+		}
+	}
 }
 
 // IsPressed returns true if the specified key is currently pressed.
@@ -121,15 +180,9 @@ func (f *FakeKeyboard) SimulateKeyPress(key string) {
 
 	f.mu.Lock()
 	f.EventsSent = append(f.EventsSent, event)
-	closed := f.closed
 	f.mu.Unlock()
 
-	if !closed {
-		select {
-		case f.eventCh <- event:
-		default:
-		}
-	}
+	f.broadcastEvent(event)
 }
 
 // SimulateKeyRelease simulates a key release event.
@@ -151,15 +204,9 @@ func (f *FakeKeyboard) SimulateKeyRelease(key string) {
 
 	f.mu.Lock()
 	f.EventsSent = append(f.EventsSent, event)
-	closed := f.closed
 	f.mu.Unlock()
 
-	if !closed {
-		select {
-		case f.eventCh <- event:
-		default:
-		}
-	}
+	f.broadcastEvent(event)
 }
 
 // SimulateKeyRepeat simulates a key repeat event.
@@ -179,15 +226,9 @@ func (f *FakeKeyboard) SimulateKeyRepeat(key string) {
 
 	f.mu.Lock()
 	f.EventsSent = append(f.EventsSent, event)
-	closed := f.closed
 	f.mu.Unlock()
 
-	if !closed {
-		select {
-		case f.eventCh <- event:
-		default:
-		}
-	}
+	f.broadcastEvent(event)
 }
 
 // SetModifiers sets the modifier state directly.
@@ -202,7 +243,6 @@ func (f *FakeKeyboard) SetModifiers(mods input.Modifiers) {
 func (f *FakeKeyboard) updateModifiers(key string, pressed bool) {
 	switch key {
 	case "LSHIFT", "RSHIFT":
-		// Check if any shift is still pressed
 		f.modifiers.Shift = pressed || f.pressedKeys["LSHIFT"] || f.pressedKeys["RSHIFT"]
 	case "LCTRL", "RCTRL":
 		f.modifiers.Ctrl = pressed || f.pressedKeys["LCTRL"] || f.pressedKeys["RCTRL"]
@@ -223,4 +263,3 @@ func (f *FakeKeyboard) updateModifiers(key string, pressed bool) {
 
 // Verify interface compliance
 var _ input.Keyboard = (*FakeKeyboard)(nil)
-

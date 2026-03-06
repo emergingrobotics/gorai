@@ -21,6 +21,7 @@ type RDL struct {
 	Containers map[string]*ContainerConfig  `json:"containers,omitempty"`
 	Networks   map[string]*NetworkConfig    `json:"networks,omitempty"`
 	Volumes    map[string]*VolumeConfig     `json:"volumes,omitempty"`
+	Devices    []DeviceConfig               `json:"devices,omitempty"`
 	Components []ComponentConfig            `json:"components,omitempty"`
 	Services   []ServiceConfig              `json:"services,omitempty"`
 	Remotes    []RemoteConfig               `json:"remotes,omitempty"`
@@ -100,6 +101,13 @@ type TLSConfig struct {
 	CAFile   string `json:"ca_file,omitempty"`
 	CertFile string `json:"cert_file,omitempty"`
 	KeyFile  string `json:"key_file,omitempty"`
+}
+
+// DeviceConfig defines a physical device attached to the robot.
+type DeviceConfig struct {
+	ID             string `json:"id"`
+	NATSPrefix     string `json:"nats_prefix"`
+	ResetOnStartup bool   `json:"reset_on_startup"`
 }
 
 // ComponentConfig represents a component configuration.
@@ -533,6 +541,21 @@ func (cfg *RDL) Validate() error {
 	// Validate robot name
 	if err := validateName(cfg.Robot.Name); err != nil {
 		errs = append(errs, fmt.Sprintf("robot.name: %v", err))
+	}
+
+	// Validate devices
+	deviceIDs := make(map[string]bool)
+	for i, dev := range cfg.Devices {
+		if dev.ID == "" {
+			errs = append(errs, fmt.Sprintf("devices[%d].id: required", i))
+		}
+		if dev.NATSPrefix == "" {
+			errs = append(errs, fmt.Sprintf("devices[%d].nats_prefix: required", i))
+		}
+		if dev.ID != "" && deviceIDs[dev.ID] {
+			errs = append(errs, fmt.Sprintf("devices[%d].id: duplicate device ID %q", i, dev.ID))
+		}
+		deviceIDs[dev.ID] = true
 	}
 
 	// Validate components
