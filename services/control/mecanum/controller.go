@@ -31,12 +31,14 @@ type Config struct {
 	MotorRRName   string  `json:"motor_rr"`
 	WheelBaseX    float64 `json:"wheel_base_x"`
 	WheelBaseY    float64 `json:"wheel_base_y"`
+	WheelRadius   float64 `json:"wheel_radius"`
 }
 
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	cfg := &Config{
-		WheelBaseX: 0.1,
-		WheelBaseY: 0.075,
+		WheelBaseX:  0.1,
+		WheelBaseY:  0.075,
+		WheelRadius: 0.03,
 	}
 
 	if v, ok := conf.GetString("velocity_topic"); ok {
@@ -60,6 +62,9 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	if v, ok := conf.GetFloat("wheel_base_y"); ok {
 		cfg.WheelBaseY = v
 	}
+	if v, ok := conf.GetFloat("wheel_radius"); ok {
+		cfg.WheelRadius = v
+	}
 
 	return cfg, nil
 }
@@ -74,6 +79,9 @@ func (c *Config) Validate() error {
 	}
 	if c.WheelBaseX <= 0 || c.WheelBaseY <= 0 {
 		return fmt.Errorf("wheel_base_x and wheel_base_y must be positive")
+	}
+	if c.WheelRadius <= 0 {
+		return fmt.Errorf("wheel_radius must be positive (in meters)")
 	}
 	return nil
 }
@@ -260,12 +268,16 @@ func (c *Controller) handleVelocityCommand(cmd VelocityCommand) {
 		return
 	}
 
-	ws := InverseKinematics(cmd.VX, cmd.VY, cmd.Omega, cfg.WheelBaseX, cfg.WheelBaseY)
+	// Map NATS VelocityCommand fields to standard body frame:
+	//   body vx (forward)  = cmd.VY  (RDL: W/S keys set vy)
+	//   body vy (right)    = cmd.VX  (RDL: A/D keys set vx)
+	ws := InverseKinematics(cmd.VY, cmd.VX, cmd.Omega,
+		cfg.WheelBaseX, cfg.WheelBaseY, cfg.WheelRadius)
 
 	ctx := context.Background()
 
 	c.logger.Debug("velocity command received",
-		"vx", cmd.VX, "vy", cmd.VY, "omega", cmd.Omega,
+		"body_vx", cmd.VY, "body_vy", cmd.VX, "omega", cmd.Omega,
 		"fl", ws.FL, "fr", ws.FR, "rl", ws.RL, "rr", ws.RR,
 	)
 

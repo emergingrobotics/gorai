@@ -22,6 +22,7 @@ func TestControllerConfigValidation(t *testing.T) {
 				MotorRRName:   "motor_rr",
 				WheelBaseX:    0.1,
 				WheelBaseY:    0.075,
+				WheelRadius:   0.03,
 			},
 			want_ok: true,
 		},
@@ -34,6 +35,7 @@ func TestControllerConfigValidation(t *testing.T) {
 				MotorRRName: "motor_rr",
 				WheelBaseX:  0.1,
 				WheelBaseY:  0.075,
+				WheelRadius: 0.03,
 			},
 			want_ok: false,
 		},
@@ -47,6 +49,7 @@ func TestControllerConfigValidation(t *testing.T) {
 				MotorRRName:   "motor_rr",
 				WheelBaseX:    0.1,
 				WheelBaseY:    0.075,
+				WheelRadius:   0.03,
 			},
 			want_ok: false,
 		},
@@ -60,6 +63,21 @@ func TestControllerConfigValidation(t *testing.T) {
 				MotorRRName:   "motor_rr",
 				WheelBaseX:    0,
 				WheelBaseY:    0.075,
+				WheelRadius:   0.03,
+			},
+			want_ok: false,
+		},
+		{
+			name: "zero wheel radius",
+			cfg: Config{
+				VelocityTopic: "topic",
+				MotorFLName:   "motor_fl",
+				MotorFRName:   "motor_fr",
+				MotorRLName:   "motor_rl",
+				MotorRRName:   "motor_rr",
+				WheelBaseX:    0.1,
+				WheelBaseY:    0.075,
+				WheelRadius:   0,
 			},
 			want_ok: false,
 		},
@@ -88,6 +106,7 @@ func TestControllerConfigFromResource(t *testing.T) {
 			"motor_rr":       "m_rr",
 			"wheel_base_x":   0.15,
 			"wheel_base_y":   0.1,
+			"wheel_radius":   0.04,
 		},
 	}
 
@@ -117,6 +136,9 @@ func TestControllerConfigFromResource(t *testing.T) {
 	if cfg.WheelBaseY != 0.1 {
 		t.Errorf("WheelBaseY = %f", cfg.WheelBaseY)
 	}
+	if cfg.WheelRadius != 0.04 {
+		t.Errorf("WheelRadius = %f", cfg.WheelRadius)
+	}
 }
 
 func TestControllerConfigDefaults(t *testing.T) {
@@ -140,6 +162,9 @@ func TestControllerConfigDefaults(t *testing.T) {
 	}
 	if cfg.WheelBaseY != 0.075 {
 		t.Errorf("WheelBaseY default = %f, want 0.075", cfg.WheelBaseY)
+	}
+	if cfg.WheelRadius != 0.03 {
+		t.Errorf("WheelRadius default = %f, want 0.03", cfg.WheelRadius)
 	}
 }
 

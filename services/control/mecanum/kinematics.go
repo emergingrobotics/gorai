@@ -10,29 +10,33 @@ type WheelSpeeds struct {
 	RR float64
 }
 
-// InverseKinematics computes individual wheel powers from body-frame velocity.
+// InverseKinematics computes individual wheel powers from body-frame velocity
+// using standard robot body frame convention:
 //
-// Parameters:
-//   - vx: lateral velocity (positive = right)
-//   - vy: forward velocity (positive = forward)
+//   - vx: forward velocity (positive = forward, negative = backward)
+//   - vy: lateral velocity (positive = right, negative = left)
 //   - omega: rotational velocity (positive = counter-clockwise)
-//   - lx: half wheelbase length (front-to-rear center distance / 2)
-//   - ly: half track width (left-to-right center distance / 2)
+//   - lx: half wheelbase length along x-axis (front-to-rear center distance / 2) [m]
+//   - ly: half track width along y-axis (left-to-right center distance / 2) [m]
+//   - r: wheel radius [m]
 //
 // Standard mecanum wheel arrangement (X-configuration):
 //
 //	FL ---- FR
-//	|        |
+//	|   x+   |
+//	| y- ← → y+
+//	|   x-   |
 //	RL ---- RR
 //
 // Returns normalized wheel speeds in [-1.0, 1.0].
-func InverseKinematics(vx, vy, omega, lx, ly float64) WheelSpeeds {
+func InverseKinematics(vx, vy, omega, lx, ly, r float64) WheelSpeeds {
 	k := lx + ly
+	inv_r := 1.0 / r
 
-	fl := vy - vx - k*omega
-	fr := vy + vx + k*omega
-	rl := vy + vx - k*omega
-	rr := vy - vx + k*omega
+	fl := inv_r * (vx - vy - k*omega)
+	fr := inv_r * (vx + vy + k*omega)
+	rl := inv_r * (vx + vy - k*omega)
+	rr := inv_r * (vx - vy + k*omega)
 
 	return normalize(WheelSpeeds{FL: fl, FR: fr, RL: rl, RR: rr})
 }
