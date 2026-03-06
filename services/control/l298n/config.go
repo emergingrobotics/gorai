@@ -21,17 +21,23 @@ type MotorDef struct {
 type Config struct {
 	NATSSubjectPrefix string     `json:"nats_subject_prefix"`
 	DeviceID          string     `json:"device_id"`
+	PWMFrequencyHz    uint32     `json:"pwm_frequency_hz"`
 	Motors            []MotorDef `json:"motors"`
 }
 
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
-	cfg := &Config{}
+	cfg := &Config{
+		PWMFrequencyHz: 5000,
+	}
 
 	if v, ok := conf.GetString("nats_subject_prefix"); ok {
 		cfg.NATSSubjectPrefix = v
 	}
 	if v, ok := conf.GetString("device_id"); ok {
 		cfg.DeviceID = v
+	}
+	if v, ok := conf.GetFloat("pwm_frequency_hz"); ok {
+		cfg.PWMFrequencyHz = uint32(v)
 	}
 
 	motors_raw, ok := conf.Attributes["motors"]
@@ -97,6 +103,9 @@ func (c *Config) Validate() error {
 	if c.DeviceID == "" {
 		return fmt.Errorf("device_id is required")
 	}
+	if c.PWMFrequencyHz == 0 {
+		return fmt.Errorf("pwm_frequency_hz must be positive")
+	}
 	if len(c.Motors) == 0 {
 		return fmt.Errorf("at least one motor definition is required")
 	}
@@ -132,6 +141,11 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// PeriodUs returns the PWM period in microseconds for the configured frequency.
+func (c *Config) PeriodUs() float64 {
+	return 1_000_000.0 / float64(c.PWMFrequencyHz)
 }
 
 func (c *Config) CommandSubject(command_type string) string {

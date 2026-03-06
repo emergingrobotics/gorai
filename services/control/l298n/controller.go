@@ -184,17 +184,18 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 
 // createPWMInstance builds a remote.RemotePWM internally for a motor's speed pin.
 func (c *Controller) createPWMInstance(ctx context.Context, cfg *Config, motor_def MotorDef) (pwm.PWM, error) {
+	period_us := cfg.PeriodUs()
 	pwm_conf := registry.Config{
-		"name":               fmt.Sprintf("%s_speed", motor_def.Name),
+		"name":                fmt.Sprintf("%s_speed", motor_def.Name),
 		"nats_subject_prefix": cfg.NATSSubjectPrefix,
-		"device_id":          cfg.DeviceID,
-		"pin":                float64(motor_def.SpeedPin),
-		"frequency_hz":       float64(50),
-		"min_pulse_us":       float64(1000),
-		"max_pulse_us":       float64(2000),
-		"initial_pulse_us":   float64(1000),
-		"failsafe_pulse_us":  float64(1000),
-		"auto_configure":     true,
+		"device_id":           cfg.DeviceID,
+		"pin":                 float64(motor_def.SpeedPin),
+		"frequency_hz":        float64(cfg.PWMFrequencyHz),
+		"min_pulse_us":        float64(0),
+		"max_pulse_us":        period_us,
+		"initial_pulse_us":    float64(0),
+		"failsafe_pulse_us":   float64(0),
+		"auto_configure":      true,
 	}
 
 	deps := &simpleDeps{nc: c.nc, logger: c.logger}
@@ -219,7 +220,8 @@ func (c *Controller) createPWMInstance(ctx context.Context, cfg *Config, motor_d
 	}
 
 	c.logger.Debug("created internal PWM instance",
-		"motor", motor_def.Name, "speed_pin", motor_def.SpeedPin)
+		"motor", motor_def.Name, "speed_pin", motor_def.SpeedPin,
+		"frequency_hz", cfg.PWMFrequencyHz, "period_us", period_us)
 	return pwm_comp, nil
 }
 
@@ -327,14 +329,8 @@ func (c *Controller) handleMotorCommand(binding *motorBinding, msg *nats.Msg) {
 		abs_power = -abs_power
 	}
 
-	// SetNormalized maps -1..1 to min_pulse..max_pulse.
-	// For L298N ENA/ENB: 0 power -> min_pulse (1000us = stopped),
-	// full power -> max_pulse (2000us = full speed).
-	// We map [0, 1] to [-1, 1] normalized: normalized = abs_power*2 - 1
-	normalized := abs_power*2.0 - 1.0
-
 	ctx := context.Background()
-	if err := binding.pwm_instance.SetNormalized(ctx, normalized); err != nil {
+	if err := binding.pwm_instance.SetDuty(ctx, abs_power); err != nil {
 		c.logger.Error("failed to set speed",
 			"motor", def.Name, "error", err)
 		return
@@ -342,7 +338,7 @@ func (c *Controller) handleMotorCommand(binding *motorBinding, msg *nats.Msg) {
 
 	c.logger.Debug("motor command applied",
 		"motor", def.Name, "power", cmd.Power,
-		"in1", in1, "in2", in2, "normalized_pwm", normalized)
+		"in1", in1, "in2", in2, "duty", abs_power)
 }
 
 func (c *Controller) setDirectionPins(def MotorDef, in1, in2 uint8) error {
@@ -374,7 +370,7 @@ func (c *Controller) stopAll() {
 	if c.running && c.nc != nil {
 		for _, b := range c.bindings {
 			_ = c.setDirectionPinsLocked(b.def, 0, 0)
-			_ = b.pwm_instance.SetNormalized(ctx, -1.0)
+			_ = b.pwm_instance.SetDuty(ctx, 0.0)
 		}
 	}
 

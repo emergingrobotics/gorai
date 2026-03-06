@@ -22,6 +22,7 @@ func TestConfigValidation(t *testing.T) {
 				MinPulseUs:        1000,
 				MaxPulseUs:        2000,
 				InitialPulseUs:    1500,
+				FailsafePulseUs:   -1,
 			},
 			wantErr: false,
 		},
@@ -248,6 +249,7 @@ func TestFailsafePulseUsDefault(t *testing.T) {
 		MinPulseUs:        1000,
 		MaxPulseUs:        2000,
 		InitialPulseUs:    1500,
+		FailsafePulseUs:   -1,
 	}
 
 	if err := cfg.Validate(); err != nil {

@@ -45,11 +45,12 @@ type Config struct {
 // NewConfigFromResource parses a resource.Config into a Config.
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	cfg := &Config{
-		FrequencyHz:    50,
-		MinPulseUs:     1000,
-		MaxPulseUs:     2000,
-		InitialPulseUs: 1500,
-		AutoConfigure:  true,
+		FrequencyHz:     50,
+		MinPulseUs:      1000,
+		MaxPulseUs:      2000,
+		InitialPulseUs:  1500,
+		FailsafePulseUs: -1,
+		AutoConfigure:   true,
 	}
 
 	if val, ok := conf.Attributes["nats_subject_prefix"].(string); ok {
@@ -127,8 +128,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("frequency_hz must be positive, got %f", c.FrequencyHz)
 	}
 
-	if c.MinPulseUs <= 0 {
-		return fmt.Errorf("min_pulse_us must be positive, got %f", c.MinPulseUs)
+	if c.MinPulseUs < 0 {
+		return fmt.Errorf("min_pulse_us must be non-negative, got %f", c.MinPulseUs)
 	}
 
 	if c.MaxPulseUs <= c.MinPulseUs {
@@ -139,8 +140,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("initial_pulse_us (%f) must be within min/max range [%f, %f]", c.InitialPulseUs, c.MinPulseUs, c.MaxPulseUs)
 	}
 
-	// Default failsafe to center of range if not set
-	if c.FailsafePulseUs == 0 {
+	// Default failsafe to center of range if not explicitly set
+	if c.FailsafePulseUs < 0 {
 		c.FailsafePulseUs = (c.MinPulseUs + c.MaxPulseUs) / 2.0
 	}
 

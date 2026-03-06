@@ -17,6 +17,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
+				PWMFrequencyHz:    5000,
 				Motors: []MotorDef{
 					{
 						Name:       "motor_fl",
@@ -34,6 +35,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
+				PWMFrequencyHz:    5000,
 				Motors: []MotorDef{
 					{Name: "fl", MotorTopic: "t.fl", SpeedPin: 2, IN1Pin: 3, IN2Pin: 4},
 					{Name: "fr", MotorTopic: "t.fr", SpeedPin: 10, IN1Pin: 11, IN2Pin: 12},
@@ -129,6 +131,7 @@ func TestConfigValidation(t *testing.T) {
 			cfg: Config{
 				NATSSubjectPrefix: "gsp",
 				DeviceID:          "gsp-pico",
+				PWMFrequencyHz:    5000,
 				Motors: []MotorDef{
 					{
 						Name: "m", MotorTopic: "t", SpeedPin: 2,
