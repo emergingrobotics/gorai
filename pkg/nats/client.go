@@ -35,6 +35,8 @@ type Config struct {
 	ReconnectWait   time.Duration
 	MaxReconnects   int
 	CredentialsFile string
+	NKeyFile        string
+	Token           string
 	TLS             *TLSConfig
 }
 
@@ -97,9 +99,26 @@ func Connect(ctx context.Context, cfg *Config, opts ...Option) (*Client, error) 
 		natsOpts = append(natsOpts, nats.UserCredentials(cfg.CredentialsFile))
 	}
 
+	// Add NKey auth if configured
+	if cfg.NKeyFile != "" {
+		if err := ValidateSeedFilePermissions(cfg.NKeyFile); err != nil {
+			return nil, fmt.Errorf("nkey seed file check: %w", err)
+		}
+		opt, err := nats.NkeyOptionFromSeed(cfg.NKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("loading nkey from %s: %w", cfg.NKeyFile, err)
+		}
+		natsOpts = append(natsOpts, opt)
+	}
+
+	// Add token auth if configured
+	if cfg.Token != "" {
+		natsOpts = append(natsOpts, nats.Token(cfg.Token))
+	}
+
 	// Add TLS if configured
 	if cfg.TLS != nil {
-		tlsConfig, err := buildTLSConfig(cfg.TLS)
+		tlsConfig, err := BuildTLSConfig(cfg.TLS)
 		if err != nil {
 			return nil, fmt.Errorf("failed to configure TLS: %w", err)
 		}
@@ -206,8 +225,21 @@ func (c *Client) Status() nats.Status {
 	return c.conn.Status()
 }
 
-// buildTLSConfig constructs a *tls.Config from the TLS configuration.
-func buildTLSConfig(cfg *TLSConfig) (*tls.Config, error) {
+// ValidateSeedFilePermissions checks that an NKey seed file has restrictive
+// permissions (0600). Returns an error if the file is readable by group or other.
+func ValidateSeedFilePermissions(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode().Perm()&0077 != 0 {
+		return fmt.Errorf("NKey seed file %s has insecure permissions %o (must be 0600)", path, info.Mode().Perm())
+	}
+	return nil
+}
+
+// BuildTLSConfig constructs a *tls.Config from the TLS configuration.
+func BuildTLSConfig(cfg *TLSConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}

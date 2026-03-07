@@ -180,6 +180,72 @@ gorai/
 
 ---
 
+## Security & Authentication
+
+### NATS Authentication Standard
+
+All gorai NATS connections must use **NKeys (Ed25519)** for production deployments. Token authentication is acceptable for localhost-only development. Unauthenticated NATS on any network-exposed port is prohibited.
+
+For detailed NATS authentication methods, key generation, and server configuration, see [gorai-docs/docs/architecture/gorai-nats-auth.md](../gorai-docs/docs/architecture/gorai-nats-auth.md).
+
+#### RDL Auth Configuration
+
+The `nats` block in robot.json supports an `auth` sub-block:
+
+```json
+"nats": {
+  "url": "nats://nats-server:4222",
+  "jetstream": true,
+  "auth": {
+    "method": "nkey",
+    "nkey_file": "/etc/gorai/robot-main.nkey"
+  }
+}
+```
+
+Supported `method` values: `"none"` (default, localhost only), `"token"` (dev only), `"nkey"` (production).
+
+### Dashboard Authentication Standard
+
+HTTP dashboards served by gorai services use **HTTP Basic Auth** with credentials from RDL config. Default bind address is `127.0.0.1`. A warning must be logged if bound to `0.0.0.0` without authentication configured.
+
+```json
+"dashboard": {
+  "listen": "0.0.0.0:8080",
+  "username": "${DASHBOARD_USER}",
+  "password": "${DASHBOARD_PASSWORD}"
+}
+```
+
+When bound to `127.0.0.1`, authentication is optional. WebSocket upgrade requests are subject to the same Basic Auth check.
+
+### Credential Handling
+
+- API keys and passwords via environment variables (`${VAR}` syntax in RDL). Never hardcode.
+- `.env` files with `chmod 600`, owned by the service user.
+- Credentials are never logged, never included in NATS messages, never exposed in mesh metadata.
+
+### Satellite Service Auth Pattern
+
+Satellite repositories (gorai-tasmota, gorai-suntimes, gorai-gogrowatt, etc.) receive their NATS connection from the gorai robot runtime. They do not manage their own NATS credentials. They inherit the `robot-core` NKey permissions of the host robot. They must not create independent NATS connections.
+
+### TLS
+
+TLS is required for any non-localhost NATS or HTTP connection. Optional for localhost. TLS configuration in RDL:
+
+```json
+"nats": {
+  "tls": {
+    "enabled": true,
+    "ca_file": "/etc/gorai/ca.pem",
+    "cert_file": "/etc/gorai/robot-cert.pem",
+    "key_file": "/etc/gorai/robot-key.pem"
+  }
+}
+```
+
+---
+
 ## Key Design Decisions
 
 ### Language Strategy

@@ -86,11 +86,14 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		listen = "127.0.0.1:8080"
 	}
 
+	wsHub := NewWebSocketHub()
+	wsHub.OriginPatterns = AllowedOriginPatterns(listen)
+
 	d := &Dashboard{
 		cfg:      cfg,
 		robotCfg: robotCfg,
 		logger:   slog.Default(),
-		wsHub:    NewWebSocketHub(),
+		wsHub:    wsHub,
 	}
 
 	for _, opt := range opts {
@@ -201,10 +204,11 @@ func (d *Dashboard) Start(ctx context.Context) error {
 	}
 
 	// Warn if binding to all interfaces without authentication
-	if strings.HasPrefix(d.server.Addr, ":") || strings.HasPrefix(d.server.Addr, "0.0.0.0:") {
+	hasAuth := d.cfg != nil && d.cfg.Username != "" && d.cfg.Password != ""
+	if (strings.HasPrefix(d.server.Addr, ":") || strings.HasPrefix(d.server.Addr, "0.0.0.0:")) && !hasAuth {
 		d.logger.Warn("Dashboard is bound to all network interfaces with no authentication",
 			"addr", d.server.Addr,
-			"recommendation", "set listen to 127.0.0.1:<port> or add authentication",
+			"recommendation", "set listen to 127.0.0.1:<port> or configure username/password",
 		)
 	}
 

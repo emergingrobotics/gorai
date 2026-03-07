@@ -245,6 +245,28 @@ func (r *Robot) connectNATS(ctx context.Context) error {
 		MaxReconnects:  -1,
 	}
 
+	// Wire NATS auth config
+	if r.cfg.NATS != nil {
+		if r.cfg.NATS.CredentialsFile != "" {
+			natsCfg.CredentialsFile = r.cfg.NATS.CredentialsFile
+		}
+		if r.cfg.NATS.Auth != nil {
+			switch r.cfg.NATS.Auth.Method {
+			case "nkey":
+				natsCfg.NKeyFile = r.cfg.NATS.Auth.NKeyFile
+			case "token":
+				natsCfg.Token = r.cfg.NATS.Auth.Token
+			}
+		}
+		if r.cfg.NATS.TLS != nil {
+			natsCfg.TLS = &gorainats.TLSConfig{
+				CAFile:   r.cfg.NATS.TLS.CAFile,
+				CertFile: r.cfg.NATS.TLS.CertFile,
+				KeyFile:  r.cfg.NATS.TLS.KeyFile,
+			}
+		}
+	}
+
 	client, err := gorainats.Connect(ctx, natsCfg, gorainats.WithLogger(r.logger))
 	if err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,24 +13,36 @@ import (
 
 const maxWebSocketClients = 100
 
+// AllowedOriginPatterns returns WebSocket origin patterns derived from a listen
+// address. Localhost addresses allow localhost origins; all others allow only the
+// specific address. This prevents Cross-Site WebSocket Hijacking.
+func AllowedOriginPatterns(listenAddr string) []string {
+	if strings.HasPrefix(listenAddr, "127.0.0.1:") || strings.HasPrefix(listenAddr, "localhost:") || strings.HasPrefix(listenAddr, ":") {
+		return []string{"http://127.0.0.1:*", "http://localhost:*"}
+	}
+	return []string{"http://" + listenAddr}
+}
+
 // WebSocketHub manages WebSocket connections for real-time updates.
 type WebSocketHub struct {
-	clients    map[*websocket.Conn]bool
-	mu         sync.RWMutex
-	broadcast  chan []byte
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-	done       chan struct{}
+	clients        map[*websocket.Conn]bool
+	mu             sync.RWMutex
+	broadcast      chan []byte
+	register       chan *websocket.Conn
+	unregister     chan *websocket.Conn
+	done           chan struct{}
+	OriginPatterns []string
 }
 
 // NewWebSocketHub creates a new WebSocket hub.
 func NewWebSocketHub() *WebSocketHub {
 	return &WebSocketHub{
-		clients:    make(map[*websocket.Conn]bool),
-		broadcast:  make(chan []byte, 256),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
-		done:       make(chan struct{}),
+		clients:        make(map[*websocket.Conn]bool),
+		broadcast:      make(chan []byte, 256),
+		register:       make(chan *websocket.Conn),
+		unregister:     make(chan *websocket.Conn),
+		done:           make(chan struct{}),
+		OriginPatterns: []string{"http://127.0.0.1:*", "http://localhost:*"},
 	}
 }
 
@@ -115,7 +128,7 @@ func (h *WebSocketHub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"*"},
+		OriginPatterns: h.OriginPatterns,
 	})
 	if err != nil {
 		return

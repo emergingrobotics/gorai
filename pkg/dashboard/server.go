@@ -32,6 +32,11 @@ func (d *Dashboard) setupRoutes() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 
+	// Add Basic Auth middleware when credentials are configured
+	if d.cfg != nil && d.cfg.Username != "" && d.cfg.Password != "" {
+		r.Use(BasicAuthMiddleware(d.cfg.Username, d.cfg.Password, d.logger))
+	}
+
 	// Static files (embedded)
 	staticFS, err := fs.Sub(static.FS, ".")
 	if err == nil {
@@ -67,6 +72,7 @@ func (d *Dashboard) setupRoutes() {
 		d.robotCfg,
 		d.logger,
 	)
+	cameraHandler.OriginPatterns = d.wsHub.OriginPatterns
 
 	// Camera endpoints
 	r.Route("/cameras", func(r chi.Router) {
@@ -91,6 +97,7 @@ func (d *Dashboard) setupRoutes() {
 		d.robotCfg,
 		d.logger,
 	)
+	modelHandler.OriginPatterns = d.wsHub.OriginPatterns
 
 	// Model endpoints
 	r.Route("/models", func(r chi.Router) {

@@ -20,17 +20,19 @@ type Handler struct {
 	logger   *slog.Logger
 
 	// WebSocket clients for model status
-	wsClients map[*websocket.Conn]bool
-	wsMu      sync.RWMutex
+	wsClients      map[*websocket.Conn]bool
+	wsMu           sync.RWMutex
+	OriginPatterns []string
 }
 
 // NewHandler creates a new model handler.
 func NewHandler(monitor *Monitor, robotCfg *config.RDL, logger *slog.Logger) *Handler {
 	return &Handler{
-		monitor:   monitor,
-		robotCfg:  robotCfg,
-		logger:    logger,
-		wsClients: make(map[*websocket.Conn]bool),
+		monitor:        monitor,
+		robotCfg:       robotCfg,
+		logger:         logger,
+		wsClients:      make(map[*websocket.Conn]bool),
+		OriginPatterns: []string{"http://127.0.0.1:*", "http://localhost:*"},
 	}
 }
 
@@ -257,7 +259,7 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"*"},
+		OriginPatterns: h.OriginPatterns,
 	})
 	if err != nil {
 		h.logger.Warn("WebSocket accept error", "error", err)

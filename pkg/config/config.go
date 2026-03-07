@@ -5,6 +5,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -80,16 +81,24 @@ type PlatformPWMConfig struct {
 	Chips []int `json:"chips,omitempty"`
 }
 
+// AuthConfig defines NATS authentication settings.
+type AuthConfig struct {
+	Method   string `json:"method,omitempty"`    // "none", "token", "nkey"
+	NKeyFile string `json:"nkey_file,omitempty"` // path to NKey seed file
+	Token    string `json:"token,omitempty"`     // token for dev/localhost
+}
+
 // NATSConfig defines the NATS connection configuration.
 type NATSConfig struct {
-	URL             string     `json:"url,omitempty"`
-	URLs            []string   `json:"urls,omitempty"`
-	JetStream       bool       `json:"jetstream,omitempty"`
-	CredentialsFile string     `json:"credentials_file,omitempty"`
-	TLS             *TLSConfig `json:"tls,omitempty"`
-	ConnectTimeout  string     `json:"connect_timeout,omitempty"`
-	ReconnectWait   string     `json:"reconnect_wait,omitempty"`
-	MaxReconnects   int        `json:"max_reconnects,omitempty"`
+	URL             string      `json:"url,omitempty"`
+	URLs            []string    `json:"urls,omitempty"`
+	JetStream       bool        `json:"jetstream,omitempty"`
+	CredentialsFile string      `json:"credentials_file,omitempty"`
+	Auth            *AuthConfig `json:"auth,omitempty"`
+	TLS             *TLSConfig  `json:"tls,omitempty"`
+	ConnectTimeout  string      `json:"connect_timeout,omitempty"`
+	ReconnectWait   string      `json:"reconnect_wait,omitempty"`
+	MaxReconnects   int         `json:"max_reconnects,omitempty"`
 
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
@@ -289,6 +298,8 @@ type LogConfig struct {
 type DashboardConfig struct {
 	Enabled   *bool            `json:"enabled,omitempty"`
 	Listen    string           `json:"listen,omitempty"`
+	Username  string           `json:"username,omitempty"`
+	Password  string           `json:"password,omitempty"`
 	WebSocket *WebSocketConfig `json:"websocket,omitempty"`
 	Video     *VideoConfig     `json:"video,omitempty"`
 }
@@ -601,6 +612,27 @@ func (cfg *RDL) Validate() error {
 		}
 	}
 
+	// Validate auth configuration
+	if cfg.NATS != nil && cfg.NATS.Auth != nil {
+		switch cfg.NATS.Auth.Method {
+		case "", "none":
+			// acceptable
+		case "nkey":
+			if cfg.NATS.Auth.NKeyFile == "" {
+				errs = append(errs, "nats.auth.nkey_file required when method is nkey")
+			}
+		case "token":
+			if cfg.NATS.Auth.Token == "" {
+				errs = append(errs, "nats.auth.token required when method is token")
+			}
+			if cfg.NATS != nil && cfg.NATS.URL != "" && !isLocalhostURL(cfg.NATS.URL) {
+				errs = append(errs, "nats.auth.method token is only allowed for localhost NATS URLs")
+			}
+		default:
+			errs = append(errs, fmt.Sprintf("nats.auth.method: unsupported value %q", cfg.NATS.Auth.Method))
+		}
+	}
+
 	// Check for circular dependencies
 	if err := cfg.checkCircularDependencies(); err != nil {
 		errs = append(errs, err.Error())
@@ -610,6 +642,16 @@ func (cfg *RDL) Validate() error {
 		return fmt.Errorf("validation errors:\n  %s", strings.Join(errs, "\n  "))
 	}
 	return nil
+}
+
+// isLocalhostURL returns true if the URL points to localhost (127.0.0.1 or ::1).
+func isLocalhostURL(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	hostname := parsed.Hostname()
+	return hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1"
 }
 
 // Pre-compiled patterns for name validation.
