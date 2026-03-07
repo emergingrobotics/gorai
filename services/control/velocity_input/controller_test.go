@@ -10,13 +10,19 @@ import (
 
 func validConfig() Config {
 	return Config{
-		KeyboardComponent: "remote_keyboard",
-		VelocityTopic:     "gorai.robot.velocity_input.command",
-		SpeedScale:        0.5,
-		MinSpeed:          0.3,
-		RampSteps:         10,
-		KeyBindings: map[string]VelocityBinding{
-			"I": {VX: 0, VY: 1, Omega: 0},
+		VelocityTopic: "gorai.robot.velocity_input.command",
+		InputType:     "keyboard",
+		Keyboard: KeyboardConfig{
+			InputComponent: "remote_keyboard",
+			SetSpeed:       0.25,
+			KeyBindings: map[string]VelocityBinding{
+				"W": {VX: 1, VY: 0, Omega: 0},
+				"S": {VX: -1, VY: 0, Omega: 0},
+				"A": {VX: 0, VY: 1, Omega: 0},
+				"D": {VX: 0, VY: -1, Omega: 0},
+				"Q": {VX: 0, VY: 0, Omega: -1},
+				"E": {VX: 0, VY: 0, Omega: 1},
+			},
 		},
 	}
 }
@@ -33,122 +39,93 @@ func TestConfigValidation(t *testing.T) {
 			want_ok: true,
 		},
 		{
-			name: "missing keyboard",
+			name: "missing velocity_topic",
+			cfg: Config{
+				InputType: "keyboard",
+				Keyboard: KeyboardConfig{
+					InputComponent: "remote_keyboard",
+					SetSpeed:       0.25,
+					KeyBindings:    map[string]VelocityBinding{"W": {VX: 1}},
+				},
+			},
+			want_ok: false,
+		},
+		{
+			name: "unsupported input_type",
 			cfg: Config{
 				VelocityTopic: "topic",
-				SpeedScale:    1.0,
-				MinSpeed:      0.3,
-				RampSteps:     10,
-				KeyBindings:   map[string]VelocityBinding{"I": {VY: 1}},
+				InputType:     "joystick",
+				Keyboard: KeyboardConfig{
+					InputComponent: "kb",
+					SetSpeed:       0.25,
+					KeyBindings:    map[string]VelocityBinding{"W": {VX: 1}},
+				},
 			},
 			want_ok: false,
 		},
 		{
-			name: "missing topic",
+			name: "missing keyboard input_component",
 			cfg: Config{
-				KeyboardComponent: "kb",
-				SpeedScale:        1.0,
-				MinSpeed:          0.3,
-				RampSteps:         10,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
+				VelocityTopic: "topic",
+				InputType:     "keyboard",
+				Keyboard: KeyboardConfig{
+					SetSpeed:    0.25,
+					KeyBindings: map[string]VelocityBinding{"W": {VX: 1}},
+				},
 			},
 			want_ok: false,
 		},
 		{
-			name: "zero speed scale",
+			name: "no key_bindings",
 			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        0,
-				MinSpeed:          0.3,
-				RampSteps:         10,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
+				VelocityTopic: "topic",
+				InputType:     "keyboard",
+				Keyboard: KeyboardConfig{
+					InputComponent: "kb",
+					SetSpeed:       0.25,
+					KeyBindings:    map[string]VelocityBinding{},
+				},
 			},
 			want_ok: false,
 		},
 		{
-			name: "no bindings",
+			name: "set_speed negative",
 			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          0.3,
-				RampSteps:         10,
-				KeyBindings:       map[string]VelocityBinding{},
+				VelocityTopic: "topic",
+				InputType:     "keyboard",
+				Keyboard: KeyboardConfig{
+					InputComponent: "kb",
+					SetSpeed:       -0.1,
+					KeyBindings:    map[string]VelocityBinding{"W": {VX: 1}},
+				},
 			},
 			want_ok: false,
 		},
 		{
-			name: "min_speed zero",
+			name: "set_speed above 1",
 			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          0,
-				RampSteps:         10,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
+				VelocityTopic: "topic",
+				InputType:     "keyboard",
+				Keyboard: KeyboardConfig{
+					InputComponent: "kb",
+					SetSpeed:       1.1,
+					KeyBindings:    map[string]VelocityBinding{"W": {VX: 1}},
+				},
 			},
 			want_ok: false,
 		},
 		{
-			name: "min_speed negative",
+			name: "set_speed exactly 1",
 			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          -0.1,
-				RampSteps:         10,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
-			},
-			want_ok: false,
-		},
-		{
-			name: "min_speed above 1",
-			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          1.1,
-				RampSteps:         10,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
-			},
-			want_ok: false,
-		},
-		{
-			name: "min_speed exactly 1",
-			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          1.0,
-				RampSteps:         1,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
+				VelocityTopic: "topic",
+				InputType:     "keyboard",
+				Keyboard: KeyboardConfig{
+					InputComponent: "kb",
+					SetSpeed:       1.0,
+					KeyBindings:    map[string]VelocityBinding{"W": {VX: 1}},
+				},
 			},
 			want_ok: true,
-		},
-		{
-			name: "ramp_steps zero",
-			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          0.3,
-				RampSteps:         0,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
-			},
-			want_ok: false,
-		},
-		{
-			name: "ramp_steps negative",
-			cfg: Config{
-				KeyboardComponent: "kb",
-				VelocityTopic:     "topic",
-				SpeedScale:        1.0,
-				MinSpeed:          0.3,
-				RampSteps:         -1,
-				KeyBindings:       map[string]VelocityBinding{"I": {VY: 1}},
-			},
-			want_ok: false,
 		},
 	}
 
@@ -168,18 +145,19 @@ func TestConfigValidation(t *testing.T) {
 func TestConfigFromResource(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
-			"keyboard_component": "remote_keyboard",
-			"velocity_topic":     "gorai.robot.velocity_input.command",
-			"speed_scale":        0.5,
-			"min_speed":          0.4,
-			"ramp_steps":         float64(15),
-			"key_bindings": map[string]any{
-				"i": map[string]any{"vx": 0.0, "vy": 1.0, "omega": 0.0},
-				"k": map[string]any{"vx": 0.0, "vy": -1.0, "omega": 0.0},
-				"j": map[string]any{"vx": -1.0, "vy": 0.0, "omega": 0.0},
-				"l": map[string]any{"vx": 1.0, "vy": 0.0, "omega": 0.0},
-				"u": map[string]any{"vx": 0.0, "vy": 0.0, "omega": -1.0},
-				"o": map[string]any{"vx": 0.0, "vy": 0.0, "omega": 1.0},
+			"velocity_topic": "gorai.robot.velocity_input.command",
+			"input_type":     "keyboard",
+			"keyboard": map[string]any{
+				"input_component": "remote_keyboard",
+				"set_speed":       0.5,
+				"key_bindings": map[string]any{
+					"w": map[string]any{"vx": 1.0, "vy": 0.0, "omega": 0.0},
+					"s": map[string]any{"vx": -1.0, "vy": 0.0, "omega": 0.0},
+					"a": map[string]any{"vx": 0.0, "vy": 1.0, "omega": 0.0},
+					"d": map[string]any{"vx": 0.0, "vy": -1.0, "omega": 0.0},
+					"q": map[string]any{"vx": 0.0, "vy": 0.0, "omega": -1.0},
+					"e": map[string]any{"vx": 0.0, "vy": 0.0, "omega": 1.0},
+				},
 			},
 		},
 	}
@@ -189,45 +167,50 @@ func TestConfigFromResource(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if cfg.KeyboardComponent != "remote_keyboard" {
-		t.Errorf("KeyboardComponent = %q", cfg.KeyboardComponent)
-	}
 	if cfg.VelocityTopic != "gorai.robot.velocity_input.command" {
 		t.Errorf("VelocityTopic = %q", cfg.VelocityTopic)
 	}
-	if cfg.SpeedScale != 0.5 {
-		t.Errorf("SpeedScale = %f", cfg.SpeedScale)
+	if cfg.InputType != "keyboard" {
+		t.Errorf("InputType = %q", cfg.InputType)
 	}
-	if cfg.MinSpeed != 0.4 {
-		t.Errorf("MinSpeed = %f, want 0.4", cfg.MinSpeed)
+	if cfg.Keyboard.InputComponent != "remote_keyboard" {
+		t.Errorf("Keyboard.InputComponent = %q", cfg.Keyboard.InputComponent)
 	}
-	if cfg.RampSteps != 15 {
-		t.Errorf("RampSteps = %d, want 15", cfg.RampSteps)
+	if cfg.Keyboard.SetSpeed != 0.5 {
+		t.Errorf("Keyboard.SetSpeed = %f", cfg.Keyboard.SetSpeed)
 	}
-	if len(cfg.KeyBindings) != 6 {
-		t.Errorf("KeyBindings count = %d, want 6", len(cfg.KeyBindings))
+	if len(cfg.Keyboard.KeyBindings) != 6 {
+		t.Errorf("KeyBindings count = %d, want 6", len(cfg.Keyboard.KeyBindings))
 	}
 
-	if b, ok := cfg.KeyBindings["I"]; !ok {
-		t.Error("expected 'I' binding (uppercase)")
+	if b, ok := cfg.Keyboard.KeyBindings["W"]; !ok {
+		t.Error("expected 'W' binding (uppercase)")
+	} else if b.VX != 1.0 {
+		t.Errorf("W.VX = %f, want 1.0", b.VX)
+	}
+
+	if b, ok := cfg.Keyboard.KeyBindings["A"]; !ok {
+		t.Error("expected 'A' binding")
 	} else if b.VY != 1.0 {
-		t.Errorf("I.VY = %f, want 1.0", b.VY)
+		t.Errorf("A.VY = %f, want 1.0", b.VY)
 	}
 
-	if b, ok := cfg.KeyBindings["U"]; !ok {
-		t.Error("expected 'U' binding")
+	if b, ok := cfg.Keyboard.KeyBindings["Q"]; !ok {
+		t.Error("expected 'Q' binding")
 	} else if b.Omega != -1.0 {
-		t.Errorf("U.Omega = %f, want -1.0", b.Omega)
+		t.Errorf("Q.Omega = %f, want -1.0", b.Omega)
 	}
 }
 
 func TestConfigDefaults(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
-			"keyboard_component": "kb",
-			"velocity_topic":     "topic",
-			"key_bindings": map[string]any{
-				"w": map[string]any{"vy": 1.0},
+			"velocity_topic": "topic",
+			"keyboard": map[string]any{
+				"input_component": "kb",
+				"key_bindings": map[string]any{
+					"w": map[string]any{"vx": 1.0},
+				},
 			},
 		},
 	}
@@ -237,194 +220,143 @@ func TestConfigDefaults(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if cfg.SpeedScale != 1.0 {
-		t.Errorf("SpeedScale default = %f, want 1.0", cfg.SpeedScale)
+	if cfg.InputType != "keyboard" {
+		t.Errorf("InputType default = %q", cfg.InputType)
 	}
-	if cfg.MinSpeed != 0.3 {
-		t.Errorf("MinSpeed default = %f, want 0.3", cfg.MinSpeed)
-	}
-	if cfg.RampSteps != 10 {
-		t.Errorf("RampSteps default = %d, want 10", cfg.RampSteps)
-	}
-}
-
-func TestStepSize(t *testing.T) {
-	cfg := &Config{MinSpeed: 0.3, RampSteps: 10}
-	expected := (1.0 - 0.3) / 10.0
-	if math.Abs(cfg.StepSize()-expected) > 1e-9 {
-		t.Errorf("StepSize = %f, want %f", cfg.StepSize(), expected)
-	}
-
-	cfg2 := &Config{MinSpeed: 1.0, RampSteps: 5}
-	if cfg2.StepSize() != 0 {
-		t.Errorf("StepSize with MinSpeed=1.0 should be 0, got %f", cfg2.StepSize())
-	}
-
-	cfg3 := &Config{MinSpeed: 0.5, RampSteps: 0}
-	if cfg3.StepSize() != 0 {
-		t.Errorf("StepSize with RampSteps=0 should be 0, got %f", cfg3.StepSize())
+	if cfg.Keyboard.SetSpeed != 0.25 {
+		t.Errorf("Keyboard.SetSpeed default = %f, want 0.25", cfg.Keyboard.SetSpeed)
 	}
 }
 
 func TestComputeVelocity(t *testing.T) {
 	c := &Controller{
 		config: &Config{
-			SpeedScale: 0.5,
-			MinSpeed:   0.3,
-			RampSteps:  10,
-			KeyBindings: map[string]VelocityBinding{
-				"I": {VX: 0, VY: 1.0, Omega: 0},
-				"K": {VX: 0, VY: -1.0, Omega: 0},
-				"J": {VX: -1.0, VY: 0, Omega: 0},
-				"L": {VX: 1.0, VY: 0, Omega: 0},
-				"U": {VX: 0, VY: 0, Omega: -1.0},
-				"O": {VX: 0, VY: 0, Omega: 1.0},
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.5,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+					"S": {VX: -1, VY: 0, Omega: 0},
+					"A": {VX: 0, VY: 1, Omega: 0},
+					"D": {VX: 0, VY: -1, Omega: 0},
+					"Q": {VX: 0, VY: 0, Omega: -1},
+					"E": {VX: 0, VY: 0, Omega: 1},
+				},
 			},
 		},
-		active_keys: make(map[string]float64),
+		active_keys: make(map[string]struct{}),
 	}
 
 	cmd := c.computeVelocity()
-	if cmd.VX != 0 || cmd.VY != 0 || cmd.Omega != 0 {
-		t.Errorf("zero: vx=%f vy=%f omega=%f", cmd.VX, cmd.VY, cmd.Omega)
+	if cmd.VX != 0 || cmd.VY != 0 || cmd.Omega != 0 || cmd.SetSpeed != 0 {
+		t.Errorf("zero: vx=%f vy=%f omega=%f set_speed=%f", cmd.VX, cmd.VY, cmd.Omega, cmd.SetSpeed)
 	}
 
-	// Forward key at full magnitude
-	c.active_keys["I"] = 1.0
+	// Single key: forward
+	c.active_keys["W"] = struct{}{}
 	cmd = c.computeVelocity()
-	if cmd.VY != 0.5 {
-		t.Errorf("forward full: vy=%f, want 0.5", cmd.VY)
-	}
-	if cmd.VX != 0 || cmd.Omega != 0 {
-		t.Errorf("forward full: vx=%f omega=%f, want both 0", cmd.VX, cmd.Omega)
+	if cmd.VX != 1.0 || cmd.VY != 0 || cmd.Omega != 0 || cmd.SetSpeed != 0.5 {
+		t.Errorf("forward: vx=%f vy=%f omega=%f set_speed=%f, want 1,0,0,0.5", cmd.VX, cmd.VY, cmd.Omega, cmd.SetSpeed)
 	}
 
-	// Forward key at min_speed magnitude
-	c.active_keys = make(map[string]float64)
-	c.active_keys["I"] = 0.3
+	// Two keys: diagonal
+	c.active_keys = make(map[string]struct{})
+	c.active_keys["W"] = struct{}{}
+	c.active_keys["D"] = struct{}{}
 	cmd = c.computeVelocity()
-	if math.Abs(cmd.VY-0.15) > 1e-9 {
-		t.Errorf("forward min: vy=%f, want 0.15", cmd.VY)
-	}
-
-	// Forward + strafe right both at full magnitude
-	c.active_keys["I"] = 1.0
-	c.active_keys["L"] = 1.0
-	cmd = c.computeVelocity()
-	if cmd.VX != 0.5 || cmd.VY != 0.5 {
-		t.Errorf("fwd+right: vx=%f vy=%f, want both 0.5", cmd.VX, cmd.VY)
-	}
-
-	// Forward + strafe right + rotate
-	c.active_keys["O"] = 1.0
-	cmd = c.computeVelocity()
-	if cmd.Omega != 0.5 {
-		t.Errorf("fwd+right+rot: omega=%f, want 0.5", cmd.Omega)
+	inv_sqrt2 := 1.0 / math.Sqrt(2)
+	if math.Abs(cmd.VX-inv_sqrt2) > 1e-9 || math.Abs(cmd.VY+inv_sqrt2) > 1e-9 ||
+		cmd.Omega != 0 || cmd.SetSpeed != 0.5 {
+		t.Errorf("diagonal: vx=%f vy=%f omega=%f set_speed=%f, want vx=vy~=0.707", cmd.VX, cmd.VY, cmd.Omega, cmd.SetSpeed)
 	}
 
 	// Release all
-	c.active_keys = make(map[string]float64)
+	c.active_keys = make(map[string]struct{})
 	cmd = c.computeVelocity()
-	if cmd.VX != 0 || cmd.VY != 0 || cmd.Omega != 0 {
-		t.Errorf("released: vx=%f vy=%f omega=%f, want all 0", cmd.VX, cmd.VY, cmd.Omega)
+	if cmd.VX != 0 || cmd.VY != 0 || cmd.Omega != 0 || cmd.SetSpeed != 0 {
+		t.Errorf("released: vx=%f vy=%f omega=%f set_speed=%f", cmd.VX, cmd.VY, cmd.Omega, cmd.SetSpeed)
 	}
 }
 
 func TestComputeVelocityOpposingKeys(t *testing.T) {
 	c := &Controller{
 		config: &Config{
-			SpeedScale: 1.0,
-			MinSpeed:   0.3,
-			RampSteps:  10,
-			KeyBindings: map[string]VelocityBinding{
-				"I": {VY: 1.0},
-				"K": {VY: -1.0},
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.25,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+					"S": {VX: -1, VY: 0, Omega: 0},
+				},
 			},
 		},
-		active_keys: make(map[string]float64),
+		active_keys: make(map[string]struct{}),
 	}
 
-	// Both at same magnitude -> cancel out
-	c.active_keys["I"] = 0.5
-	c.active_keys["K"] = 0.5
+	c.active_keys["W"] = struct{}{}
+	c.active_keys["S"] = struct{}{}
 	cmd := c.computeVelocity()
-	if cmd.VY != 0 {
-		t.Errorf("opposing keys: vy=%f, want 0", cmd.VY)
+	if cmd.VX != 0 || cmd.VY != 0 || cmd.Omega != 0 {
+		t.Errorf("opposing keys: vx=%f vy=%f omega=%f, want 0,0,0", cmd.VX, cmd.VY, cmd.Omega)
+	}
+	if cmd.SetSpeed != 0.25 {
+		t.Errorf("opposing keys: set_speed=%f, want 0.25 (keys still active)", cmd.SetSpeed)
 	}
 }
 
-func TestProcessKeyEventRamp(t *testing.T) {
-	cfg := &Config{
-		SpeedScale: 1.0,
-		MinSpeed:   0.2,
-		RampSteps:  4,
-		KeyBindings: map[string]VelocityBinding{
-			"W": {VY: 1.0},
-		},
-	}
-	step := cfg.StepSize() // (1.0 - 0.2) / 4 = 0.2
-
+func TestProcessKeyEvent(t *testing.T) {
 	c := &Controller{
-		config:      cfg,
-		active_keys: make(map[string]float64),
+		config: &Config{
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.5,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+				},
+			},
+		},
+		active_keys: make(map[string]struct{}),
 	}
 
-	// Press: should set to min_speed
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
-	if mag, ok := c.active_keys["W"]; !ok {
-		t.Fatal("W should be in active_keys after press")
-	} else if math.Abs(mag-0.2) > 1e-9 {
-		t.Errorf("press: magnitude=%f, want 0.2", mag)
+	if _, ok := c.active_keys["W"]; !ok {
+		t.Error("W should be in active_keys after press")
 	}
 
-	// Repeat 1: 0.2 + 0.2 = 0.4
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if mag := c.active_keys["W"]; math.Abs(mag-0.2-step) > 1e-9 {
-		t.Errorf("repeat 1: magnitude=%f, want %f", mag, 0.2+step)
-	}
-
-	// Repeat 2: 0.4 + 0.2 = 0.6
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if mag := c.active_keys["W"]; math.Abs(mag-0.6) > 1e-9 {
-		t.Errorf("repeat 2: magnitude=%f, want 0.6", mag)
-	}
-
-	// Repeat 3: 0.6 + 0.2 = 0.8
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if mag := c.active_keys["W"]; math.Abs(mag-0.8) > 1e-9 {
-		t.Errorf("repeat 3: magnitude=%f, want 0.8", mag)
-	}
-
-	// Repeat 4: 0.8 + 0.2 = 1.0
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if mag := c.active_keys["W"]; math.Abs(mag-1.0) > 1e-9 {
-		t.Errorf("repeat 4: magnitude=%f, want 1.0", mag)
-	}
-
-	// Extra repeats should stay capped at 1.0
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if mag := c.active_keys["W"]; mag != 1.0 {
-		t.Errorf("repeat overflow: magnitude=%f, want 1.0", mag)
-	}
-
-	// Release: should remove from active_keys
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: false, Repeat: false})
 	if _, ok := c.active_keys["W"]; ok {
 		t.Error("W should be removed from active_keys after release")
 	}
 }
 
+func TestProcessKeyEventRepeatAddsKey(t *testing.T) {
+	c := &Controller{
+		config: &Config{
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.5,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+				},
+			},
+		},
+		active_keys: make(map[string]struct{}),
+	}
+
+	// Repeat event (key held) adds key to active set
+	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
+	if _, ok := c.active_keys["W"]; !ok {
+		t.Error("repeat with Pressed=true should add W to active_keys")
+	}
+}
+
 func TestProcessKeyEventUnboundKeyIgnored(t *testing.T) {
 	c := &Controller{
 		config: &Config{
-			SpeedScale: 1.0,
-			MinSpeed:   0.3,
-			RampSteps:  10,
-			KeyBindings: map[string]VelocityBinding{
-				"W": {VY: 1.0},
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.5,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+				},
 			},
 		},
-		active_keys: make(map[string]float64),
+		active_keys: make(map[string]struct{}),
 	}
 
 	c.processKeyEvent(input.KeyEvent{Key: "x", Pressed: true, Repeat: false})
@@ -433,152 +365,95 @@ func TestProcessKeyEventUnboundKeyIgnored(t *testing.T) {
 	}
 }
 
-func TestProcessKeyEventRepeatWithoutPress(t *testing.T) {
+func TestProcessKeyEventDedup(t *testing.T) {
 	c := &Controller{
 		config: &Config{
-			SpeedScale: 1.0,
-			MinSpeed:   0.3,
-			RampSteps:  10,
-			KeyBindings: map[string]VelocityBinding{
-				"W": {VY: 1.0},
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.5,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+				},
 			},
 		},
-		active_keys: make(map[string]float64),
+		active_keys: make(map[string]struct{}),
 	}
 
-	// Repeat for a key that was never pressed should be a no-op
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if _, ok := c.active_keys["W"]; ok {
-		t.Error("repeat without prior press should not add key to active_keys")
-	}
-}
-
-func TestProcessKeyEventDedup(t *testing.T) {
-	cfg := &Config{
-		SpeedScale: 1.0,
-		MinSpeed:   0.5,
-		RampSteps:  2,
-		KeyBindings: map[string]VelocityBinding{
-			"W": {VY: 1.0},
-		},
-	}
-	// step = (1.0 - 0.5) / 2 = 0.25
-
-	publish_count := 0
-	c := &Controller{
-		config:      cfg,
-		active_keys: make(map[string]float64),
-	}
-
-	orig := c.publishVelocity
-	_ = orig
-
-	// We can't easily mock nc.Publish, so we test the dedup state directly.
-	// Simulate the processKeyEvent logic and verify has_published/last_published.
-
-	// Press: min_speed=0.5, velocity = {0, 0.5, 0} — should publish (first time)
+	// Press: first publish
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
 	if !c.has_published {
 		t.Fatal("should have published after first press")
 	}
-	if c.last_published.VY != 0.5 {
-		t.Errorf("last_published.VY = %f, want 0.5", c.last_published.VY)
+	if c.last_published.VX != 1.0 || c.last_published.SetSpeed != 0.5 {
+		t.Errorf("last_published = vx=%f set_speed=%f", c.last_published.VX, c.last_published.SetSpeed)
 	}
-	publish_count++
 
-	// Repeat 1: 0.5 + 0.25 = 0.75, velocity changes — should publish
+	// Repeat: same cmd, no publish (dedup)
 	prev := c.last_published
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if c.last_published == prev {
-		t.Error("repeat 1 should have changed last_published (velocity changed)")
-	}
-	if c.last_published.VY != 0.75 {
-		t.Errorf("last_published.VY = %f, want 0.75", c.last_published.VY)
+	if c.last_published != prev {
+		t.Error("repeat with same velocity should not change last_published (dedup)")
 	}
 
-	// Repeat 2: 0.75 + 0.25 = 1.0, velocity changes — should publish
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if c.last_published.VY != 1.0 {
-		t.Errorf("last_published.VY = %f, want 1.0", c.last_published.VY)
-	}
-
-	// Repeat 3+: capped at 1.0, velocity unchanged — should NOT publish
-	snapshot := c.last_published
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if c.last_published != snapshot {
-		t.Error("repeat at max should not update last_published (velocity unchanged)")
-	}
-
-	// More repeats at max — all should be suppressed
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: true})
-	if c.last_published != snapshot {
-		t.Error("repeated max-velocity repeats should all be suppressed")
-	}
-
-	// Release: velocity goes to zero — should publish (different from last)
+	// Release: different cmd, publish
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: false, Repeat: false})
-	if c.last_published.VY != 0 {
-		t.Errorf("last_published.VY after release = %f, want 0", c.last_published.VY)
+	if c.last_published.VX != 0 || c.last_published.SetSpeed != 0 {
+		t.Errorf("after release: vx=%f set_speed=%f, want 0,0", c.last_published.VX, c.last_published.SetSpeed)
 	}
 }
 
 func TestProcessKeyEventDedupResetOnReconfigure(t *testing.T) {
-	cfg := &Config{
-		SpeedScale: 1.0,
-		MinSpeed:   1.0,
-		RampSteps:  1,
-		KeyBindings: map[string]VelocityBinding{
-			"W": {VY: 1.0},
-		},
-	}
-
 	c := &Controller{
-		config:      cfg,
-		active_keys: make(map[string]float64),
+		config: &Config{
+			Keyboard: KeyboardConfig{
+				SetSpeed: 1.0,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+				},
+			},
+		},
+		active_keys: make(map[string]struct{}),
 	}
 
-	// Press: sets last_published
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
 	if !c.has_published {
 		t.Fatal("should have published")
 	}
 
-	// Simulate reconfigure clearing dedup state
 	c.mu.Lock()
-	c.active_keys = make(map[string]float64)
+	c.active_keys = make(map[string]struct{})
 	c.has_published = false
 	c.mu.Unlock()
 
-	// Same press again should now publish (dedup was reset)
+	c.active_keys["W"] = struct{}{}
 	c.processKeyEvent(input.KeyEvent{Key: "w", Pressed: true, Repeat: false})
-	if c.last_published.VY != 1.0 {
-		t.Errorf("after reset, press should publish, got VY=%f", c.last_published.VY)
+	if c.last_published.VX != 1.0 {
+		t.Errorf("after reset, press should publish, got VX=%f", c.last_published.VX)
 	}
 }
 
-func TestComputeVelocityMixedMagnitudes(t *testing.T) {
+func TestComputeVelocityNormalizedDirection(t *testing.T) {
 	c := &Controller{
 		config: &Config{
-			SpeedScale: 1.0,
-			MinSpeed:   0.3,
-			RampSteps:  10,
-			KeyBindings: map[string]VelocityBinding{
-				"W": {VY: 1.0},
-				"D": {VX: 1.0},
+			Keyboard: KeyboardConfig{
+				SetSpeed: 0.5,
+				KeyBindings: map[string]VelocityBinding{
+					"W": {VX: 1, VY: 0, Omega: 0},
+					"D": {VX: 0, VY: -1, Omega: 0},
+				},
 			},
 		},
-		active_keys: make(map[string]float64),
+		active_keys: make(map[string]struct{}),
 	}
 
-	// W at min_speed, D at full
-	c.active_keys["W"] = 0.3
-	c.active_keys["D"] = 1.0
+	c.active_keys["W"] = struct{}{}
+	c.active_keys["D"] = struct{}{}
 	cmd := c.computeVelocity()
-	if math.Abs(cmd.VY-0.3) > 1e-9 {
-		t.Errorf("mixed: vy=%f, want 0.3", cmd.VY)
+
+	mag := math.Sqrt(cmd.VX*cmd.VX + cmd.VY*cmd.VY + cmd.Omega*cmd.Omega)
+	if math.Abs(mag-1.0) > 1e-9 {
+		t.Errorf("direction magnitude = %f, want 1.0 (normalized)", mag)
 	}
-	if math.Abs(cmd.VX-1.0) > 1e-9 {
-		t.Errorf("mixed: vx=%f, want 1.0", cmd.VX)
+	if cmd.SetSpeed != 0.5 {
+		t.Errorf("set_speed = %f, want 0.5", cmd.SetSpeed)
 	}
 }

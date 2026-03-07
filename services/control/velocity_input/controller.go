@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"strings"
 	"sync"
 
@@ -25,53 +26,58 @@ type VelocityBinding struct {
 }
 
 type VelocityCommand struct {
-	VX    float64 `json:"vx"`
-	VY    float64 `json:"vy"`
-	Omega float64 `json:"omega"`
+	VX       float64 `json:"vx"`
+	VY       float64 `json:"vy"`
+	Omega    float64 `json:"omega"`
+	SetSpeed float64 `json:"set_speed,omitempty"`
+}
+
+// KeyboardConfig holds keyboard-specific input config.
+type KeyboardConfig struct {
+	InputComponent string                     `json:"input_component"`
+	SetSpeed       float64                    `json:"set_speed"`
+	KeyBindings   map[string]VelocityBinding `json:"key_bindings"`
 }
 
 type Config struct {
-	KeyboardComponent string                     `json:"keyboard_component"`
-	VelocityTopic     string                     `json:"velocity_topic"`
-	SpeedScale        float64                    `json:"speed_scale"`
-	MinSpeed          float64                    `json:"min_speed"`
-	RampSteps         int                        `json:"ramp_steps"`
-	KeyBindings       map[string]VelocityBinding `json:"key_bindings"`
-}
-
-func (c *Config) StepSize() float64 {
-	if c.RampSteps <= 0 {
-		return 0
-	}
-	return (1.0 - c.MinSpeed) / float64(c.RampSteps)
+	VelocityTopic string         `json:"velocity_topic"`
+	InputType     string         `json:"input_type"`
+	Keyboard      KeyboardConfig `json:"keyboard"`
 }
 
 func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	cfg := &Config{
-		SpeedScale:  1.0,
-		MinSpeed:    0.3,
-		RampSteps:   10,
-		KeyBindings: make(map[string]VelocityBinding),
+		InputType: "keyboard",
+		Keyboard: KeyboardConfig{
+			SetSpeed:    0.25,
+			KeyBindings: make(map[string]VelocityBinding),
+		},
 	}
 
-	if v, ok := conf.GetString("keyboard_component"); ok {
-		cfg.KeyboardComponent = v
-	}
 	if v, ok := conf.GetString("velocity_topic"); ok {
 		cfg.VelocityTopic = v
 	}
-	if v, ok := conf.GetFloat("speed_scale"); ok {
-		cfg.SpeedScale = v
-	}
-	if v, ok := conf.GetFloat("min_speed"); ok {
-		cfg.MinSpeed = v
-	}
-	if v, ok := conf.GetFloat("ramp_steps"); ok {
-		cfg.RampSteps = int(v)
+	if v, ok := conf.GetString("input_type"); ok {
+		cfg.InputType = v
 	}
 
-	if v, ok := conf.Get("key_bindings"); ok {
-		if bindings_map, ok := v.(map[string]any); ok {
+	keyboard_raw, ok := conf.Get("keyboard")
+	if !ok {
+		return cfg, nil
+	}
+	keyboard_map, ok := keyboard_raw.(map[string]any)
+	if !ok {
+		return cfg, nil
+	}
+
+	if v, ok := keyboard_map["input_component"].(string); ok {
+		cfg.Keyboard.InputComponent = v
+	}
+	if v, ok := keyboard_map["set_speed"].(float64); ok {
+		cfg.Keyboard.SetSpeed = v
+	}
+	if bindings_raw, ok := keyboard_map["key_bindings"]; ok {
+		if bindings_map, ok := bindings_raw.(map[string]any); ok {
 			for key, val := range bindings_map {
 				if binding_map, ok := val.(map[string]any); ok {
 					binding := VelocityBinding{}
@@ -84,7 +90,7 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 					if omega, ok := binding_map["omega"].(float64); ok {
 						binding.Omega = omega
 					}
-					cfg.KeyBindings[strings.ToUpper(key)] = binding
+					cfg.Keyboard.KeyBindings[strings.ToUpper(key)] = binding
 				}
 			}
 		}
@@ -94,23 +100,20 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 }
 
 func (c *Config) Validate() error {
-	if c.KeyboardComponent == "" {
-		return fmt.Errorf("keyboard_component is required")
-	}
 	if c.VelocityTopic == "" {
 		return fmt.Errorf("velocity_topic is required")
 	}
-	if c.SpeedScale <= 0 {
-		return fmt.Errorf("speed_scale must be positive")
+	if c.InputType != "keyboard" {
+		return fmt.Errorf("input_type %q not supported, only keyboard for now", c.InputType)
 	}
-	if len(c.KeyBindings) == 0 {
-		return fmt.Errorf("at least one key_binding is required")
+	if c.Keyboard.InputComponent == "" {
+		return fmt.Errorf("keyboard.input_component is required")
 	}
-	if c.MinSpeed <= 0 || c.MinSpeed > 1.0 {
-		return fmt.Errorf("min_speed must be in (0, 1], got %f", c.MinSpeed)
+	if len(c.Keyboard.KeyBindings) == 0 {
+		return fmt.Errorf("keyboard.key_bindings must have at least one binding")
 	}
-	if c.RampSteps < 1 {
-		return fmt.Errorf("ramp_steps must be >= 1, got %d", c.RampSteps)
+	if c.Keyboard.SetSpeed < 0 || c.Keyboard.SetSpeed > 1.0 {
+		return fmt.Errorf("keyboard.set_speed must be in [0, 1], got %f", c.Keyboard.SetSpeed)
 	}
 	return nil
 }
@@ -123,7 +126,7 @@ type Controller struct {
 
 	mu             sync.RWMutex
 	keyboard       input.Keyboard
-	active_keys    map[string]float64
+	active_keys    map[string]struct{}
 	last_published VelocityCommand
 	has_published  bool
 	stop_ch        chan struct{}
@@ -161,7 +164,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 		name:        resource.NewServiceName("gorai", "control", name),
 		config:      cfg,
 		logger:      logger,
-		active_keys: make(map[string]float64),
+		active_keys: make(map[string]struct{}),
 	}
 
 	if deps != nil {
@@ -173,9 +176,10 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	}
 
 	c.logger.Info("velocity input service created",
-		"keyboard", cfg.KeyboardComponent,
+		"input_type", cfg.InputType,
 		"velocity_topic", cfg.VelocityTopic,
-		"bindings", len(cfg.KeyBindings),
+		"bindings", len(cfg.Keyboard.KeyBindings),
+		"set_speed", cfg.Keyboard.SetSpeed,
 	)
 
 	return c, nil
@@ -196,20 +200,20 @@ func (c *Controller) Reconfigure(ctx context.Context, deps resource.Dependencies
 
 	c.stopEventLoop()
 
-	kb_name := resource.NewComponentName("gorai", "input", cfg.KeyboardComponent)
+	kb_name := resource.NewComponentName("gorai", "input", cfg.Keyboard.InputComponent)
 	kb_res, err := deps.Get(kb_name)
 	if err != nil {
-		return fmt.Errorf("keyboard component %q not found: %w", cfg.KeyboardComponent, err)
+		return fmt.Errorf("keyboard component %q not found: %w", cfg.Keyboard.InputComponent, err)
 	}
 	keyboard, ok := kb_res.(input.Keyboard)
 	if !ok {
-		return fmt.Errorf("component %q is not a keyboard", cfg.KeyboardComponent)
+		return fmt.Errorf("component %q is not a keyboard", cfg.Keyboard.InputComponent)
 	}
 
 	c.mu.Lock()
 	c.config = cfg
 	c.keyboard = keyboard
-	c.active_keys = make(map[string]float64)
+	c.active_keys = make(map[string]struct{})
 	c.has_published = false
 	c.mu.Unlock()
 
@@ -287,22 +291,14 @@ func (c *Controller) processKeyEvent(event input.KeyEvent) {
 
 	c.mu.Lock()
 	cfg := c.config
-	_, is_bound := cfg.KeyBindings[normalized_key]
+	_, is_bound := cfg.Keyboard.KeyBindings[normalized_key]
 	if !is_bound {
 		c.mu.Unlock()
 		return
 	}
 
-	if event.Pressed && !event.Repeat {
-		c.active_keys[normalized_key] = cfg.MinSpeed
-	} else if event.Pressed && event.Repeat {
-		if current, ok := c.active_keys[normalized_key]; ok {
-			next := current + cfg.StepSize()
-			if next > 1.0 {
-				next = 1.0
-			}
-			c.active_keys[normalized_key] = next
-		}
+	if event.Pressed {
+		c.active_keys[normalized_key] = struct{}{}
 	} else {
 		delete(c.active_keys, normalized_key)
 	}
@@ -320,24 +316,38 @@ func (c *Controller) processKeyEvent(event input.KeyEvent) {
 	c.publishVelocity(cmd)
 }
 
-// computeVelocity sums all active key bindings weighted by their ramp magnitude.
+// computeVelocity sums direction from active keys, normalizes to unit vector, and
+// sets set_speed from config when any keys are active (0 when none).
 // Must be called while holding c.mu (at least RLock).
 func (c *Controller) computeVelocity() VelocityCommand {
 	var vx, vy, omega float64
 
-	for key, magnitude := range c.active_keys {
-		if binding, ok := c.config.KeyBindings[key]; ok {
-			vx += binding.VX * magnitude
-			vy += binding.VY * magnitude
-			omega += binding.Omega * magnitude
+	for key := range c.active_keys {
+		if binding, ok := c.config.Keyboard.KeyBindings[key]; ok {
+			vx += binding.VX
+			vy += binding.VY
+			omega += binding.Omega
 		}
 	}
 
-	scale := c.config.SpeedScale
+	set_speed := 0.0
+	if len(c.active_keys) > 0 {
+		set_speed = c.config.Keyboard.SetSpeed
+	}
+
+	mag := vx*vx + vy*vy + omega*omega
+	if mag > 0 {
+		mag = math.Sqrt(mag)
+		vx /= mag
+		vy /= mag
+		omega /= mag
+	}
+
 	return VelocityCommand{
-		VX:    vx * scale,
-		VY:    vy * scale,
-		Omega: omega * scale,
+		VX:       vx,
+		VY:       vy,
+		Omega:    omega,
+		SetSpeed: set_speed,
 	}
 }
 
@@ -359,7 +369,7 @@ func (c *Controller) publishVelocity(cmd VelocityCommand) {
 	}
 
 	c.logger.Debug("velocity command published",
-		"topic", topic, "vx", cmd.VX, "vy", cmd.VY, "omega", cmd.Omega)
+		"topic", topic, "vx", cmd.VX, "vy", cmd.VY, "omega", cmd.Omega, "set_speed", cmd.SetSpeed)
 }
 
 func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[string]any, error) {
@@ -378,7 +388,7 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		}, nil
 	case "stop":
 		c.mu.Lock()
-		c.active_keys = make(map[string]float64)
+		c.active_keys = make(map[string]struct{})
 		c.mu.Unlock()
 		c.publishVelocity(VelocityCommand{})
 		return map[string]any{"success": true}, nil

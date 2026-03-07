@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math"
 	"sync"
 
 	"github.com/gorai/gorai/components/motor"
@@ -14,8 +13,14 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-func maxAbs3(a, b, c float64) float64 {
-	return math.Max(math.Max(math.Abs(a), math.Abs(b)), math.Abs(c))
+func sign(x float64) float64 {
+	if x > 0 {
+		return 1
+	}
+	if x < 0 {
+		return -1
+	}
+	return 0
 }
 
 func init() {
@@ -23,9 +28,10 @@ func init() {
 }
 
 type VelocityCommand struct {
-	VX    float64 `json:"vx"`
-	VY    float64 `json:"vy"`
-	Omega float64 `json:"omega"`
+	VX       float64 `json:"vx"`
+	VY       float64 `json:"vy"`
+	Omega    float64 `json:"omega"`
+	SetSpeed float64 `json:"set_speed,omitempty"`
 }
 
 type Config struct {
@@ -273,15 +279,30 @@ func (c *Controller) handleVelocityCommand(cmd VelocityCommand) {
 		return
 	}
 
-	mix := ComputeWheelMix(cmd.VX, cmd.VY, cmd.Omega, cfg.WheelBaseX, cfg.WheelBaseY)
-	duty := NormalizeSpeeds(mix)
-	speed := maxAbs3(cmd.VX, cmd.VY, cmd.Omega)
-	ws := ScaleWheelSpeeds(duty, speed)
+	// InverseKinematics with direction scaled by 1 m/s and 1 rad/s yields correct
+	// relative wheel mix. For duty-cycle mode we use sign only and multiply by set_speed.
+	rad_per_sec := InverseKinematics(cmd.VX, cmd.VY, cmd.Omega,
+		cfg.WheelBaseX, cfg.WheelBaseY, cfg.WheelRadius)
+
+	set_speed := cmd.SetSpeed
+	if set_speed < 0 {
+		set_speed = 0
+	}
+	if set_speed > 1 {
+		set_speed = 1
+	}
+
+	ws := WheelSpeeds{
+		FL: sign(rad_per_sec.FL) * set_speed,
+		FR: sign(rad_per_sec.FR) * set_speed,
+		RL: sign(rad_per_sec.RL) * set_speed,
+		RR: sign(rad_per_sec.RR) * set_speed,
+	}
 
 	ctx := context.Background()
 
 	c.logger.Debug("velocity command received",
-		"vx", cmd.VX, "vy", cmd.VY, "omega", cmd.Omega,
+		"vx", cmd.VX, "vy", cmd.VY, "omega", cmd.Omega, "set_speed", set_speed,
 		"fl", ws.FL, "fr", ws.FR, "rl", ws.RL, "rr", ws.RR,
 	)
 
@@ -322,7 +343,8 @@ func (c *Controller) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		vx, _ := cmd["vx"].(float64)
 		vy, _ := cmd["vy"].(float64)
 		omega, _ := cmd["omega"].(float64)
-		c.handleVelocityCommand(VelocityCommand{VX: vx, VY: vy, Omega: omega})
+		set_speed, _ := cmd["set_speed"].(float64)
+		c.handleVelocityCommand(VelocityCommand{VX: vx, VY: vy, Omega: omega, SetSpeed: set_speed})
 		return map[string]any{"success": true}, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", cmd_name)

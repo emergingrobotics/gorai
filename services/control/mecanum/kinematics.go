@@ -2,7 +2,7 @@ package mecanum
 
 import "math"
 
-// WheelSpeeds holds the computed power for each mecanum wheel.
+// WheelSpeeds holds the computed angular velocity (rad/s) or duty ratio for each mecanum wheel.
 type WheelSpeeds struct {
 	FL float64
 	FR float64
@@ -10,25 +10,37 @@ type WheelSpeeds struct {
 	RR float64
 }
 
-// ComputeWheelMix computes wheel direction ratios from body-frame velocity.
-// Used for keyboard/duty-cycle input where only direction matters.
+// InverseKinematics computes wheel angular velocities (rad/s) from body-frame velocity.
 //
-// Standard robot body frame convention:
-//   - vx: forward velocity (positive = forward, negative = backward)
-//   - vy: lateral velocity (positive = right, negative = left)
-//   - omega: rotational velocity (positive = counter-clockwise)
-//   - lx: half wheelbase length along x-axis (front-to-rear center distance / 2) [m]
-//   - ly: half track width along y-axis (left-to-right center distance / 2) [m]
+// Robot body frame: x+ forward, y+ left, z+ up, omega positive = CCW.
+// Input: vx, vy (m/s), omega (rad/s), lx, ly (half wheelbase/track in m), r (wheel radius in m).
+// Output: wheel angular velocities (rad/s).
 //
 // Standard mecanum wheel arrangement (X-configuration):
 //
 //	FL ---- FR
 //	|   x+   |
-//	| y- ← → y+
+//	| y+ ← → y-
 //	|   x-   |
 //	RL ---- RR
+func InverseKinematics(vx, vy, omega, lx, ly, r float64) WheelSpeeds {
+	if r <= 0 {
+		return WheelSpeeds{}
+	}
+	inv_r := 1.0 / r
+	k := lx + ly
+	return WheelSpeeds{
+		FL: inv_r * (vx + vy - k*omega),
+		FR: inv_r * (vx - vy + k*omega),
+		RL: inv_r * (vx - vy - k*omega),
+		RR: inv_r * (vx + vy + k*omega),
+	}
+}
+
+// ComputeWheelMix computes wheel direction ratios from body-frame velocity.
+// Uses same sign pattern as InverseKinematics but omits 1/r (legacy; prefer InverseKinematics).
 //
-// Returns raw wheel mix values (no normalization, no 1/r).
+// Robot body frame: x+ forward, y+ left, z+ up.
 func ComputeWheelMix(vx, vy, omega, lx, ly float64) WheelSpeeds {
 	k := lx + ly
 	return WheelSpeeds{

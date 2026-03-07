@@ -24,7 +24,59 @@ func fullPipeline(vx, vy, omega, lx, ly float64) WheelSpeeds {
 	return ScaleWheelSpeeds(duty, speed)
 }
 
-// Body frame: vx = forward (+), vy = right (+), omega = CCW (+).
+// Body frame: x+ forward, y+ left, z+ up, omega positive = CCW.
+
+func TestInverseKinematicsForward(t *testing.T) {
+	r := 0.04
+	lx, ly := 0.105, 0.045
+	ws := InverseKinematics(1, 0, 0, lx, ly, r)
+	// All wheels same direction for pure forward
+	expected := 1.0 / r
+	if !approxEqual(ws.FL, expected) || !approxEqual(ws.FR, expected) ||
+		!approxEqual(ws.RL, expected) || !approxEqual(ws.RR, expected) {
+		t.Errorf("forward: FL=%f FR=%f RL=%f RR=%f, expected all %f", ws.FL, ws.FR, ws.RL, ws.RR, expected)
+	}
+}
+
+func TestInverseKinematicsStrafeLeft(t *testing.T) {
+	r := 0.04
+	lx, ly := test_lx, test_ly
+	ws := InverseKinematics(0, 1, 0, lx, ly, r)
+	expected := 1.0 / r
+	if !approxEqual(ws.FL, expected) || !approxEqual(ws.FR, -expected) ||
+		!approxEqual(ws.RL, -expected) || !approxEqual(ws.RR, expected) {
+		t.Errorf("strafe left (y+): FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestInverseKinematicsStrafeRight(t *testing.T) {
+	r := 0.04
+	lx, ly := test_lx, test_ly
+	ws := InverseKinematics(0, -1, 0, lx, ly, r)
+	expected := 1.0 / r
+	if !approxEqual(ws.FL, -expected) || !approxEqual(ws.FR, expected) ||
+		!approxEqual(ws.RL, expected) || !approxEqual(ws.RR, -expected) {
+		t.Errorf("strafe right (y-): FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestInverseKinematicsRotateCCW(t *testing.T) {
+	r := 0.04
+	k := test_lx + test_ly
+	ws := InverseKinematics(0, 0, 1, test_lx, test_ly, r)
+	expected := k / r
+	if !approxEqual(ws.FL, -expected) || !approxEqual(ws.FR, expected) ||
+		!approxEqual(ws.RL, -expected) || !approxEqual(ws.RR, expected) {
+		t.Errorf("rotate CCW: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
+
+func TestInverseKinematicsZeroRadius(t *testing.T) {
+	ws := InverseKinematics(1, 0, 0, test_lx, test_ly, 0)
+	if ws.FL != 0 || ws.FR != 0 || ws.RL != 0 || ws.RR != 0 {
+		t.Errorf("zero radius should return zero: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+	}
+}
 
 func TestComputeWheelMixForward(t *testing.T) {
 	ws := ComputeWheelMix(1, 0, 0, test_lx, test_ly)
@@ -34,19 +86,19 @@ func TestComputeWheelMixForward(t *testing.T) {
 	}
 }
 
-func TestComputeWheelMixStrafeRight(t *testing.T) {
+func TestComputeWheelMixStrafeLeft(t *testing.T) {
 	ws := ComputeWheelMix(0, 1, 0, test_lx, test_ly)
 	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, -1.0) ||
 		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, 1.0) {
-		t.Errorf("strafe right: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+		t.Errorf("strafe left (y+): FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestComputeWheelMixStrafeLeft(t *testing.T) {
+func TestComputeWheelMixStrafeRight(t *testing.T) {
 	ws := ComputeWheelMix(0, -1, 0, test_lx, test_ly)
 	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, 1.0) ||
 		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, -1.0) {
-		t.Errorf("strafe left: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+		t.Errorf("strafe right (y-): FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
@@ -104,19 +156,19 @@ func TestFullPipelineBackward(t *testing.T) {
 	}
 }
 
-func TestFullPipelineStrafeRight(t *testing.T) {
+func TestFullPipelineStrafeLeft(t *testing.T) {
 	ws := fullPipeline(0, 1, 0, test_lx, test_ly)
 	if !approxEqual(ws.FL, 1.0) || !approxEqual(ws.FR, -1.0) ||
 		!approxEqual(ws.RL, -1.0) || !approxEqual(ws.RR, 1.0) {
-		t.Errorf("strafe right: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+		t.Errorf("strafe left (y+): FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
-func TestFullPipelineStrafeLeft(t *testing.T) {
+func TestFullPipelineStrafeRight(t *testing.T) {
 	ws := fullPipeline(0, -1, 0, test_lx, test_ly)
 	if !approxEqual(ws.FL, -1.0) || !approxEqual(ws.FR, 1.0) ||
 		!approxEqual(ws.RL, 1.0) || !approxEqual(ws.RR, -1.0) {
-		t.Errorf("strafe left: FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
+		t.Errorf("strafe right (y-): FL=%f FR=%f RL=%f RR=%f", ws.FL, ws.FR, ws.RL, ws.RR)
 	}
 }
 
