@@ -25,8 +25,16 @@ func Execute() error {
 		return cmdValidate()
 	case "run":
 		return cmdRun()
+	case "up":
+		return cmdUp()
+	case "compile":
+		return cmdCompile()
 	case "build":
 		return cmdBuild()
+
+	// Device management
+	case "device":
+		return cmdDevice()
 
 	// Component management
 	case "components":
@@ -65,7 +73,12 @@ Usage:
 Core Commands:
   validate <config>   Validate RDL configuration file
   run <config>        Run robot in development mode (foreground)
+  up <config>         Run robot via process-compose (alias for run --compose)
+  compile <config>    Compile RDL to process-compose.yaml
   build <config>      Build standalone binary for deployment
+
+Device Commands:
+  device reset        Send a reset command to a device via NATS
 
 Component Commands:
   components          List available component types

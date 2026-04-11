@@ -5,9 +5,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +17,9 @@ import (
 	"github.com/gorai/gorai/driver/camera/v4l2"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/dashboard"
+	"github.com/gorai/gorai/pkg/embeddednats"
 	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
+	"github.com/gorai/gorai/pkg/health"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
@@ -48,6 +52,16 @@ type Robot struct {
 	logger     *slog.Logger
 	ctx        context.Context
 	cancel     context.CancelFunc
+
+	// Embedded NATS server (nil when using external NATS)
+	embeddedNATS *embeddednats.Server
+
+	// Health server for process-compose readiness probes
+	healthServer *health.Server
+	healthListen string
+
+	// True when running under process-compose (PC_PROC_NAME is set)
+	underProcessCompose bool
 
 	// NATS client for messaging
 	nats   *gorainats.Client
@@ -103,6 +117,14 @@ func WithConfigPath(path string) Option {
 	}
 }
 
+// WithHealthListen sets the listen address for the health server.
+// Defaults to "127.0.0.1:4180" if not set.
+func WithHealthListen(addr string) Option {
+	return func(r *Robot) {
+		r.healthListen = addr
+	}
+}
+
 // New creates a new Robot from the given configuration.
 func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 	if cfg == nil {
@@ -136,7 +158,25 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 func (r *Robot) Start(ctx context.Context) error {
 	r.logger.Info("Starting robot", "name", r.cfg.Robot.Name)
 
-	// Connect to NATS
+	// Detect process-compose (REQ-RUN-6)
+	if os.Getenv("PC_PROC_NAME") != "" {
+		r.underProcessCompose = true
+		r.logger.Info("running under process-compose", "proc_name", os.Getenv("PC_PROC_NAME"))
+	}
+
+	// Start health server first so process-compose can probe immediately (REQ-CLI-HEALTH-3)
+	if err := r.startHealthServer(); err != nil {
+		return fmt.Errorf("failed to start health server: %w", err)
+	}
+
+	// Start embedded NATS if configured (REQ-NATS-EMBED-3: before any component/service init)
+	if r.cfg.ShouldEmbedNATS() {
+		if err := r.startEmbeddedNATS(); err != nil {
+			return fmt.Errorf("failed to start embedded NATS: %w", err)
+		}
+	}
+
+	// Connect to NATS (works whether embedded or external)
 	if err := r.connectNATS(ctx); err != nil {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
 	}
@@ -192,6 +232,11 @@ func (r *Robot) Start(ctx context.Context) error {
 		}
 
 		if svc.IsExternal() {
+			// Under process-compose, external services are managed by process-compose (REQ-RUN-6)
+			if r.underProcessCompose {
+				r.logger.Info("skipping external service — managed by process-compose", "name", svc.Name)
+				continue
+			}
 			// Start external service
 			if svc.IsManaged() {
 				if err := r.startExternalService(ctx, svc); err != nil {
@@ -210,6 +255,11 @@ func (r *Robot) Start(ctx context.Context) error {
 		}
 	}
 
+	// Mark health server as ready after all components/services are initialized
+	if r.healthServer != nil {
+		r.healthServer.SetReady()
+	}
+
 	// Publish robot ready event
 	r.publishStartupEvent(topics.EventRobotReady, "", "", "Robot initialization complete", true, map[string]any{
 		"components": len(r.cfg.Components),
@@ -218,6 +268,86 @@ func (r *Robot) Start(ctx context.Context) error {
 
 	r.logger.Info("Robot started", "components", len(r.cfg.Components), "services", len(r.cfg.Services))
 	return nil
+}
+
+// startHealthServer creates and starts the HTTP health server.
+func (r *Robot) startHealthServer() error {
+	listen := r.healthListen
+	if listen == "" {
+		listen = "127.0.0.1:4180"
+	}
+
+	server := health.New(health.Config{
+		Listen: listen,
+		Logger: r.logger,
+	})
+
+	if err := server.Start(); err != nil {
+		return err
+	}
+
+	r.healthServer = server
+	r.logger.Info("health server started", "address", server.Address())
+	return nil
+}
+
+// startEmbeddedNATS creates and starts the embedded NATS server.
+func (r *Robot) startEmbeddedNATS() error {
+	host, port := parseNATSURL(r.getNATSURL())
+
+	natsConfig := embeddednats.Config{
+		Host:   host,
+		Port:   port,
+		Logger: r.logger,
+	}
+
+	if r.cfg.NATS != nil && r.cfg.NATS.JetStream {
+		natsConfig.JetStream = true
+	}
+
+	if r.cfg.NATS != nil && r.cfg.NATS.TLS != nil {
+		natsConfig.TLS = &embeddednats.TLSConfig{
+			CAFile:   r.cfg.NATS.TLS.CAFile,
+			CertFile: r.cfg.NATS.TLS.CertFile,
+			KeyFile:  r.cfg.NATS.TLS.KeyFile,
+		}
+	}
+
+	server, err := embeddednats.New(natsConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create embedded NATS server: %w", err)
+	}
+
+	if err := server.Start(); err != nil {
+		return fmt.Errorf("failed to start embedded NATS server: %w", err)
+	}
+
+	r.embeddedNATS = server
+	r.logger.Info("embedded NATS server started", "url", server.ClientURL())
+	return nil
+}
+
+// parseNATSURL extracts host and port from a NATS URL.
+// Returns defaults of "127.0.0.1" and 4222 on parse failure.
+func parseNATSURL(natsURL string) (string, int) {
+	parsed, err := url.Parse(natsURL)
+	if err != nil {
+		return "127.0.0.1", 4222
+	}
+
+	host := parsed.Hostname()
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
+	port := 4222
+	if portString := parsed.Port(); portString != "" {
+		if parsedPort, err := strconv.Atoi(portString); err == nil {
+			port = parsedPort
+		}
+	}
+
+	return host, port
 }
 
 // connectNATS establishes connection to the NATS server.
@@ -253,7 +383,7 @@ func (r *Robot) resetDevices() {
 		return
 	}
 
-	reset_count := 0
+	resetCount := 0
 	for _, dev := range r.cfg.Devices {
 		if !dev.ResetOnStartup {
 			continue
@@ -268,15 +398,15 @@ func (r *Robot) resetDevices() {
 		}
 
 		r.logger.Info("Sent device reset", "device", dev.ID, "subject", subject)
-		reset_count++
+		resetCount++
 	}
 
-	if reset_count > 0 {
+	if resetCount > 0 {
 		if err := r.nats.Conn().Flush(); err != nil {
 			r.logger.Warn("Failed to flush NATS after device reset", "error", err)
 		}
 		time.Sleep(500 * time.Millisecond)
-		r.logger.Info("Device reset complete, waiting for devices to enter listening state", "devices_reset", reset_count)
+		r.logger.Info("Device reset complete, waiting for devices to enter listening state", "devices_reset", resetCount)
 	}
 }
 
@@ -951,6 +1081,11 @@ func (r *Robot) Run(ctx context.Context) error {
 func (r *Robot) Stop(ctx context.Context) error {
 	r.logger.Info("Stopping robot", "name", r.cfg.Robot.Name)
 
+	// Mark not ready immediately so probes fail during shutdown
+	if r.healthServer != nil {
+		r.healthServer.SetNotReady()
+	}
+
 	// Publish shutdown event
 	r.publishStartupEvent(topics.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
 
@@ -1004,9 +1139,21 @@ func (r *Robot) Stop(ctx context.Context) error {
 	// Cancel internal context
 	r.cancel()
 
-	// Close NATS connection
+	// Close NATS client connection before shutting down embedded server (REQ-NATS-EMBED-7)
 	if r.nats != nil {
 		r.nats.Close()
+	}
+
+	// Shut down embedded NATS server after client disconnect
+	if r.embeddedNATS != nil {
+		r.embeddedNATS.Shutdown()
+	}
+
+	// Shut down health server last
+	if r.healthServer != nil {
+		if err := r.healthServer.Shutdown(ctx); err != nil {
+			r.logger.Warn("Error shutting down health server", "error", err)
+		}
 	}
 
 	r.logger.Info("Robot stopped", "name", r.cfg.Robot.Name)

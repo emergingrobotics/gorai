@@ -42,8 +42,16 @@ vendor/
 
 # Gorai runtime files
 .logs/
+logs/
 .pids/
 .nats-data/
+data/
+
+# Process compose
+process-compose.yaml
+
+# LLM review artifacts
+.llm/reviews/
 
 # Debug binaries
 __debug_bin*

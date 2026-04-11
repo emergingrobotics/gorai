@@ -5,18 +5,33 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 
+	"github.com/gorai/gorai/pkg/compose"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/robot"
 )
+
+// cmdUp implements the "gorai up" alias for "gorai run --compose".
+func cmdUp() error {
+	// Inject --compose into the args and delegate to cmdRun
+	newArgs := []string{os.Args[0], "run", "--compose"}
+	newArgs = append(newArgs, os.Args[2:]...)
+	os.Args = newArgs
+	return cmdRun()
+}
 
 func cmdRun() error {
 	// Parse flags
 	var configPath string
 	var logLevel string
+	var composeMode bool
+	var healthListen string
+
+	healthListen = "127.0.0.1:4180"
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -33,11 +48,18 @@ func cmdRun() error {
 			}
 			i++
 			logLevel = args[i]
+		case "--compose":
+			composeMode = true
+		case "--health-listen":
+			if i+1 >= len(args) {
+				return fmt.Errorf("--health-listen requires a value")
+			}
+			i++
+			healthListen = args[i]
 		case "-h", "--help":
 			return printRunUsage()
 		default:
 			if args[i][0] != '-' {
-				// Treat as config path if not a flag
 				configPath = args[i]
 			} else {
 				return fmt.Errorf("unknown flag: %s", args[i])
@@ -70,6 +92,11 @@ func cmdRun() error {
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	// Compose mode: compile to temp file and exec process-compose
+	if composeMode {
+		return runCompose(cfg, configPath)
 	}
 
 	// Check for deprecation warnings
@@ -124,7 +151,7 @@ func cmdRun() error {
 	}()
 
 	// Create robot
-	r, err := robot.New(ctx, cfg, robot.WithLogger(logger))
+	r, err := robot.New(ctx, cfg, robot.WithLogger(logger), robot.WithHealthListen(healthListen))
 	if err != nil {
 		return fmt.Errorf("failed to create robot: %w", err)
 	}
@@ -151,6 +178,31 @@ func cmdRun() error {
 	return nil
 }
 
+// runCompose compiles the RDL to process-compose.yaml alongside the config and execs process-compose.
+func runCompose(cfg *config.RDL, configPath string) error {
+	pcPath, err := exec.LookPath("process-compose")
+	if err != nil {
+		return fmt.Errorf("process-compose not found on PATH: install it from https://github.com/F1bonacc1/process-compose")
+	}
+
+	compiler := compose.New(cfg, configPath)
+	yamlBytes, err := compiler.CompileToYAML()
+	if err != nil {
+		return fmt.Errorf("failed to compile: %w", err)
+	}
+
+	// Write to a deterministic path next to the config file (not a temp file,
+	// since syscall.Exec replaces the process and cleanup would never run).
+	outputPath := filepath.Join(filepath.Dir(configPath), "process-compose.yaml")
+	if err := os.WriteFile(outputPath, yamlBytes, 0600); err != nil {
+		return fmt.Errorf("failed to write %s: %w", outputPath, err)
+	}
+
+	// Replace the current process with process-compose
+	execArgs := []string{"process-compose", "up", "-f", outputPath}
+	return syscall.Exec(pcPath, execArgs, os.Environ())
+}
+
 func printRunUsage() error {
 	fmt.Println(`gorai run - Run robot in development mode
 
@@ -161,16 +213,20 @@ This command runs the robot as a single process with all components in one
 binary. The robot runs in the foreground and can be stopped with Ctrl+C.
 
 Flags:
-  -c, --config <file>     Path to robot configuration file
-  --log-level <level>     Log level: debug, info, warn, error (default: info)
-  -h, --help              Show this help message
+  -c, --config <file>       Path to robot configuration file
+  --compose                 Compile and run via process-compose
+  --health-listen <addr>    Health server listen address (default: 127.0.0.1:4180)
+  --log-level <level>       Log level: debug, info, warn, error (default: info)
+  -h, --help                Show this help message
 
 Examples:
   gorai run --config robot.json
   gorai run -c robot.json --log-level debug
   gorai run robot.json
+  gorai run robot.json --compose
+  gorai up robot.json
 
-Note: NATS must be running before starting the robot:
+Note: NATS must be running before starting the robot (unless embedded):
   sudo apt install nats-server
   sudo systemctl start nats-server`)
 	return nil

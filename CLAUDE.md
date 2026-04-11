@@ -72,6 +72,13 @@ gorai mesh robots         # List robots with registered services
 gorai mesh init           # Initialize mesh with predefined schemas
 gorai mesh reset          # Reset mesh (delete all data)
 
+# Process-compose deployment
+gorai compile <config>    # Compile RDL to process-compose.yaml
+gorai up <config>         # Compile and run via process-compose (alias for run --compose)
+
+# Device management
+gorai device reset        # Send GSP/2 reset command to a device via NATS
+
 # Utility commands
 gorai version             # Print version information
 gorai migrate             # Migrate RDL v1 config to v2 format

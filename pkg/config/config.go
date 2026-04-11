@@ -27,6 +27,8 @@ type RDL struct {
 	Remotes    []RemoteConfig               `json:"remotes,omitempty"`
 	Log        *LogConfig                   `json:"log,omitempty"`
 	Dashboard  *DashboardConfig             `json:"dashboard,omitempty"`
+	Metrics    *MetricsConfig               `json:"metrics,omitempty"`
+	Logging    *LoggingConfig               `json:"logging,omitempty"`
 }
 
 // RobotConfig defines the robot's identity.
@@ -91,9 +93,74 @@ type NATSConfig struct {
 	ConnectTimeout  string     `json:"connect_timeout,omitempty"`
 	ReconnectWait   string     `json:"reconnect_wait,omitempty"`
 	MaxReconnects   int        `json:"max_reconnects,omitempty"`
+	External        bool       `json:"external,omitempty"` // Force NATS to run as a separate process
 
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
+}
+
+// IsLocalURL returns true if the NATS URL points to localhost or 127.0.0.1.
+// An empty URL is treated as local (defaults to localhost).
+func (n *NATSConfig) IsLocalURL() bool {
+	if n == nil || n.URL == "" {
+		return true
+	}
+	url := strings.ToLower(n.URL)
+	// Strip scheme
+	if idx := strings.Index(url, "://"); idx >= 0 {
+		url = url[idx+3:]
+	}
+	// Strip port
+	if idx := strings.Index(url, ":"); idx >= 0 {
+		url = url[:idx]
+	}
+	return url == "localhost" || url == "127.0.0.1"
+}
+
+// MetricsConfig defines optional VictoriaMetrics configuration.
+type MetricsConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Retention string `json:"retention,omitempty"` // Duration, e.g., "7d", "30d". Default: "7d"
+	Listen    string `json:"listen,omitempty"`    // Address:port. Default: "127.0.0.1:8428"
+}
+
+// GetRetention returns the retention period, defaulting to "7d".
+func (m *MetricsConfig) GetRetention() string {
+	if m == nil || m.Retention == "" {
+		return "7d"
+	}
+	return m.Retention
+}
+
+// GetListen returns the listen address, defaulting to "127.0.0.1:8428".
+func (m *MetricsConfig) GetListen() string {
+	if m == nil || m.Listen == "" {
+		return "127.0.0.1:8428"
+	}
+	return m.Listen
+}
+
+// LoggingConfig defines optional VictoriaLogs configuration.
+type LoggingConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Retention string `json:"retention,omitempty"` // Duration, e.g., "3d", "14d". Default: "3d"
+	Listen    string `json:"listen,omitempty"`    // Address:port. Default: "127.0.0.1:9428"
+}
+
+// GetRetention returns the retention period, defaulting to "3d".
+func (l *LoggingConfig) GetRetention() string {
+	if l == nil || l.Retention == "" {
+		return "3d"
+	}
+	return l.Retention
+}
+
+// GetListen returns the listen address, defaulting to "127.0.0.1:9428".
+func (l *LoggingConfig) GetListen() string {
+	if l == nil || l.Listen == "" {
+		return "127.0.0.1:9428"
+	}
+	return l.Listen
 }
 
 // TLSConfig defines TLS settings for NATS.
@@ -713,6 +780,28 @@ func (cfg *RDL) checkCircularDependencies() error {
 	return nil
 }
 
+// ShouldEmbedNATS returns true if the gorai controller should embed the NATS server.
+// Embeds when URL is local and External is false.
+func (cfg *RDL) ShouldEmbedNATS() bool {
+	if cfg.NATS == nil {
+		return true
+	}
+	if cfg.NATS.External {
+		return false
+	}
+	return cfg.NATS.IsLocalURL()
+}
+
+// IsMetricsEnabled returns true if VictoriaMetrics is enabled.
+func (cfg *RDL) IsMetricsEnabled() bool {
+	return cfg.Metrics != nil && cfg.Metrics.Enabled
+}
+
+// IsLoggingEnabled returns true if VictoriaLogs is enabled.
+func (cfg *RDL) IsLoggingEnabled() bool {
+	return cfg.Logging != nil && cfg.Logging.Enabled
+}
+
 // GetEffectiveNamespace returns the effective namespace for the robot.
 func (cfg *RDL) GetEffectiveNamespace() string {
 	if cfg.Robot.Namespace != "" {
@@ -745,6 +834,12 @@ func (cfg *RDL) DeprecationWarnings() []string {
 	if cfg.Containers != nil && len(cfg.Containers) > 0 {
 		warnings = append(warnings, "The 'containers' section is deprecated in RDL v2 and will be ignored. "+
 			"Use 'external' on services for processes that need to run separately.")
+	}
+
+	// Check for redundant external flag with non-local URL
+	if cfg.NATS != nil && cfg.NATS.External && !cfg.NATS.IsLocalURL() {
+		warnings = append(warnings, "nats.external is redundant when nats.url points to a non-local address. "+
+			"The controller will connect as a client-only when the URL is remote.")
 	}
 
 	// Check for container field in NATS config
