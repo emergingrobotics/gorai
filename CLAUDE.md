@@ -57,7 +57,7 @@ The user's robot project is a Go module. The blank import list in `main.go` is t
 - **Adding components:** `gorai component add sensor/bno055` runs `go get` and adds a blank import to `main.go`
 - **Custom components:** Go packages in the user's repo with an `init()` function that calls `registry.RegisterComponent()`
 - **Sharing components:** Extract to a standalone Go module, push to GitHub -- no custom registry needed
-- **Template repo:** `gorai-robot-template` provides the starting point (`main.go`, `robot.rdl.json`, `components/`, `services/`, `Makefile`)
+- **Template repo:** `gorai-robot-template` provides the starting point (`main.go`, `robot.json`, `components/`, `services/`, `Makefile`)
 - **Non-Go components:** External services communicating via NATS (Python vision, C++ SLAM) -- Phase 2 complexity, they do not compile into the binary
 - **Full design:** `docs/package-dev-approach.md`
 
@@ -115,25 +115,25 @@ gorai/
 ├── api/                    # API definitions
 │   └── proto/              # Protobuf definitions
 ├── cmd/gorai/              # CLI entry point
+│   ├── main.go             # Blank imports remote proxies, calls gorai.Run()
 │   └── commands/           # CLI command implementations
-├── components/             # Component type interfaces and implementations
-│   ├── arm/                # Robotic arm
-│   ├── base/               # Mobile base (differential drive, etc.)
-│   ├── camera/             # Camera capture
-│   ├── gripper/            # Gripper/end-effector
-│   ├── input/              # Input devices (joystick, gamepad)
-│   ├── link/               # Kinematic link
-│   ├── motor/              # DC/brushless motor
-│   ├── power/              # Power management
-│   ├── pwm/                # PWM output
-│   ├── sensor/             # Generic sensor
-│   ├── serial/             # Serial port
-│   ├── servo/              # Servo motor
-│   ├── space/              # Spatial/coordinate frame
-│   ├── stepper/            # Stepper motor
-│   ├── thruster/           # Thruster (ROV/drone)
-│   └── valve/              # Valve actuator
-├── driver/                 # Hardware drivers
+├── components/             # Component type interfaces, fakes, and remote proxies
+│   ├── arm/                # Robotic arm (interface only)
+│   ├── base/               # Mobile base (interface only)
+│   ├── camera/             # Camera (interface + fake/ + remote/ + v4l2/)
+│   ├── gripper/            # Gripper (interface only)
+│   ├── input/              # Input devices (interface + remote/)
+│   ├── link/               # Kinematic link (interface only)
+│   ├── motor/              # Motor (interface + fake/ + remote/)
+│   ├── power/              # Power management (interface only)
+│   ├── pwm/                # PWM (interface + fake/ + remote/ + input/)
+│   ├── sensor/             # Sensor (interface + encoder/remote/)
+│   ├── servo/              # Servo (interface + fake/)
+│   ├── space/              # Spatial/coordinate frame (interface only)
+│   ├── stepper/            # Stepper motor (interface only)
+│   ├── thruster/           # Thruster (interface only)
+│   └── valve/              # Valve actuator (interface only)
+├── driver/                 # Hardware driver interfaces
 │   ├── camera/             # Camera drivers
 │   ├── gpio/               # GPIO pin access
 │   ├── i2c/                # I2C bus
@@ -143,6 +143,7 @@ gorai/
 ├── examples/               # Example robots
 │   ├── blinky/             # LED blink example (RDL)
 │   ├── gps-tracker/        # GPS tracking example (RDL)
+│   ├── gsp-pico/           # GSP/2 Pico example
 │   ├── hello-camera/       # Camera streaming example (RDL)
 │   └── pwm-controller/     # PWM control via gorai-gsp (Go)
 ├── images/                 # Project images and assets
@@ -152,10 +153,11 @@ gorai/
 ├── nws/                    # NATS WebSocket bridge
 ├── pkg/                    # Core libraries
 │   ├── accel/              # ML acceleration
-│   ├── components/         # Component registry and lifecycle
+│   ├── componentregistry/  # JSON registry client (search, add, mainfile editor)
 │   ├── config/             # RDL parsing and validation
 │   ├── dashboard/          # Web dashboard
-│   ├── discovery/          # Service discovery
+│   ├── embeddednats/       # Embedded NATS server
+│   ├── gorai/              # Exported Run() entrypoint for robot projects
 │   ├── gsp/                # Gorai Serial Protocol client
 │   ├── hardware/           # Hardware abstraction
 │   ├── log/                # Structured logging
@@ -165,20 +167,16 @@ gorai/
 │   ├── param/              # Parameter server
 │   ├── proxy/              # Component proxy (remote access)
 │   ├── pub/                # NATS publisher helpers
-│   ├── registry/           # Component/service registry
+│   ├── registry/           # Component/service registry (RegisterComponent, LookupComponent)
 │   ├── resource/           # Resource naming and management
-│   ├── robot/              # Robot instance orchestration
+│   ├── robot/              # Robot instance orchestration (topo sort, deps, lifecycle)
 │   ├── services/           # Service registry and lifecycle
 │   ├── sub/                # NATS subscriber helpers
-│   ├── systemd/            # Systemd unit file generation
 │   ├── tf/                 # Transform/coordinate frames
-│   ├── topics/             # NATS topic conventions
-│   └── validation/         # Config validation rules
+│   └── topics/             # NATS topic conventions
 ├── scripts/                # Shell scripts (wrapper, start/stop)
 ├── services/               # Service implementations
 │   ├── behavior/           # Behavior trees / state machines
-│   ├── bridge/             # Protocol bridge
-│   ├── control/            # Control loops (PID, etc.)
 │   ├── coordinator/        # Multi-component coordination
 │   ├── formatter/          # Data formatting
 │   ├── gateway/            # External API gateway
@@ -193,7 +191,7 @@ gorai/
 │   └── service/            # Service scaffolding templates
 ├── tools/                  # Development tools
 │   └── pwm-ramp-test/      # PWM testing tool
-└── archive/                # Archived code for future phases
+└── archive/                # Archived hardware-specific code for future external modules
 ```
 
 ---

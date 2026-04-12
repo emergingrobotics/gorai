@@ -50,6 +50,18 @@ func RegisterService(subtype, model string, ctor Constructor) {
 	services[subtype][model] = ctor
 }
 
+// IsRegistered returns true if a component with the given subtype and model
+// has been registered.
+func IsRegistered(subtype, model string) bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	if m, ok := components[subtype]; ok {
+		_, ok := m[model]
+		return ok
+	}
+	return false
+}
+
 // LookupComponent finds a registered component constructor.
 func LookupComponent(subtype, model string) (Constructor, error) {
 	mu.RLock()

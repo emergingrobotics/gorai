@@ -34,7 +34,7 @@ func Execute() error {
 	case "list":
 		return cmdList()
 	case "component":
-		return cmdComponent()
+		return cmdComponentDispatch()
 
 	// Mesh/service discovery
 	case "mesh":
@@ -126,14 +126,6 @@ func cmdVersion() error {
 	fmt.Printf("  commit: %s\n", Commit)
 	fmt.Printf("  built:  %s\n", Date)
 	return nil
-}
-
-// cmdComponent bridges to the new cobra-based component commands
-func cmdComponent() error {
-	cmd := NewComponentCmd()
-	// Set args to skip "gorai component" and pass the rest
-	cmd.SetArgs(os.Args[2:])
-	return cmd.Execute()
 }
 
 // findConfigFile looks for common config file names in the current directory.

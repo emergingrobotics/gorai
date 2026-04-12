@@ -23,23 +23,19 @@
 Build a robot in under an hour. Write JSON, get a binary, deploy to a Raspberry Pi.
 
 ```bash
-# 1. Write a JSON file
-cat > robot.rdl.json << 'EOF'
-{
-  "name": "my-robot",
-  "nats": {"url": "nats://localhost:4222"},
-  "components": [
-    {"name": "gps", "type": "serial/gps", "config": {"device": "/dev/gps-sim"}}
-  ]
-}
-EOF
+# 1. Install the CLI
+go install github.com/gorai/gorai/cmd/gorai@latest
 
-# 2. Validate and run (development mode)
-gorai validate robot.rdl.json
-gorai run robot.rdl.json
+# 2. Create a robot project from the template
+git clone https://github.com/emergingrobotics/gorai-robot-template.git my-robot
+cd my-robot
 
-# 3. Build for deployment
-gorai build robot.rdl.json -o robot --target linux/arm64
+# 3. Edit robot.json, then validate and run
+gorai validate robot.json
+gorai run robot.json
+
+# 4. Build for deployment
+gorai build robot.json -o robot --target linux/arm64
 scp robot pi@raspberrypi:~ && ssh pi@raspberrypi ./robot
 ```
 
@@ -71,21 +67,21 @@ A robot's `main.go` declares which components to include via blank imports:
 package main
 
 import (
-    "github.com/emergingrobotics/gorai/pkg/robot"
+    gorai "github.com/gorai/gorai/pkg/gorai"
 
-    // Built-in components
-    _ "github.com/emergingrobotics/gorai/components/serial/gps"
-    _ "github.com/emergingrobotics/gorai/components/gpio/output"
+    // Remote proxy components from GoRAI core
+    _ "github.com/gorai/gorai/components/motor/remote"
+    _ "github.com/gorai/gorai/components/camera/remote"
 
     // Third-party component from the ecosystem
     _ "github.com/someone/gorai-component-lidar/rplidar"
 
     // Custom component in this repo
-    _ "github.com/myorg/my-robot/components/ballast"
+    _ "my-robot/components/ballast"
 )
 
 func main() {
-    robot.Run()
+    gorai.Run()
 }
 ```
 
@@ -96,7 +92,7 @@ The Go import list replaces `package.json`, `requirements.txt`, or any custom ma
 ```bash
 gorai component search lidar          # Find components in the ecosystem
 gorai component add sensor/rplidar    # go get + add blank import to main.go
-gorai build robot.rdl.json            # Single binary with everything included
+gorai build robot.json                # Single binary with everything included
 ```
 
 ### Custom Components
@@ -159,7 +155,7 @@ For the full strategic context, see [Gorai Overarching Strategy](https://github.
 
 ## Prerequisites
 
-You need **Go 1.22+** to build gorai. That's it.
+You need **Go 1.25+** to build gorai. That's it.
 
 **macOS:**
 ```bash
@@ -193,56 +189,55 @@ go install github.com/nats-io/natscli/nats@latest
 
 ## Quick Start
 
-### 1. Build Gorai CLI
+### 1. Install the Gorai CLI
 
 ```bash
-git clone https://github.com/emergingrobotics/gorai.git
-cd gorai
-make build
+go install github.com/gorai/gorai/cmd/gorai@latest
 ```
 
-### 2. Create your first robot
+### 2. Create a robot project from the template
 
 ```bash
-cat > robot.rdl.json << 'EOF'
+# Clone the template (or click "Use this template" on GitHub)
+git clone https://github.com/emergingrobotics/gorai-robot-template.git my-robot
+cd my-robot
+
+# Update the module path to your own
+go mod edit -module github.com/yourorg/my-robot
+```
+
+### 3. Edit robot.json
+
+The template includes a skeleton `robot.json`. Add components as needed:
+
+```json
 {
   "version": "2",
-  "robot": {"name": "gps-tracker", "description": "My first robot!"},
-  "components": [
-    {
-      "name": "gps",
-      "type": "serial",
-      "model": "gps",
-      "attributes": {
-        "device": "/dev/gps-sim",
-        "baud_rate": 9600
-      }
-    }
-  ]
+  "robot": {"name": "my-robot", "description": "My first robot!"},
+  "nats": {"embedded": true, "url": "nats://localhost:4222"},
+  "dashboard": {"enabled": true, "listen": ":8080"},
+  "components": []
 }
-EOF
 ```
 
-The GPS simulator (`/dev/gps-sim`) lets you test without hardware.
-
-### 3. Validate and run
+### 4. Validate and run
 
 ```bash
-./bin/gorai validate robot.rdl.json
-./bin/gorai run robot.rdl.json
+make validate   # Check configuration
+make run        # Run in development mode
 ```
 
 The embedded NATS server starts automatically -- no separate process needed.
 
-### 4. Verify it works
-
-In another terminal, subscribe to GPS data:
+### 5. Build and deploy
 
 ```bash
-nats sub "gorai.gps-tracker.gps.nmea"
-```
+# Build for Raspberry Pi
+make build TARGET=linux/arm64
 
-You'll see GPS NMEA sentences streaming over NATS.
+# Deploy
+make deploy DEPLOY_HOST=pi@raspberrypi
+```
 
 ### Using an External NATS Server
 
@@ -321,18 +316,24 @@ Both patterns can be used simultaneously — e.g., RP2040 handling motors while 
 
 ---
 
-## Built-in Components
+## Core Components
 
-### Currently Implemented
-- `serial/gps` - GPS NMEA reader (uses simulator by default)
-- `gpio/input` - Digital input
-- `gpio/output` - Digital output
+The core repo provides **component interfaces**, **remote proxies** (for multi-robot mesh access), and **fakes** (for testing). Hardware-specific implementations live in external Go modules.
 
-### Coming Soon
-- `motor/gpio` - DC motor control via GPIO
-- `servo/gpio` - Hobby servo control
-- `sensor/hcsr04` - HC-SR04 ultrasonic distance sensor
-- `camera/v4l2` - USB/CSI cameras via Video4Linux
+### Interfaces (in core)
+`arm`, `base`, `camera`, `gripper`, `input`, `link`, `motor`, `power`, `pwm`, `sensor`, `servo`, `space`, `stepper`, `thruster`, `valve`
+
+### Remote Proxies (in core)
+`camera/remote`, `gpio/remote`, `input/remote`, `motor/remote`, `pwm/remote`, `sensor/encoder/remote`
+
+### Fakes (in core, for testing)
+`camera/fake`, `motor/fake`, `pwm/fake`, `servo/fake`
+
+### External Components (separate Go modules)
+Hardware-specific implementations are installed with `gorai component add`:
+- `gorai-picarx` - SunFounder PiCar-X robot kit
+- `gorai-driver-hcsr04` - HC-SR04 ultrasonic distance sensor
+- More in the [component registry](https://github.com/emergingrobotics/gorai-registry)
 
 ---
 
@@ -378,8 +379,11 @@ Gorai uses a message-based architecture where all components communicate via an 
 
 | Example | Description | Status |
 |---------|-------------|--------|
-| [gps-tracker](examples/gps-tracker/) | GPS tracking robot | Working |
 | [blinky](examples/blinky/) | LED blink demo | Working |
+| [gps-tracker](examples/gps-tracker/) | GPS tracking robot | Working |
+| [gsp-pico](examples/gsp-pico/) | GSP/2 Pico co-processor | Working |
+| [hello-camera](examples/hello-camera/) | Camera streaming | Working |
+| [pwm-controller](examples/pwm-controller/) | PWM control via gorai-gsp | Working |
 
 ---
 

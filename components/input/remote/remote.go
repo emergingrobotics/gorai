@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gorai/gorai/components/input"
-	"github.com/gorai/gorai/components/input/keyboard"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
@@ -422,7 +421,7 @@ func (r *RemoteKeyboard) checkStale() {
 func (r *RemoteKeyboard) releaseAllKeysLocked() {
 	for code := range r.pressedKeys {
 		event := input.KeyEvent{
-			Key:     keyboard.KeyCodeToName(code),
+			Key:     input.KeyCodeToName(code),
 			Code:    code,
 			Pressed: false,
 			Repeat:  false,
@@ -610,7 +609,7 @@ func (r *RemoteKeyboard) removeSubscriber(sub *eventSubscriber) {
 
 // IsPressed returns true if the specified key is currently pressed.
 func (r *RemoteKeyboard) IsPressed(ctx context.Context, key string) (bool, error) {
-	code, ok := keyboard.KeyNameToCode(key)
+	code, ok := input.KeyNameToCode(key)
 	if !ok {
 		return false, fmt.Errorf("unknown key: %s", key)
 	}
@@ -629,7 +628,7 @@ func (r *RemoteKeyboard) GetPressedKeys(ctx context.Context) ([]string, error) {
 
 	keys := make([]string, 0, len(r.pressedKeys))
 	for code := range r.pressedKeys {
-		keys = append(keys, keyboard.KeyCodeToName(code))
+		keys = append(keys, input.KeyCodeToName(code))
 	}
 
 	return keys, nil

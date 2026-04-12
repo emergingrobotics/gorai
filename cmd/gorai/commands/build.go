@@ -59,6 +59,11 @@ func cmdBuild() error {
 
 	configPath, _ = filepath.Abs(configPath)
 
+	// Check that we're in a Go module
+	if _, err := os.Stat("go.mod"); os.IsNotExist(err) {
+		return fmt.Errorf("not in a Go module. Run 'gorai build' from your robot project directory. See: https://gorai.dev/docs/getting-started")
+	}
+
 	// Load and validate config
 	cfg, err := config.LoadWithServiceRDL(configPath)
 	if err != nil {
@@ -71,6 +76,17 @@ func cmdBuild() error {
 	// Default output name from robot name
 	if outputPath == "" {
 		outputPath = cfg.Robot.Name
+	}
+
+	// Prevent writing to system directories
+	absOutput, err := filepath.Abs(outputPath)
+	if err != nil {
+		return fmt.Errorf("invalid output path: %w", err)
+	}
+	for _, prefix := range []string{"/etc", "/usr", "/sys", "/proc", "/dev"} {
+		if strings.HasPrefix(absOutput, prefix+"/") || absOutput == prefix {
+			return fmt.Errorf("refusing to write binary to system directory: %s", absOutput)
+		}
 	}
 
 	// Parse target platform

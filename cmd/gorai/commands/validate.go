@@ -79,6 +79,28 @@ func cmdValidate() error {
 	fmt.Println("  + Dependencies resolvable")
 	fmt.Println("  + No circular dependencies")
 
+	// Check that all referenced components are registered
+	var missing []string
+	for _, comp := range cfg.Components {
+		if comp.Disabled {
+			continue
+		}
+		if !registry.IsRegistered(comp.Type, comp.Model) {
+			missing = append(missing, fmt.Sprintf(
+				"  component %q: type %q model %q not registered.\n"+
+					"    Try: gorai component search %s",
+				comp.Name, comp.Type, comp.Model, comp.Type))
+		}
+	}
+	if len(missing) > 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: %d component(s) not found in compiled-in registry:\n", len(missing))
+		for _, m := range missing {
+			fmt.Fprintln(os.Stderr, m)
+		}
+		fmt.Fprintln(os.Stderr, "\nThe binary may not have these components compiled in.")
+		fmt.Fprintln(os.Stderr, "Add blank imports to main.go or install with: gorai component add <name>")
+	}
+
 	// Stage 3.5: Service RDL Validation
 	serviceRDLCount := 0
 	for _, svc := range cfg.Services {

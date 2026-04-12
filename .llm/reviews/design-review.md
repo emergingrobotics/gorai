@@ -1,213 +1,300 @@
-# Design/Architecture Review
+# Design/Architecture Review: Caddy Model Core Repo Cleanup
 
-**Date:** 2026-04-11
+**Date:** 2026-04-12
 **Reviewer:** Claude Opus 4.6 (automated)
-**Scope:** Process-compose runtime (embedded NATS, health server, compose compiler, CLI commands, robot lifecycle)
-**Design doc:** `/gorai/docs/DESIGN.md`
-
----
-
-## Critical
-
-None.
-
----
-
-## High
-
-### H1. Design doc specifies `embeddednats.Start(ctx context.Context) error` but implementation uses `Start() error`
-
-**File:** `pkg/embeddednats/server.go:99`
-**Design ref:** Section 3.1, line ~139
-
-The design specifies `Start(ctx context.Context) error` so callers can pass a cancellation context. The implementation creates its own internal context with a hardcoded 10-second deadline. This means the caller cannot cancel a slow start or propagate a parent context timeout. The `Shutdown` method also takes no context (design specifies `Shutdown(ctx context.Context) error`), so there is no way to bound shutdown time from the caller.
-
-**Recommendation:** Accept a `context.Context` parameter in both `Start` and `Shutdown` to match the design and allow callers to control timeouts.
-
-### H2. Design doc specifies functional options pattern for `embeddednats.New` and `health.New`; implementation uses config structs
-
-**File:** `pkg/embeddednats/server.go:51`, `pkg/health/server.go:40`
-**Design ref:** Sections 3.1 and 3.2
-
-The design shows `New(cfg Config, opts ...Option)` with `WithLogger` option. The implementation puts `Logger` directly in the `Config` struct and has no `Option` type. This is arguably simpler (KISS), but diverges from the design. The rest of the codebase (`pkg/robot`) uses the options pattern. Inconsistency makes the API surface harder to learn.
-
-**Recommendation:** Either update the design to match the implementation (config struct with Logger) or add the options pattern. Given KISS preference and that the config approach works, updating the design doc is the pragmatic fix.
-
-### H3. `health.Server` handlers ignore `json.Encode` errors
-
-**File:** `pkg/health/server.go:124,128,133`
-
-The `json.NewEncoder(writer).Encode(...)` return value is discarded. While encoding a small static struct is extremely unlikely to fail, the CLAUDE.md code quality rules say "always handle errors explicitly." If the write to the response writer fails (e.g., client disconnected), the error is silently dropped.
-
-**Recommendation:** Log the error at debug level, or assign and check:
-```go
-if err := json.NewEncoder(writer).Encode(...); err != nil {
-    server.logger.Debug("failed to write health response", "error", err)
-}
-```
-
-### H4. Design specifies `ConfigFromRDL` and `DetectNATSMode` functions; neither exists
-
-**File:** `pkg/embeddednats/server.go` (missing), `pkg/compose/compiler.go` (missing)
-**Design ref:** Sections 4.1, 4.3
-
-The design specifies `embeddednats.ConfigFromRDL()` to encapsulate NATS mode selection as "the single place where the decision tree is evaluated." Instead, this logic is split between `config.RDL.ShouldEmbedNATS()` and `compose.Compiler.shouldEmitExternalNATS()`. Similarly, `DetectNATSMode()` with a `NATSMode` enum type does not exist; the logic is inline.
-
-The current implementation works correctly and the logic is not duplicated in a dangerous way, but the design's goal of a single decision point is not achieved -- mode selection is evaluated in two different packages.
-
-**Recommendation:** Either implement the design's `ConfigFromRDL`/`DetectNATSMode` pattern or update the design to reflect the current split. The current split is reasonable since `config` and `compose` have different concerns.
-
----
-
-## Medium
-
-### M1. `compose/compiler.go` -- file layout diverges from design
-
-**Design ref:** Section 3.3 file table
-
-The design specifies 7 files (`compiler.go`, `model.go`, `nats.go`, `services.go`, `devices.go`, `infra.go`, `dependencies.go`). The implementation puts everything in `compiler.go` (~625 lines) with types in `types.go` (not `model.go`). The single-file approach works but makes the file large and harder to navigate. As more features are added, this will become unwieldy.
-
-**Recommendation:** Consider splitting per the design in a future refactor. At minimum, rename `types.go` to `model.go` to match the design, or update the design.
-
-### M2. `extractNATSPort` function is dead code
-
-**File:** `pkg/compose/compiler.go:614-624`
-
-The function `extractNATSPort` is defined but never called. Dead code should be removed per CLAUDE.md rules ("Do not comment out code -- remove it" applies to dead code too).
-
-**Recommendation:** Remove `extractNATSPort`.
-
-### M3. `reset_count` variable uses snake_case instead of camelCase
-
-**File:** `pkg/robot/robot.go:387,401,404`
-
-```go
-reset_count := 0
-```
-
-Go convention requires `resetCount`. CLAUDE.md says "Go: camelCase exported/unexported."
-
-**Recommendation:** Rename to `resetCount`.
-
-### M4. `device.go` -- `cmdDeviceReset` publishes `nil` payload instead of `{"subsystem":0}` per design
-
-**File:** `cmd/gorai/commands/device.go:91`
-**Design ref:** Section 4.4
-
-The design specifies publishing `{"subsystem":0}` to the reset topic. The CLI implementation publishes `nil`. The `robot.go` implementation at line 394 correctly publishes `[]byte(`{"subsystem":0}")`. This inconsistency means device reset behaves differently depending on whether it's triggered by the CLI or the robot lifecycle.
-
-**Recommendation:** Change `device.go:91` from `client.Publish(topic, nil)` to `client.Publish(topic, []byte(`{"subsystem":0}"))`.
-
-### M5. `run.go` -- `healthListen` variable is suppressed with `_ = healthListen`
-
-**File:** `cmd/gorai/commands/run.go:109`
-
-The `--health-listen` flag is parsed but then explicitly suppressed. The design says the health server should be created in `cmdRun()` with this address. However, the health server is actually created inside `robot.Start()` using a different default. The flag is effectively dead code.
-
-**Recommendation:** Pass `healthListen` to the robot via `robot.WithHealthListen(healthListen)` when creating the robot instance (the option already exists at `robot.go:119`). Remove the `_ = healthListen` suppression.
-
-### M6. Design specifies health server created in `cmdRun()` before `robot.Start()`; implementation creates it inside `robot.Start()`
-
-**File:** `cmd/gorai/commands/run.go`, `pkg/robot/robot.go:167`
-**Design ref:** Section 6.2
-
-The design says the health server should be created in `cmdRun()` and readiness set after `robot.Start()` succeeds. The implementation creates the health server inside `robot.Start()`. This means the health server's lifecycle is coupled to the robot, not the CLI command. Both approaches work, but the implementation diverges from the design. The robot-internal approach is arguably cleaner since it keeps lifecycle management in one place.
-
-**Recommendation:** Update the design to reflect the current implementation.
-
-### M7. `compose/compiler.go` -- magic number 64 * 1024 * 1024 for MaxPending
-
-**File:** `pkg/embeddednats/server.go:70`
-
-```go
-MaxPending: 64 * 1024 * 1024,
-```
-
-This is a magic number. CLAUDE.md says "No magic numbers: use named constants."
-
-**Recommendation:** Extract to a named constant:
-```go
-const defaultMaxPending = 64 * 1024 * 1024 // 64 MiB
-```
-
-### M8. `run.go` -- `runCompose` leaks temp file on successful exec
-
-**File:** `cmd/gorai/commands/run.go:197-215`
-
-When `syscall.Exec` succeeds, the temp file is never deleted because the current process is replaced. This leaves orphaned YAML files in the temp directory. On failure, the file is also not cleaned up.
-
-**Recommendation:** This is inherent to the `syscall.Exec` approach. Document this as a known limitation, or use a well-known path (e.g., `.gorai/process-compose.yaml`) that gets overwritten each time instead of a temp file.
-
-### M9. Thread safety: `Robot.underProcessCompose` is written in `Start()` and could be read concurrently
-
-**File:** `pkg/robot/robot.go:161`
-
-`underProcessCompose` is a plain `bool` set during `Start()`. While in practice it's only read during the same `Start()` call, it lacks synchronization. Other fields like `ready` in health use `atomic.Bool`.
-
-**Recommendation:** Use `atomic.Bool` or document that this field is only accessed during sequential startup.
-
----
-
-## Low
-
-### L1. `health.Server` default port 4180 is hardcoded in three places
-
-**Files:** `pkg/health/server.go:15`, `pkg/robot/robot.go:278`, `cmd/gorai/commands/run.go:34`
-
-The default health listen address `127.0.0.1:4180` appears in three separate locations. DRY principle suggests a single exported constant.
-
-**Recommendation:** Export `health.DefaultListenAddress` and reference it from `robot.go` and `run.go`.
-
-### L2. `compile.go` argument parsing -- potential panic on empty flag
-
-**File:** `cmd/gorai/commands/compile.go:33`
-
-```go
-if args[i][0] != '-' {
-```
-
-If `args[i]` is an empty string, this panics with an index-out-of-range. While unlikely from CLI input, it's not defensive.
-
-**Recommendation:** Check `len(args[i]) > 0` first, or use `strings.HasPrefix`.
-
-### L3. `run.go` has the same potential panic on empty arg
-
-**File:** `cmd/gorai/commands/run.go:63`
-
-Same pattern as L2.
-
-### L4. `compose/types.go` vs `compose/model.go` naming
-
-**File:** `pkg/compose/types.go`
-
-The design calls the file `model.go`. The implementation names it `types.go`. Both are valid Go conventions, but diverging from the design without documenting the change adds confusion.
-
-**Recommendation:** Either rename to `model.go` or update the design.
-
-### L5. `WaitReady` busy-polls on context cancellation
-
-**File:** `pkg/embeddednats/server.go:119-130`
-
-The `WaitReady` loop calls `ReadyForConnections(readyPollInterval)` which blocks for 50ms, then checks `ctx.Done()`. This is a reasonable approach, but the `select` with `default` means if `ReadyForConnections` returns false, it immediately re-enters without respecting the poll interval on the context-check path. This is fine because `ReadyForConnections` itself sleeps for the poll interval, but the code structure is slightly misleading.
-
-### L6. Test coverage: no test for TLS configuration path in embeddednats
-
-**File:** `pkg/embeddednats/server_test.go`
-
-No test exercises the TLS code path (`config.TLS != nil`). While TLS testing requires certificates, the lack of coverage means TLS configuration bugs would not be caught.
-
-### L7. `compose/compiler.go` container command building does not shell-escape values
-
-**File:** `pkg/compose/compiler.go:317-350`
-
-Environment variable values, volume paths, and device paths are concatenated into the podman command without shell escaping. Values containing spaces, quotes, or special characters would break the command. This is acceptable for controlled RDL input but fragile.
-
-**Recommendation:** Note as a known limitation or add shell quoting for values.
+**Scope:** Interface boundaries, registry API, dependency injection, Run() entrypoint, CLI commands, build command, code quality
+**Design docs:** `/er/gorai/REQUIREMENTS.md`, `/er/gorai/docs/package-dev-approach.md`
 
 ---
 
 ## Summary
 
-The implementation is well-structured and functionally correct. The major deviations from the design are primarily API-level (config struct vs options pattern, method signatures missing context parameters) rather than architectural. The core architecture (embedded NATS, health probes, compose compiler, CLI commands, robot lifecycle integration) matches the design's intent. Thread safety is generally good with proper mutex usage. The code is clean and readable with meaningful names and explicit error handling throughout.
+The Caddy model implementation is structurally sound. The core patterns -- init()-based registration, topological sort for dependency ordering, `gorai.Run()` entrypoint, and the `componentregistry` package for main.go editing -- are correctly implemented and align with the design intent. Below are findings grouped by severity.
 
-**Counts:** 0 critical, 4 high, 9 medium, 7 low
+---
+
+## Critical Findings
+
+### C-1: robot.go hard-codes V4L2 camera driver (REQ-CADDY-2 / REQ-CORE-2 violation)
+
+**File:** `pkg/robot/robot.go` lines 19, 23, 49, 457-530
+
+`pkg/robot/robot.go` directly imports and uses the V4L2 camera driver:
+
+```go
+import (
+    "github.com/gorai/gorai/driver/camera/v4l2"
+    hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
+)
+```
+
+The `Robot` struct holds `cameras map[string]*v4l2.Camera` and `startCamera()` constructs V4L2 cameras directly. This means **every binary built with gorai core includes the V4L2 driver**, whether the robot has a camera or not. This violates REQ-CADDY-2 ("Components MUST NOT live in the core gorai/gorai repo except fakes for testing") and defeats the Caddy model for cameras.
+
+Additionally, `Start()` has a special-case branch for `comp.Type == "camera"` (lines 180-196) that bypasses `startRegistryComponent()`. This means camera components cannot participate in the standard registry pattern.
+
+**Fix:** Camera should be a registry-registered component like everything else. Remove `startCamera()`, the V4L2 imports, and the camera special case. V4L2 becomes an external module with init()-based registration.
+
+### C-2: build command missing go.mod check (REQ-CLI-BUILD-3 violation)
+
+**File:** `cmd/gorai/commands/build.go`
+
+The build command does not check for the presence of `go.mod` before running `go build`. REQ-CLI-BUILD-3 explicitly requires:
+
+> If the current directory does not contain a go.mod, gorai build MUST fail with:
+> `Error: not in a Go module. Run 'gorai build' from your robot project directory.`
+
+The command will fail with a generic `go build failed` error instead of the actionable error the spec requires.
+
+---
+
+## High Findings
+
+### H-1: GetByType() stub in componentDeps returns nil, nil
+
+**File:** `pkg/robot/deps.go` lines 43-45
+
+```go
+func (d *componentDeps) GetByType(subtype string) ([]any, error) {
+    return nil, nil
+}
+```
+
+This is a silent no-op. Any component calling `deps.GetByType("motor")` gets an empty result with no error, making it impossible to distinguish "no motors exist" from "not implemented." The data to implement this exists -- `d.components` contains all created components -- but the method does not filter or return them.
+
+**Fix:** Either implement filtering (would need type metadata stored alongside components) or return an explicit error indicating the method is not yet implemented.
+
+### H-2: Component shutdown ordering is not reverse-dependency-order
+
+**File:** `pkg/robot/robot.go` lines 1036-1047
+
+Components are shut down by iterating `r.components` (a `map[string]any`), which has random iteration order in Go. Per REQ-AUTHOR-4 and dependency injection practice, components should be closed in **reverse** topological order so that dependents release their references before dependencies are closed. A component may attempt to use a dependency that has already been closed.
+
+**Fix:** Store the sorted component order from startup and iterate it in reverse during `Stop()`.
+
+### H-3: Topological sort does not detect self-dependency
+
+**File:** `pkg/robot/topo.go`
+
+A component that lists itself in `depends_on` (e.g., `{name: "a", depends_on: ["a"]}`) is treated as a valid dependency in the lookup phase (line 19-24, `byName[dep]` succeeds since "a" is in the map). It increments its own in-degree to 1, never enters the queue as a zero-in-degree node, and is eventually reported as a cycle. The error message "circular dependency involving: a" is correct but not specific.
+
+More importantly, there is no test for this edge case. There are also no tests for empty input or duplicate component names.
+
+### H-4: `go mod tidy` error silently ignored in component add
+
+**File:** `cmd/gorai/commands/component.go` line 118
+
+```go
+goTidy.Run()
+```
+
+The return value of `goTidy.Run()` is discarded. If `go mod tidy` fails (e.g., network error, syntax issue in go.mod), the user gets no feedback. Per CLAUDE.md: "Always handle errors explicitly."
+
+**Fix:** At minimum log a warning. The operation has already succeeded (go get + import edit), so a tidy failure should warn but not fail the command.
+
+### H-5: `gorai.Run()` package location differs from REQUIREMENTS.md
+
+**File:** `pkg/gorai/run.go`, `cmd/gorai/main.go`
+
+REQUIREMENTS.md (REQ-CORE-1) specifies the entrypoint at `github.com/emergingrobotics/gorai/cmd/gorai`. The actual implementation places it at `github.com/gorai/gorai/pkg/gorai`. Two discrepancies:
+
+1. **Module path**: `gorai/gorai` vs `emergingrobotics/gorai` -- Acceptable if the module has not been published to the final path yet.
+2. **Package location**: `pkg/gorai/` vs `cmd/gorai/` as the Run() export point. The requirements doc and the `package-dev-approach.md` both show `import "github.com/emergingrobotics/gorai/cmd/gorai"` with `gorai.Run()`. The current structure puts Run() in `pkg/gorai` which imports `cmd/gorai/commands`. This adds an indirection layer and means the template main.go imports a different path than the documentation shows.
+
+**Fix:** Either move `Run()` to `cmd/gorai/` (making the package name match) or update all documentation to reference `pkg/gorai`.
+
+---
+
+## Medium Findings
+
+### M-1: Variable name `reset_count` uses snake_case
+
+**File:** `pkg/robot/robot.go` lines 323, 338, 341, 346
+
+Go convention and CLAUDE.md require camelCase: `resetCount`.
+
+### M-2: Magic number 4222 repeated for NATS default port
+
+**File:** `pkg/robot/robot.go` lines 272, 280, 292, 604
+
+The literal `4222` appears four times. Per CLAUDE.md ("No magic numbers: use named constants"), extract to a constant like `defaultNATSPort`.
+
+### M-3: Magic number 500ms for device reset delay
+
+**File:** `pkg/robot/robot.go` line 345
+
+```go
+time.Sleep(500 * time.Millisecond)
+```
+
+Unexplained magic number with no comment explaining the rationale.
+
+### M-4: Magic number 100 for frame counter logging interval
+
+**File:** `pkg/robot/robot.go` line 753
+
+```go
+if count%100 == 0 {
+```
+
+Hardcoded logging interval. Should be a named constant with a comment.
+
+### M-5: `findMainGo()` only checks current directory
+
+**File:** `cmd/gorai/commands/component.go` lines 168-172
+
+Only checks `main.go` in CWD. If the user runs `gorai component add` from a subdirectory, the function silently fails. Consider using `go env GOMOD` to locate the module root, or walking parent directories.
+
+### M-6: Two separate "registry" packages with confusing names
+
+- `pkg/registry/` -- Runtime component registration (init()-time, in-memory constructors)
+- `pkg/componentregistry/` -- JSON file catalog for `gorai component search/add/info`
+
+These serve entirely different purposes but share the word "registry." The type `componentregistry.Registry` and function `registry.RegisterComponent()` are easily confused. Consider renaming `pkg/componentregistry/` to `pkg/catalog/` or `pkg/componentcatalog/`.
+
+### M-7: No registry caching or remote fetch (REQ-REGISTRY-2 gap)
+
+**File:** `pkg/componentregistry/registry.go`
+
+REQ-REGISTRY-2 requires local caching with periodic refresh (e.g., every 24 hours or on `--refresh`). The current `LoadFromFile` reads from disk every time. There is no remote fetch, no cache TTL, and no `--refresh` flag.
+
+### M-8: Potential panic on empty arg string in CLI commands
+
+**Files:** `cmd/gorai/commands/build.go` line 43, `cmd/gorai/commands/run.go` line 39
+
+```go
+if args[i][0] != '-' {
+```
+
+If `args[i]` is an empty string, this panics with index-out-of-range. Use `len(args[i]) > 0 && args[i][0] != '-'` or `strings.HasPrefix(args[i], "-")`.
+
+### M-9: Validate command uses manual path parsing instead of filepath.Dir
+
+**File:** `cmd/gorai/commands/validate.go` lines 116-118
+
+```go
+configDir := "."
+if strings.Contains(configPath, "/") {
+    configDir = configPath[:strings.LastIndex(configPath, "/")]
+}
+```
+
+This manual parsing does not handle Windows paths and ignores `filepath.Dir()` which handles these cases correctly.
+
+---
+
+## Low Findings
+
+### L-1: `IsRegistered` only checks components, not services
+
+**File:** `pkg/registry/registry.go`
+
+No `IsServiceRegistered` equivalent exists. The asymmetry is minor since validation currently only checks components, but it limits future use.
+
+### L-2: `ListComponents` and `ListServices` return non-deterministic ordering
+
+Model lists within each subtype come from map iteration. Output of `gorai components` varies across runs. Sorting would make it deterministic.
+
+### L-3: Test coverage gap: empty and single-element inputs to topoSort
+
+**File:** `pkg/robot/topo_test.go`
+
+No test for `topoSortComponents(nil)`, `topoSortComponents([]config.ComponentConfig{})`, or a single component with no deps. Also no test for duplicate component names.
+
+### L-4: `configPath` absolutization ignores error
+
+**File:** `cmd/gorai/commands/build.go` line 60
+
+```go
+configPath, _ = filepath.Abs(configPath)
+```
+
+The error is silently discarded.
+
+### L-5: `defaultRegistryPath` is CWD-relative
+
+**File:** `cmd/gorai/commands/component.go` line 13
+
+`"registry.json"` makes the primary registry path dependent on where the user runs the command. The `~/.gorai/registry.json` fallback mitigates this.
+
+---
+
+## Interface Boundaries Assessment
+
+**Component interfaces in `components/*/`**: Clean. Each subpackage defines an interface (Motor, Servo, Sensor subtypes, etc.) that embeds `component.Component` -> `resource.Resource`. No hardware dependencies in the interface packages. Fake implementations correctly live in `components/*/fake/` and depend only on the interface package + `pkg/registry`. External modules can import `components/motor` without pulling in hardware deps.
+
+**Exception**: `pkg/robot/robot.go` pulling in `driver/camera/v4l2` is the one boundary violation (see C-1).
+
+**Driver interfaces in `driver/`**: Clean. `driver/driver.go` defines base interfaces. Subdirectories define transport-specific interfaces with no platform-specific implementations.
+
+---
+
+## Registry API Assessment
+
+`pkg/registry/registry.go` is clean and usable by external modules. The `Constructor` signature matches REQ-AUTHOR-2:
+
+```go
+type Constructor func(ctx context.Context, deps Dependencies, conf Config) (any, error)
+```
+
+The `Dependencies` interface is minimal (`Get` + `GetByType`). The `Config` type alias (`map[string]any`) is simple. External modules only need `import "github.com/gorai/gorai/pkg/registry"` to register and look up components.
+
+The use of `any` return types in both Constructor and Dependencies.Get is intentional (components define local interfaces for their dependencies, per REQ-AUTHOR-4), but means type errors are caught at runtime, not compile time.
+
+Thread safety is correct: all registry operations hold a `sync.RWMutex`.
+
+---
+
+## Dependency Injection Assessment
+
+Topological sort (`pkg/robot/topo.go`) correctly implements Kahn's algorithm:
+- No dependencies: all components independent -- works
+- Linear chains: A -> B -> C -- works, tested
+- Diamond: D -> {B, C} -> A -- works, tested
+- Missing deps: error with component name -- works, tested
+- Cycles: detected via remaining in-degree count -- works, tested
+
+`pkg/robot/deps.go` correctly accumulates created components for downstream access. The "nats" and "logger" magic strings are documented. The dependency bag is created once per robot startup and shared across all component constructors.
+
+Edge cases not handled or tested:
+- Self-dependency (caught as cycle, no specific message)
+- Empty input (works correctly, not tested)
+- Duplicate component names (last-write-wins in byName map, no error raised)
+
+---
+
+## Run() Entrypoint Assessment
+
+`pkg/gorai/run.go` is clean: 18 lines, delegates to `commands.Execute()`. The package name `gorai` means external callers write `gorai.Run()` which reads naturally. The `cmd/gorai/main.go` is 19 lines (under the 20-line REQ-TEMPLATE-4 requirement) and demonstrates the blank import pattern with remote proxy components.
+
+---
+
+## Component Command Assessment
+
+`cmd/gorai/commands/component.go` correctly implements search/add/info:
+- **search**: Loads registry, calls `reg.Search(query)`, formats output
+- **add**: Supports both registry name lookup and direct Go module paths, runs `go get`, adds blank import via AST manipulation (`componentregistry.AddBlankImport`), runs `go mod tidy`
+- **info**: Looks up by key, prints formatted details
+
+The `AddBlankImport` implementation (`pkg/componentregistry/mainfile.go`) correctly uses `go/parser` + `go/format` for safe AST-level editing, handles existing imports (no duplicates), and creates import blocks when none exist. Tests cover all three cases.
+
+---
+
+## Build Command Assessment
+
+`cmd/gorai/commands/build.go` correctly:
+- Parses `--config`, `-o`, `--target` flags
+- Loads and validates config before building
+- Sets `GOOS`/`GOARCH` for cross-compilation
+- Runs `go build .` (the user's module, not the core)
+- Sets ldflags for version info
+- Contains no docker/podman/container references (REQ-CLI-BUILD-2 satisfied)
+
+Missing: go.mod existence check (C-2 above).
+
+---
+
+## Overall
+
+**Counts:** 2 critical, 5 high, 9 medium, 5 low
+
+The implementation faithfully implements the Caddy model design. The critical issues (V4L2 hardcoding in robot.go, missing go.mod check in build) should be fixed before the template repo is usable. The high issues (shutdown ordering, GetByType stub, ignored errors, Run() path mismatch) represent correctness risks or documentation mismatches that will surface during integration testing with external component modules.
