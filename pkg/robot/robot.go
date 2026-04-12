@@ -5,9 +5,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/gorai/gorai/driver/camera/v4l2"
 	"github.com/gorai/gorai/pkg/config"
 	"github.com/gorai/gorai/pkg/dashboard"
+	"github.com/gorai/gorai/pkg/embeddednats"
 	hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/registry"
@@ -48,6 +51,9 @@ type Robot struct {
 	logger     *slog.Logger
 	ctx        context.Context
 	cancel     context.CancelFunc
+
+	// Embedded NATS server (nil when using external NATS)
+	embeddedNATS *embeddednats.Server
 
 	// NATS client for messaging
 	nats   *gorainats.Client
@@ -136,7 +142,14 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 func (r *Robot) Start(ctx context.Context) error {
 	r.logger.Info("Starting robot", "name", r.cfg.Robot.Name)
 
-	// Connect to NATS
+	// Start embedded NATS if configured
+	if r.cfg.ShouldEmbedNATS() {
+		if err := r.startEmbeddedNATS(); err != nil {
+			return fmt.Errorf("failed to start embedded NATS: %w", err)
+		}
+	}
+
+	// Connect to NATS (works whether embedded or external)
 	if err := r.connectNATS(ctx); err != nil {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
 	}
@@ -218,6 +231,61 @@ func (r *Robot) Start(ctx context.Context) error {
 
 	r.logger.Info("Robot started", "components", len(r.cfg.Components), "services", len(r.cfg.Services))
 	return nil
+}
+
+// startEmbeddedNATS creates and starts the embedded NATS server.
+func (r *Robot) startEmbeddedNATS() error {
+	host, port := parseNATSURL(r.getNATSURL())
+
+	natsConfig := embeddednats.Config{
+		Host:      host,
+		Port:      port,
+		JetStream: r.cfg.NATS.IsJetStreamEnabled(),
+		Logger:    r.logger,
+	}
+
+	if r.cfg.NATS != nil && r.cfg.NATS.TLS != nil {
+		natsConfig.TLS = &embeddednats.TLSConfig{
+			CAFile:   r.cfg.NATS.TLS.CAFile,
+			CertFile: r.cfg.NATS.TLS.CertFile,
+			KeyFile:  r.cfg.NATS.TLS.KeyFile,
+		}
+	}
+
+	server, err := embeddednats.New(natsConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create embedded NATS server: %w", err)
+	}
+
+	if err := server.Start(); err != nil {
+		return fmt.Errorf("failed to start embedded NATS server: %w", err)
+	}
+
+	r.embeddedNATS = server
+	return nil
+}
+
+// parseNATSURL extracts host and port from a NATS URL.
+// Returns defaults of "127.0.0.1" and 4222 on parse failure.
+func parseNATSURL(natsURL string) (string, int) {
+	parsed, err := url.Parse(natsURL)
+	if err != nil {
+		return "127.0.0.1", 4222
+	}
+
+	host := parsed.Hostname()
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
+	port := 4222
+	if portString := parsed.Port(); portString != "" {
+		if parsedPort, err := strconv.Atoi(portString); err == nil {
+			port = parsedPort
+		}
+	}
+
+	return host, port
 }
 
 // connectNATS establishes connection to the NATS server.
@@ -1007,6 +1075,11 @@ func (r *Robot) Stop(ctx context.Context) error {
 	// Close NATS connection
 	if r.nats != nil {
 		r.nats.Close()
+	}
+
+	// Shut down embedded NATS server (after client is closed)
+	if r.embeddedNATS != nil {
+		r.embeddedNATS.Shutdown()
 	}
 
 	r.logger.Info("Robot stopped", "name", r.cfg.Robot.Name)

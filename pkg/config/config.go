@@ -85,15 +85,43 @@ type PlatformPWMConfig struct {
 type NATSConfig struct {
 	URL             string     `json:"url,omitempty"`
 	URLs            []string   `json:"urls,omitempty"`
-	JetStream       bool       `json:"jetstream,omitempty"`
+	JetStream       *bool      `json:"jetstream,omitempty"`
 	CredentialsFile string     `json:"credentials_file,omitempty"`
 	TLS             *TLSConfig `json:"tls,omitempty"`
 	ConnectTimeout  string     `json:"connect_timeout,omitempty"`
 	ReconnectWait   string     `json:"reconnect_wait,omitempty"`
 	MaxReconnects   int        `json:"max_reconnects,omitempty"`
+	External        bool       `json:"external,omitempty"`
 
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
+}
+
+// IsLocalURL returns true if the NATS URL points to localhost or 127.0.0.1.
+// An empty URL is treated as local (defaults to localhost).
+func (n *NATSConfig) IsLocalURL() bool {
+	if n == nil || n.URL == "" {
+		return true
+	}
+	url := strings.ToLower(n.URL)
+	// Strip scheme
+	if idx := strings.Index(url, "://"); idx >= 0 {
+		url = url[idx+3:]
+	}
+	// Strip port
+	if idx := strings.Index(url, ":"); idx >= 0 {
+		url = url[:idx]
+	}
+	return url == "localhost" || url == "127.0.0.1"
+}
+
+// IsJetStreamEnabled returns true if JetStream is enabled.
+// Defaults to true when not explicitly set.
+func (n *NATSConfig) IsJetStreamEnabled() bool {
+	if n == nil || n.JetStream == nil {
+		return true
+	}
+	return *n.JetStream
 }
 
 // TLSConfig defines TLS settings for NATS.
@@ -719,6 +747,18 @@ func (cfg *RDL) GetEffectiveNamespace() string {
 		return cfg.Robot.Namespace
 	}
 	return cfg.Robot.Name
+}
+
+// ShouldEmbedNATS returns true if the runtime should start an embedded NATS
+// server. Embedded NATS is used when the URL is local and External is not set.
+func (cfg *RDL) ShouldEmbedNATS() bool {
+	if cfg.NATS != nil && cfg.NATS.External {
+		return false
+	}
+	if cfg.NATS != nil && !cfg.NATS.IsLocalURL() {
+		return false
+	}
+	return true
 }
 
 // IsDashboardEnabled returns whether the dashboard should be enabled.

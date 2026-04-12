@@ -25,15 +25,32 @@ This repository is the **core implementation** — Go source code, component int
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-- **Single binary** — No containers, no K8s, just a Go binary
-- **NATS messaging** — All component communication via NATS pub/sub
+- **Single binary** — No containers, no K8s, no external services
+- **Embedded NATS** — In-process NATS server with JetStream, zero configuration
 - **Go core** — Components, behaviors, runtime all in Go
 - **Simple deployment** — Copy binary to Pi, run with systemd
 - **Low overhead** — ~20-50MB RAM (vs 512MB+ for containers)
 
-## Related Modules
+## Hardware Products
 
-Gorai works with companion modules for hardware communication:
+| Product | Type | Status |
+|---------|------|--------|
+| **ORCA** | Autonomous submersible (2 motors + dive planes, 80ft depth, under $2,500) | Prototype |
+| **Surf** | Autonomous surface vessel (under $1,500) | Prototype |
+| Drive | Land robot | Deferred |
+
+ORCA is the flagship hardware project. It runs `gorai run` on a Raspberry Pi inside a pressure housing.
+
+## Hardware Access Patterns
+
+Gorai supports two patterns for accessing hardware. Both produce components with identical interfaces.
+
+- **Co-processor (RP2040 via GSP/2):** RP2040 handles real-time hardware I/O (PWM, motors, encoders). RPi communicates over USB serial using GSP/2. Best for timing-critical control and reliability-critical applications.
+- **Native RPi hardware (GPIO/I2C/SPI):** Direct access from Go code. Best for simple sensors, I2C devices, and prototyping.
+
+Both can be used simultaneously on the same robot.
+
+## Related Modules
 
 ### gorai-gsp (../gorai-gsp)
 Go/TinyGo library implementing the **Gorai Serial Protocol v2 (GSP/2)**:

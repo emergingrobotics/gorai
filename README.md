@@ -43,7 +43,19 @@ gorai build robot.rdl.json -o robot --target linux/arm64
 scp robot pi@raspberrypi:~ && ssh pi@raspberrypi ./robot
 ```
 
-No containers. No K8s. Just a 10-20MB binary that runs on a Raspberry Pi 5 or Orange Pi 5.
+No containers. No K8s. No external services. Just a single binary that runs on a Raspberry Pi 5 or Orange Pi 5.
+
+---
+
+## Hardware Products Powered by Gorai
+
+| Product | Type | Price | Status |
+|---------|------|-------|--------|
+| **ORCA** | Autonomous submersible (2 motors + dive planes, 80ft depth) | Under $2,500 | Prototype |
+| **Surf** | Autonomous surface vessel | Under $1,500 | Prototype |
+| Drive | Land robot | TBD | Deferred |
+
+**ORCA** is the flagship hardware project. "Autonomous submersible under $2,500" is a category with zero competition — BlueROV2 ($4,600) is purely remote-controlled, and professional AUVs start at $50,000+. ORCA runs `gorai run` on a Raspberry Pi inside a pressure housing.
 
 ---
 
@@ -89,9 +101,7 @@ For the full strategic context, see [Gorai Overarching Strategy](https://github.
 
 ## Prerequisites
 
-Before you start, you need two things: **Go** (to build gorai) and **NATS Server** (message broker for component communication).
-
-### 1. Install Go
+You need **Go 1.22+** to build gorai. That's it.
 
 **macOS:**
 ```bash
@@ -103,230 +113,20 @@ brew install go
 sudo apt update && sudo apt install -y golang-go
 ```
 
-Or download from https://go.dev/dl/ for the latest version (1.22+ required).
+Or download from https://go.dev/dl/ for the latest version.
 
-### 2. Install NATS Server and Enable JetStream
+NATS is embedded in the gorai binary -- no external message broker to install.
 
-NATS is a lightweight message broker that gorai uses for all component communication. It must be running before you start your robot.
+### NATS CLI (optional, for debugging)
 
-By default, NATS runs in core pub/sub mode -- messages are fire-and-forget. Enabling JetStream adds persistence, replay, and key-value storage. Gorai requires JetStream for:
-
-- **Mesh service discovery** -- the `gorai-services`, `gorai-channels`, and `gorai-schemas` KV buckets require JetStream
-- **Event sourcing / replay** -- satellite services (like gogrowatt-plot) use JetStream consumers with `DeliverByStartTime` to replay historical data on startup
-- **Acknowledged delivery** -- publishers get confirmation that messages were persisted
-
-JetStream is a server-wide capability, not a per-stream setting. You enable it once on the NATS server, and then you can create as many streams as you want. Streams are the individual units that define which subjects to capture, how long to retain messages, and where to store them.
-
-#### Installing nats-server
-
-nats-server is a single static binary with no dependencies. Download it directly from the GitHub releases page rather than using a package manager.
-
-**Do not use Homebrew to install nats-server.** Homebrew's `brew services` overwrites the LaunchAgent plist on every `restart`, which makes it difficult to pass custom flags like `-c` for a config file. Enabling JetStream requires a config file, and fighting Homebrew's service management is not worth the effort.
-
-**macOS (Apple Silicon):**
-
-```bash
-curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-darwin-arm64.tar.gz -o nats-server.tar.gz
-tar xzf nats-server.tar.gz
-sudo mv nats-server-v2.12.4-darwin-arm64/nats-server /usr/local/bin/
-rm -rf nats-server.tar.gz nats-server-v2.12.4-darwin-arm64
-```
-
-**macOS (Intel):**
-
-```bash
-curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-darwin-amd64.tar.gz -o nats-server.tar.gz
-tar xzf nats-server.tar.gz
-sudo mv nats-server-v2.12.4-darwin-amd64/nats-server /usr/local/bin/
-rm -rf nats-server.tar.gz nats-server-v2.12.4-darwin-amd64
-```
-
-**Linux (arm64):**
-
-```bash
-curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-linux-arm64.tar.gz -o nats-server.tar.gz
-tar xzf nats-server.tar.gz
-sudo mv nats-server-v2.12.4-linux-arm64/nats-server /usr/local/bin/
-rm -rf nats-server.tar.gz nats-server-v2.12.4-linux-arm64
-```
-
-**Linux (amd64):**
-
-```bash
-curl -L https://github.com/nats-io/nats-server/releases/download/v2.12.4/nats-server-v2.12.4-linux-amd64.tar.gz -o nats-server.tar.gz
-tar xzf nats-server.tar.gz
-sudo mv nats-server-v2.12.4-linux-amd64/nats-server /usr/local/bin/
-rm -rf nats-server.tar.gz nats-server-v2.12.4-linux-amd64
-```
-
-Verify the install:
-
-```bash
-nats-server --version
-```
-
-#### Removing Homebrew nats-server (if previously installed)
-
-If you previously installed nats-server via Homebrew, remove it before using the native binary to avoid conflicts:
-
-```bash
-# Stop the Homebrew service and remove the LaunchAgent plist
-brew services stop nats-server
-
-# Uninstall the formula
-brew uninstall nats-server
-
-# Clean up any leftover config or data you created for the Homebrew install
-rm -f /opt/homebrew/etc/nats-server.conf
-rm -rf /opt/homebrew/var/nats-jetstream
-
-# Verify the Homebrew binary is gone
-which nats-server
-# Should show /usr/local/bin/nats-server (the native install) or nothing
-```
-
-#### Creating the config file
-
-Create a config file with JetStream enabled:
-
-```bash
-sudo mkdir -p /usr/local/etc
-sudo tee /usr/local/etc/nats-server.conf > /dev/null << 'EOF'
-jetstream {
-  store_dir: /usr/local/var/nats-jetstream
-  max_mem: 256MB
-  max_file: 1GB
-}
-EOF
-
-sudo mkdir -p /usr/local/var/nats-jetstream
-sudo chown -R $(whoami) /usr/local/var/nats-jetstream
-```
-
-`store_dir` is where JetStream writes persistent message data. The `chown` is required because nats-server runs as your user but `/usr/local/var` is typically owned by root. `max_mem` and `max_file` cap the total resources JetStream can use across all streams. Adjust to taste.
-
-#### Running nats-server
-
-**Foreground (for development):**
-
-```bash
-nats-server -c /usr/local/etc/nats-server.conf
-```
-
-Add `-D` for debug output.
-
-**Background:**
-
-```bash
-nats-server -c /usr/local/etc/nats-server.conf &
-```
-
-**As a macOS LaunchAgent (start on login):**
-
-Create `~/Library/LaunchAgents/io.nats.nats-server.plist`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>io.nats.nats-server</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/local/bin/nats-server</string>
-        <string>-c</string>
-        <string>/usr/local/etc/nats-server.conf</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>/usr/local/var/log/nats-server.log</string>
-    <key>StandardErrorPath</key>
-    <string>/usr/local/var/log/nats-server.log</string>
-</dict>
-</plist>
-```
-
-Load it:
-
-```bash
-sudo mkdir -p /usr/local/var/log
-launchctl load ~/Library/LaunchAgents/io.nats.nats-server.plist
-```
-
-To stop: `launchctl unload ~/Library/LaunchAgents/io.nats.nats-server.plist`
-
-To restart: unload then load, or `kill $(pgrep nats-server)` (launchd restarts it automatically because `KeepAlive` is true).
-
-**As a Linux systemd service:**
-
-Create `/etc/systemd/system/nats-server.service`:
-
-```ini
-[Unit]
-Description=NATS Server
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/nats-server -c /usr/local/etc/nats-server.conf
-Restart=always
-RestartSec=5
-LimitNOFILE=65536
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
-
-```bash
-sudo systemctl enable nats-server
-sudo systemctl start nats-server
-```
-
-#### Verifying JetStream is enabled
-
-```bash
-nats account info
-```
-
-The output should include a `JetStream Account Information` section showing the configured limits. If it says "JetStream is not supported in this account", the config file is not being loaded -- check the nats-server process arguments with `ps aux | grep nats-server`.
-
-#### Creating a stream for robot data
-
-Once JetStream is enabled on the server, create a stream that captures gorai data subjects:
-
-```bash
-nats stream add GORAI_DATA \
-  --subjects "gorai.*.*.data" \
-  --retention limits \
-  --max-age 24h \
-  --storage file \
-  --replicas 1
-```
-
-This tells NATS to persist all messages matching `gorai.*.*.data` for 24 hours. Messages older than 24 hours are automatically pruned. Satellite services that support JetStream (like gogrowatt-plot) use this stream to replay historical data on startup.
-
-To verify the stream is working after a publisher has sent data:
-
-```bash
-nats stream info GORAI_DATA
-nats stream view GORAI_DATA --last 1
-```
-
-### 3. Install NATS CLI (optional, for debugging)
-
-The NATS CLI lets you subscribe to messages and debug your robot.
+The NATS CLI lets you subscribe to messages and debug your robot:
 
 **macOS:**
 ```bash
 brew install nats-io/nats-tools/nats
 ```
 
-**Ubuntu/Debian:**
+**Linux:**
 ```bash
 go install github.com/nats-io/natscli/nats@latest
 ```
@@ -338,28 +138,24 @@ go install github.com/nats-io/natscli/nats@latest
 ### 1. Build Gorai CLI
 
 ```bash
-# Clone the repository
 git clone https://github.com/emergingrobotics/gorai.git
 cd gorai
-
-# Build CLI
-go build -o bin/gorai ./cmd/gorai
+make build
 ```
 
 ### 2. Create your first robot
 
 ```bash
-# Create robot configuration (uses GPS simulator)
 cat > robot.rdl.json << 'EOF'
 {
-  "name": "gps-tracker",
-  "description": "My first robot!",
-  "nats": {"url": "nats://localhost:4222"},
+  "version": "2",
+  "robot": {"name": "gps-tracker", "description": "My first robot!"},
   "components": [
     {
       "name": "gps",
-      "type": "serial/gps",
-      "config": {
+      "type": "serial",
+      "model": "gps",
+      "attributes": {
         "device": "/dev/gps-sim",
         "baud_rate": 9600
       }
@@ -369,17 +165,16 @@ cat > robot.rdl.json << 'EOF'
 EOF
 ```
 
-**Note:** The GPS simulator (`/dev/gps-sim`) is used by default. This lets you test without hardware.
+The GPS simulator (`/dev/gps-sim`) lets you test without hardware.
 
 ### 3. Validate and run
 
 ```bash
-# Validate configuration
 ./bin/gorai validate robot.rdl.json
-
-# Run in development mode
 ./bin/gorai run robot.rdl.json
 ```
+
+The embedded NATS server starts automatically -- no separate process needed.
 
 ### 4. Verify it works
 
@@ -391,6 +186,21 @@ nats sub "gorai.gps-tracker.gps.nmea"
 
 You'll see GPS NMEA sentences streaming over NATS.
 
+### Using an External NATS Server
+
+For multi-robot deployments or shared brokers, point at an external NATS server:
+
+```json
+{
+  "nats": {
+    "url": "nats://nats-server.local:4222",
+    "external": true
+  }
+}
+```
+
+When `external` is `true` or the URL points to a non-local address, gorai connects to the external server instead of starting its own.
+
 ---
 
 ## Hardware Platforms
@@ -401,9 +211,19 @@ You'll see GPS NMEA sentences streaming over NATS.
 | **Raspberry Pi 5 (4GB)** | External (Hailo 13-26 TOPS) | ~$100 | Budget builds |
 | **Orange Pi 5B (8GB)** | 6 TOPS (built-in NPU) | ~$145 | Budget AI builds |
 
-**Not supported:** Pi 3, Pi Zero, Pi 4 (2GB)
+**Not supported:** Pi 3, Pi Zero
 
 See Hardware Requirements in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/specifications/) repository for details.
+
+### Hardware Access Patterns
+
+Gorai supports two patterns for accessing hardware. Both produce components with identical interfaces — application code doesn't know or care which is used.
+
+**Co-processor (RP2040 via GSP/2):** An RP2040 microcontroller handles real-time hardware I/O (PWM, motor control, encoders). The RPi communicates with it over USB serial using the Gorai Serial Protocol v2. Best for timing-critical control, isolating hardware from Linux scheduler jitter, and reliability-critical applications (e.g., ORCA — motor control must not glitch underwater).
+
+**Native RPi hardware (GPIO/I2C/SPI):** Direct access to Raspberry Pi GPIO pins, I2C buses, and SPI buses from Go code. Best for simple sensors, I2C devices, prototyping, and cost-sensitive builds where an RP2040 is unnecessary.
+
+Both patterns can be used simultaneously — e.g., RP2040 handling motors while the Pi reads I2C sensors directly.
 
 ---
 
@@ -460,36 +280,39 @@ See Hardware Requirements in the [gorai-docs](https://github.com/emergingrobotic
 
 ## Architecture
 
-Gorai uses a message-based architecture where all components communicate via NATS:
+Gorai uses a message-based architecture where all components communicate via an embedded NATS server:
 
 ```
-┌─────────────────────────────────────────────────┐
-│              Your Robot Binary                  │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │  GPS    │ │ Motor   │ │ Sensor  │    ...    │
-│  │Component│ │Component│ │Component│           │
-│  └────┬────┘ └────┬────┘ └────┬────┘           │
-│       │           │           │                 │
-│       └───────────┴─────┬─────┘                 │
-│                         │                        │
-│                   ┌─────▼─────┐                  │
-│                   │  Message  │                  │
-│                   │   Router  │                  │
-│                   └─────┬─────┘                  │
-└─────────────────────────┼───────────────────────┘
-                          │ NATS Protocol
-                          ▼
-                   ┌─────────────┐
-                   │ NATS Server │
-                   └─────────────┘
+┌──────────────────────────────────────────────────────┐
+│                  Your Robot Binary                    │
+│                                                      │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐                │
+│  │  GPS    │ │ Motor   │ │ Sensor  │    ...          │
+│  │Component│ │Component│ │Component│                 │
+│  └────┬────┘ └────┬────┘ └────┬────┘                 │
+│       │           │           │                      │
+│       └───────────┴─────┬─────┘                      │
+│                         │                            │
+│                   ┌─────▼─────┐                      │
+│                   │  Message  │                      │
+│                   │   Router  │                      │
+│                   └─────┬─────┘                      │
+│                         │ NATS Protocol              │
+│                   ┌─────▼─────┐                      │
+│                   │ Embedded  │                      │
+│                   │   NATS    │  (JetStream enabled) │
+│                   └───────────┘                      │
+└──────────────────────────────────────────────────────┘
 ```
 
 **Key principles:**
+- Single binary with embedded NATS -- no external services required
 - Each component runs in its own goroutine
 - Internal control uses Go channels
 - Inter-component communication uses NATS only
 - No shared memory between components
 - Message-based architecture enables remote debugging
+- External NATS supported for multi-robot or shared broker deployments
 
 ---
 
@@ -647,22 +470,23 @@ NATS has clients for 40+ languages. Use the best tool for each job.
 
 **Version:** 0.1.0 (Early Development)
 
-### Current Phase: Simple Binary Deployment
+### Current Phase: Single Binary Deployment
 
-The current focus is on a simple, single-binary deployment model:
-- Single Go binary (~10-20MB)
-- NATS as only external dependency
-- No containers, no K8s required
+The current focus is a zero-dependency, single-binary deployment model:
+- Single Go binary with embedded NATS server
+- No external services required -- everything in one process
+- No containers, no K8s
 - Runs directly on Raspberry Pi with systemd
+- JetStream enabled by default for event sourcing and mesh discovery
 
-### Future Roadmap
+### Future Roadmap (Deferred)
 
-For production fleets and advanced features, see the Future Roadmap in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/plans/) repository:
-- **Phase 2:** Optional containers for ML/vision services
-- **Phase 3:** K3s orchestration for fleet management
-- **Phase 4:** ROS 2 bridge, advanced SLAM
+Container and fleet management features were evaluated and deferred until user demand requires them:
+- **Phase 2 (deferred):** Optional containers for ML/vision services
+- **Phase 3 (deferred):** K3s orchestration for fleet management
+- **Phase 4 (deferred):** ROS 2 bridge, advanced SLAM
 
-The K3s/container architecture is preserved in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/architecture/) repository.
+Design documents for these phases are preserved in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/architecture/) repository. The current `gorai run` single-binary model is the right runtime for all current use cases, including ORCA and Surf.
 
 ---
 
