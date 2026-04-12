@@ -59,6 +59,64 @@ No containers. No K8s. No external services. Just a single binary that runs on a
 
 ---
 
+## Component Ecosystem
+
+Gorai uses the **Caddy model** for component packaging: your robot project is a standard Go module, and the import list in `main.go` *is* the component manifest. Each component self-registers via `init()` calling `registry.RegisterComponent()`. There is no custom package manager -- Go modules handles everything.
+
+### How It Works
+
+A robot's `main.go` declares which components to include via blank imports:
+
+```go
+package main
+
+import (
+    "github.com/emergingrobotics/gorai/pkg/robot"
+
+    // Built-in components
+    _ "github.com/emergingrobotics/gorai/components/serial/gps"
+    _ "github.com/emergingrobotics/gorai/components/gpio/output"
+
+    // Third-party component from the ecosystem
+    _ "github.com/someone/gorai-component-lidar/rplidar"
+
+    // Custom component in this repo
+    _ "github.com/myorg/my-robot/components/ballast"
+)
+
+func main() {
+    robot.Run()
+}
+```
+
+The Go import list replaces `package.json`, `requirements.txt`, or any custom manifest. What you import is what gets compiled into the binary.
+
+### Workflow
+
+```bash
+gorai component search lidar          # Find components in the ecosystem
+gorai component add sensor/rplidar    # go get + add blank import to main.go
+gorai build robot.rdl.json            # Single binary with everything included
+```
+
+### Custom Components
+
+Custom components are ordinary Go packages in your project's repo. Write a package with an `init()` function that calls `registry.RegisterComponent()`, add a blank import in `main.go`, and it compiles into the binary alongside everything else.
+
+### Sharing Components
+
+Sharing a component means publishing a Go module. Extract the package into its own repo, push to GitHub, and anyone can `gorai component add` it. No registry servers, no package approval process -- standard Go module hosting.
+
+### Why This Matters
+
+This is a key advantage of choosing Go as the platform language. The single-binary story extends all the way to the component ecosystem: no runtime dependency resolution, no DLL hell, no version conflicts at deploy time. Every dependency is resolved at build time by the Go toolchain, and the result is one static binary you copy to the robot.
+
+Non-Go components (Python vision pipelines, C++ SLAM) run as external services communicating via NATS. They do not compile into the binary. This is Phase 2 complexity.
+
+For the full design, see [docs/package-dev-approach.md](docs/package-dev-approach.md).
+
+---
+
 ## Who Is Gorai For?
 
 **Use Gorai if you:**
@@ -455,6 +513,7 @@ See the dynamic discovery specification in the [gorai-docs](https://github.com/e
 | **Message Broker** | DDS peer-to-peer | NATS server | Decoupled, easy monitoring |
 | **Event Sourcing** | rosbag (manual) | JetStream (built-in) | Replay, time-travel debug |
 | **Observability** | Custom diagnostics | Prometheus /metrics | Industry-standard tools |
+| **Package Management** | Custom (rosdep, colcon) | Go modules | Standard tooling, no custom manager |
 
 ### Language Strategy
 
@@ -479,14 +538,15 @@ The current focus is a zero-dependency, single-binary deployment model:
 - Runs directly on Raspberry Pi with systemd
 - JetStream enabled by default for event sourcing and mesh discovery
 
-### Future Roadmap (Deferred)
+### Component Ecosystem (Caddy Model)
 
-Container and fleet management features were evaluated and deferred until user demand requires them:
-- **Phase 2 (deferred):** Optional containers for ML/vision services
-- **Phase 3 (deferred):** K3s orchestration for fleet management
-- **Phase 4 (deferred):** ROS 2 bridge, advanced SLAM
+GoRAI uses the [Caddy model](docs/package-dev-approach.md) for component distribution. Each hardware driver is a standalone Go module. A user's robot project has a `main.go` that imports the GoRAI core plus blank imports for each component needed. `go build` produces a single binary with exactly those components compiled in. See [REQUIREMENTS.md](REQUIREMENTS.md) for details.
 
-Design documents for these phases are preserved in the [gorai-docs](https://github.com/emergingrobotics/gorai-docs/tree/main/docs/architecture/) repository. The current `gorai run` single-binary model is the right runtime for all current use cases, including ORCA and Surf.
+### Future Roadmap
+
+- **Non-Go services** — Python/C++ services (vision, SLAM) communicate via NATS as external processes, not compiled-in components
+- **Fleet management** — Multi-robot coordination (future phase)
+- **ROS 2 bridge** — Interop with ROS 2 ecosystems (future phase)
 
 ---
 
@@ -497,7 +557,7 @@ All documentation has moved to the [gorai-docs](https://github.com/emergingrobot
 - **Getting Started** — Hardware requirements, Robot Definition Language (RDL) configuration
 - **Architecture & Design** — Strategy, vision analysis, design comparisons, mesh service discovery, dynamic discovery
 - **For AI Assistants / LLMs** — [CLAUDE.md](CLAUDE.md) (in this repo), [gorai-docs INDEX.md](https://github.com/emergingrobotics/gorai-docs/blob/main/INDEX.md)
-- **Future State** — Roadmap, K3s/container architecture plans
+- **Future State** — Roadmap, component ecosystem plans
 
 ---
 

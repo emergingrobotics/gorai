@@ -170,8 +170,6 @@ Examples:
   gorai run -c robot.json --log-level debug
   gorai run robot.json
 
-Note: NATS must be running before starting the robot:
-  sudo apt install nats-server
-  sudo systemctl start nats-server`)
+NATS is embedded in the binary — no external server needed.`)
 	return nil
 }

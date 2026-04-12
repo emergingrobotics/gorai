@@ -50,6 +50,17 @@ Gorai supports two patterns for accessing hardware. Both produce components with
 
 Both can be used simultaneously on the same robot.
 
+## Component Packaging (Caddy Model)
+
+The user's robot project is a Go module. The blank import list in `main.go` is the component manifest -- each component self-registers via `init()` calling `registry.RegisterComponent()`.
+
+- **Adding components:** `gorai component add sensor/bno055` runs `go get` and adds a blank import to `main.go`
+- **Custom components:** Go packages in the user's repo with an `init()` function that calls `registry.RegisterComponent()`
+- **Sharing components:** Extract to a standalone Go module, push to GitHub -- no custom registry needed
+- **Template repo:** `gorai-robot-template` provides the starting point (`main.go`, `robot.rdl.json`, `components/`, `services/`, `Makefile`)
+- **Non-Go components:** External services communicating via NATS (Python vision, C++ SLAM) -- Phase 2 complexity, they do not compile into the binary
+- **Full design:** `docs/package-dev-approach.md`
+
 ## Related Modules
 
 ### gorai-gsp (../gorai-gsp)
@@ -189,10 +200,10 @@ gorai/
 
 ## Design Principles
 
-1. **Simple binary deployment** — No containers required for basic robots
-2. **NATS-based messaging** — All component communication via NATS pub/sub
-3. **Progressive complexity** — Start simple, add containers/K3s when needed
-4. **Go-first, pragmatic polyglot** — Go core, Python/C++ via NATS (future)
+1. **Single binary deployment** — Embedded NATS, no external services
+2. **NATS-based messaging** — All component communication via embedded NATS pub/sub
+3. **Caddy model component ecosystem** — Components are Go modules, blank imports in main.go are the manifest, `go build` produces the binary
+4. **Go-first, pragmatic polyglot** — Go core, Python/C++ as external services via NATS (future)
 5. **Cloud-native patterns** — NATS, Prometheus, JetStream (event sourcing)
 
 ---

@@ -65,7 +65,7 @@ Usage:
 Core Commands:
   validate <config>   Validate RDL configuration file
   run <config>        Run robot in development mode (foreground)
-  build <config>      Build standalone binary for deployment
+  build <config>      Build standalone Go binary for deployment
 
 Component Commands:
   components          List available component types
