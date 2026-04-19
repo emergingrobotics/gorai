@@ -23,26 +23,26 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "valid config",
 			config: &Config{
-				Topic:            "gorai.test.keyboard.events",
+				Subject:            "gorai.test.keyboard.events",
 				BufferSize:       100,
 				StaleThresholdMs: 3000,
 			},
 			expectErr: false,
 		},
 		{
-			name: "missing topic",
+			name: "missing subject",
 			config: &Config{
-				Topic:            "",
+				Subject:            "",
 				BufferSize:       100,
 				StaleThresholdMs: 3000,
 			},
 			expectErr: true,
-			errMsg:    "topic is required",
+			errMsg:    "subject is required",
 		},
 		{
 			name: "buffer size too low",
 			config: &Config{
-				Topic:            "test.topic",
+				Subject:            "test.topic",
 				BufferSize:       0,
 				StaleThresholdMs: 3000,
 			},
@@ -52,7 +52,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "stale threshold too low",
 			config: &Config{
-				Topic:            "test.topic",
+				Subject:            "test.topic",
 				BufferSize:       100,
 				StaleThresholdMs: 50,
 			},
@@ -79,7 +79,7 @@ func TestConfigValidation(t *testing.T) {
 func TestConfigParsing(t *testing.T) {
 	resConf := resource.Config{
 		Attributes: map[string]any{
-			"topic":                     "gorai.gs.keyboard.events",
+			"subject":                     "gorai.gs.keyboard.events",
 			"buffer_size":               200.0,
 			"stale_threshold_ms":        3000.0,
 			"auto_release_on_disconnect": false,
@@ -89,7 +89,7 @@ func TestConfigParsing(t *testing.T) {
 	cfg, err := NewConfigFromResource(resConf)
 	require.NoError(t, err)
 
-	assert.Equal(t, "gorai.gs.keyboard.events", cfg.Topic)
+	assert.Equal(t, "gorai.gs.keyboard.events", cfg.Subject)
 	assert.Equal(t, 200, cfg.BufferSize)
 	assert.Equal(t, int64(3000), cfg.StaleThresholdMs)
 	assert.False(t, cfg.AutoReleaseOnDisconnect)
@@ -98,14 +98,14 @@ func TestConfigParsing(t *testing.T) {
 func TestConfigDefaults(t *testing.T) {
 	resConf := resource.Config{
 		Attributes: map[string]any{
-			"topic": "test.topic",
+			"subject": "test.topic",
 		},
 	}
 
 	cfg, err := NewConfigFromResource(resConf)
 	require.NoError(t, err)
 
-	assert.Equal(t, "test.topic", cfg.Topic)
+	assert.Equal(t, "test.topic", cfg.Subject)
 	assert.Equal(t, 100, cfg.BufferSize)
 	assert.Equal(t, int64(5000), cfg.StaleThresholdMs)
 	assert.True(t, cfg.AutoReleaseOnDisconnect)
@@ -295,7 +295,7 @@ func TestAutoReleaseOnDisconnect(t *testing.T) {
 
 func TestFanOutMultipleConsumers(t *testing.T) {
 	cfg := &Config{
-		Topic:            "gorai.test.keyboard.events",
+		Subject:            "gorai.test.keyboard.events",
 		BufferSize:       100,
 		StaleThresholdMs: 5000,
 	}
@@ -355,7 +355,7 @@ func TestFanOutMultipleConsumers(t *testing.T) {
 
 func TestFanOutContextCleanup(t *testing.T) {
 	cfg := &Config{
-		Topic:            "gorai.test.keyboard.events",
+		Subject:            "gorai.test.keyboard.events",
 		BufferSize:       100,
 		StaleThresholdMs: 5000,
 	}

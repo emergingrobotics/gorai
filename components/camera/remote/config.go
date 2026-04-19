@@ -11,8 +11,8 @@ import (
 
 // Config holds the configuration for the Remote Camera component.
 type Config struct {
-	// Topic is the NATS topic to subscribe to for camera frames.
-	Topic string `json:"topic"`
+	// Subject is the NATS subject to subscribe to for camera frames.
+	Subject string `json:"subject"`
 
 	// Width is the expected frame width in pixels.
 	Width int `json:"width"`
@@ -36,9 +36,9 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		StaleThresholdMs: 5000,
 	}
 
-	// Parse topic (required)
-	if val, ok := conf.Attributes["topic"].(string); ok {
-		cfg.Topic = val
+	// Parse subject (required)
+	if val, ok := conf.Attributes["subject"].(string); ok {
+		cfg.Subject = val
 	}
 
 	// Parse width
@@ -80,8 +80,8 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 
 // Validate checks if the configuration is valid.
 func (c *Config) Validate() error {
-	if c.Topic == "" {
-		return fmt.Errorf("topic is required")
+	if c.Subject == "" {
+		return fmt.Errorf("subject is required")
 	}
 
 	if c.Width < 1 {

@@ -11,6 +11,8 @@ import (
 	"github.com/gorai/gorai/pkg/dashboard/static"
 )
 
+
+
 // securityHeaders adds security headers to all responses.
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +57,7 @@ func (d *Dashboard) setupRoutes() {
 	// Create camera handlers
 	streamHandler := cameras.NewStreamHandler(
 		d.nats,
-		d.topics,
+		d.subjects,
 		d.cameraMonitor,
 		d.logger,
 		d.getMaxFPS(),
@@ -80,7 +82,7 @@ func (d *Dashboard) setupRoutes() {
 	// Create model handlers
 	modelStreamHandler := models.NewStreamHandler(
 		d.nats,
-		d.topics,
+		d.subjects,
 		d.logger,
 		d.getMaxFPS(),
 	)

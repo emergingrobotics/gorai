@@ -173,13 +173,13 @@ func (r *RemoteCamera) start(ctx context.Context) error {
 	}
 
 	// Subscribe to camera frames
-	sub, err := r.nc.Subscribe(r.config.Topic, r.handleFrame)
+	sub, err := r.nc.Subscribe(r.config.Subject, r.handleFrame)
 	if err != nil {
 		r.mu.Lock()
 		r.state = StateError
 		r.errorMsg = fmt.Sprintf("failed to subscribe: %v", err)
 		r.mu.Unlock()
-		return fmt.Errorf("failed to subscribe to %s: %w", r.config.Topic, err)
+		return fmt.Errorf("failed to subscribe to %s: %w", r.config.Subject, err)
 	}
 	r.sub = sub
 
@@ -192,7 +192,7 @@ func (r *RemoteCamera) start(ctx context.Context) error {
 	go r.staleDetectionLoop()
 
 	r.logger.Info("Remote camera started",
-		"topic", r.config.Topic,
+		"subject", r.config.Subject,
 		"buffer_size", r.config.BufferSize,
 		"width", r.config.Width,
 		"height", r.config.Height,
@@ -238,7 +238,7 @@ func (r *RemoteCamera) handleFrame(msg *nats.Msg) {
 	if frameCount%100 == 0 {
 		r.logger.Debug("Remote camera frames received",
 			"frames", frameCount,
-			"topic", r.config.Topic,
+			"subject", r.config.Subject,
 			"size_kb", len(msg.Data)/1024,
 		)
 	}
@@ -373,13 +373,13 @@ func (r *RemoteCamera) Reconfigure(ctx context.Context, deps resource.Dependenci
 		return fmt.Errorf("invalid config: %w", err)
 	}
 
-	// Check if topic changed (requires restart)
+	// Check if subject changed (requires restart)
 	r.mu.RLock()
-	topicChanged := r.config.Topic != cfg.Topic
+	subjectChanged := r.config.Subject != cfg.Subject
 	r.mu.RUnlock()
 
-	if topicChanged {
-		return fmt.Errorf("topic cannot be changed at runtime, restart required")
+	if subjectChanged {
+		return fmt.Errorf("subject cannot be changed at runtime, restart required")
 	}
 
 	r.mu.Lock()
@@ -404,7 +404,7 @@ func (r *RemoteCamera) DoCommand(ctx context.Context, cmd map[string]any) (map[s
 		return map[string]any{
 			"state":         state,
 			"error_message": errorMsg,
-			"topic":         r.config.Topic,
+			"subject":       r.config.Subject,
 			"last_frame_ms": time.Since(lastFrame).Milliseconds(),
 			"width":         r.config.Width,
 			"height":        r.config.Height,
@@ -424,7 +424,7 @@ func (r *RemoteCamera) DoCommand(ctx context.Context, cmd map[string]any) (map[s
 
 	case "get_config":
 		return map[string]any{
-			"topic":              r.config.Topic,
+			"subject":            r.config.Subject,
 			"width":              r.config.Width,
 			"height":             r.config.Height,
 			"buffer_size":        r.config.BufferSize,

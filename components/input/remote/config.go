@@ -9,8 +9,8 @@ import (
 
 // Config holds the configuration for the Remote Keyboard component.
 type Config struct {
-	// Topic is the NATS topic to subscribe to for keyboard events.
-	Topic string `json:"topic"`
+	// Subject is the NATS subject to subscribe to for keyboard events.
+	Subject string `json:"subject"`
 
 	// BufferSize is the size of the internal event channel buffer.
 	BufferSize int `json:"buffer_size"`
@@ -30,9 +30,9 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		AutoReleaseOnDisconnect: true,
 	}
 
-	// Parse topic (required)
-	if val, ok := conf.Attributes["topic"].(string); ok {
-		cfg.Topic = val
+	// Parse subject (required)
+	if val, ok := conf.Attributes["subject"].(string); ok {
+		cfg.Subject = val
 	}
 
 	// Parse buffer_size
@@ -63,8 +63,8 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 
 // Validate checks if the configuration is valid.
 func (c *Config) Validate() error {
-	if c.Topic == "" {
-		return fmt.Errorf("topic is required")
+	if c.Subject == "" {
+		return fmt.Errorf("subject is required")
 	}
 
 	if c.BufferSize < 1 {

@@ -41,8 +41,8 @@ type DerivedSensorConfig struct {
 	// Type is the data type (e.g., "pose", "detections", "velocity").
 	Type string
 
-	// Topic is the NATS topic to publish on.
-	Topic string
+	// Subject is the NATS subject to publish on.
+	Subject string
 
 	// UpdateRateHz is how often to publish (0 = event-driven).
 	UpdateRateHz float64

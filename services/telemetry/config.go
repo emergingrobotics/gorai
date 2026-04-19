@@ -36,8 +36,8 @@ type Config struct {
 	// IncludeMotorStates enables motor controller state aggregation.
 	IncludeMotorStates bool `json:"include_motor_states"`
 
-	// MotorStateTopic is the topic for motor state messages.
-	MotorStateTopic string `json:"motor_state_topic"`
+	// MotorStateSubject is the subject for motor state messages.
+	MotorStateSubject string `json:"motor_state_subject"`
 }
 
 // SourceConfig holds the configuration for a single data source.
@@ -45,8 +45,8 @@ type SourceConfig struct {
 	// Name is a unique identifier for this source.
 	Name string `json:"name"`
 
-	// Topic is the NATS topic to subscribe to.
-	Topic string `json:"topic"`
+	// Subject is the NATS subject to subscribe to.
+	Subject string `json:"subject"`
 
 	// Type is the source type (imu, gps, battery, etc.).
 	Type SourceType `json:"type"`
@@ -92,9 +92,9 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 		cfg.IncludeMotorStates = val
 	}
 
-	// Parse motor_state_topic
-	if val, ok := conf.Attributes["motor_state_topic"].(string); ok {
-		cfg.MotorStateTopic = val
+	// Parse motor_state_subject
+	if val, ok := conf.Attributes["motor_state_subject"].(string); ok {
+		cfg.MotorStateSubject = val
 	}
 
 	// Parse sources
@@ -128,9 +128,9 @@ func parseSourceConfig(m map[string]any) (*SourceConfig, error) {
 		src.Name = val
 	}
 
-	// Parse topic (required)
-	if val, ok := m["topic"].(string); ok {
-		src.Topic = val
+	// Parse subject (required)
+	if val, ok := m["subject"].(string); ok {
+		src.Subject = val
 	}
 
 	// Parse type (required)
@@ -173,8 +173,8 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("publish_rate_hz %f exceeds maximum (100)", c.PublishRateHz)
 	}
 
-	if c.IncludeMotorStates && c.MotorStateTopic == "" {
-		return fmt.Errorf("motor_state_topic is required when include_motor_states is true")
+	if c.IncludeMotorStates && c.MotorStateSubject == "" {
+		return fmt.Errorf("motor_state_subject is required when include_motor_states is true")
 	}
 
 	// Validate sources
@@ -199,8 +199,8 @@ func (s *SourceConfig) Validate() error {
 		return fmt.Errorf("name is required")
 	}
 
-	if s.Topic == "" {
-		return fmt.Errorf("topic is required")
+	if s.Subject == "" {
+		return fmt.Errorf("subject is required")
 	}
 
 	if !s.Type.IsValid() {

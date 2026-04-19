@@ -8,13 +8,13 @@ package config
 // Service RDL files define external services independently, allowing them
 // to be reused across multiple robots.
 type ServiceRDL struct {
-	Schema  string               `json:"$schema,omitempty"`
-	Version string               `json:"version"`
-	Kind    string               `json:"kind"`
-	Service ServiceRDLMeta       `json:"service"`
-	Topics  ServiceRDLTopics     `json:"topics"`
-	Attrs   ServiceRDLAttributes `json:"attributes,omitempty"`
-	Runtime *ServiceRDLRuntime   `json:"runtime,omitempty"`
+	Schema   string               `json:"$schema,omitempty"`
+	Version  string               `json:"version"`
+	Kind     string               `json:"kind"`
+	Service  ServiceRDLMeta       `json:"service"`
+	Subjects ServiceRDLSubjects   `json:"subjects"`
+	Attrs    ServiceRDLAttributes `json:"attributes,omitempty"`
+	Runtime  *ServiceRDLRuntime   `json:"runtime,omitempty"`
 }
 
 // ServiceRDLMeta defines the service metadata.
@@ -24,14 +24,14 @@ type ServiceRDLMeta struct {
 	Description string `json:"description,omitempty"`
 }
 
-// ServiceRDLTopics defines the input and output topics for the service.
-type ServiceRDLTopics struct {
-	Subscribe []ServiceRDLTopicEntry `json:"subscribe,omitempty"`
-	Publish   []ServiceRDLTopicEntry `json:"publish,omitempty"`
+// ServiceRDLSubjects defines the input and output subjects for the service.
+type ServiceRDLSubjects struct {
+	Subscribe []ServiceRDLSubjectEntry `json:"subscribe,omitempty"`
+	Publish   []ServiceRDLSubjectEntry `json:"publish,omitempty"`
 }
 
-// ServiceRDLTopicEntry defines a single topic subscription or publication.
-type ServiceRDLTopicEntry struct {
+// ServiceRDLSubjectEntry defines a single subject subscription or publication.
+type ServiceRDLSubjectEntry struct {
 	Name        string `json:"name"`
 	Pattern     string `json:"pattern"`
 	Description string `json:"description,omitempty"`
@@ -74,32 +74,32 @@ type ServiceRDLBuild struct {
 	Args          map[string]string `json:"args,omitempty"`
 }
 
-// ResolvedTopics holds the resolved topic names after pattern substitution.
-type ResolvedTopics struct {
-	Subscribe map[string]string // name -> resolved topic
-	Publish   map[string]string // name -> resolved topic
+// ResolvedSubjects holds the resolved subject names after pattern substitution.
+type ResolvedSubjects struct {
+	Subscribe map[string]string // name -> resolved subject
+	Publish   map[string]string // name -> resolved subject
 }
 
-// AllTopics returns all resolved topic names as a flat map.
-func (rt *ResolvedTopics) AllTopics() map[string]string {
+// AllSubjects returns all resolved subject names as a flat map.
+func (rs *ResolvedSubjects) AllSubjects() map[string]string {
 	result := make(map[string]string)
-	for k, v := range rt.Subscribe {
+	for k, v := range rs.Subscribe {
 		result[k] = v
 	}
-	for k, v := range rt.Publish {
+	for k, v := range rs.Publish {
 		result[k] = v
 	}
 	return result
 }
 
-// InputTopicsJSON returns the subscribe topics as JSON-encodable map.
-func (rt *ResolvedTopics) InputTopicsJSON() map[string]string {
-	return rt.Subscribe
+// InputSubjectsJSON returns the subscribe subjects as JSON-encodable map.
+func (rs *ResolvedSubjects) InputSubjectsJSON() map[string]string {
+	return rs.Subscribe
 }
 
-// OutputTopicsJSON returns the publish topics as JSON-encodable map.
-func (rt *ResolvedTopics) OutputTopicsJSON() map[string]string {
-	return rt.Publish
+// OutputSubjectsJSON returns the publish subjects as JSON-encodable map.
+func (rs *ResolvedSubjects) OutputSubjectsJSON() map[string]string {
+	return rs.Publish
 }
 
 // ValidAttrTypes lists the valid attribute type names.

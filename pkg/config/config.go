@@ -174,8 +174,8 @@ type ServiceConfig struct {
 	DependsOn  []string        `json:"depends_on,omitempty"`
 
 	// Internal fields populated after loading Service RDL
-	serviceRDL     *ServiceRDL    `json:"-"` // Loaded Service RDL (not serialized)
-	resolvedTopics *ResolvedTopics `json:"-"` // Resolved topic names (not serialized)
+	serviceRDL       *ServiceRDL      `json:"-"` // Loaded Service RDL (not serialized)
+	resolvedSubjects *ResolvedSubjects `json:"-"` // Resolved subject names (not serialized)
 
 	// Deprecated: Container field is no longer used in RDL v2
 	Container string `json:"container,omitempty"`
@@ -205,14 +205,14 @@ func (s *ServiceConfig) SetServiceRDL(rdl *ServiceRDL) {
 	s.serviceRDL = rdl
 }
 
-// GetResolvedTopics returns the resolved topic names.
-func (s *ServiceConfig) GetResolvedTopics() *ResolvedTopics {
-	return s.resolvedTopics
+// GetResolvedSubjects returns the resolved subject names.
+func (s *ServiceConfig) GetResolvedSubjects() *ResolvedSubjects {
+	return s.resolvedSubjects
 }
 
-// SetResolvedTopics sets the resolved topic names.
-func (s *ServiceConfig) SetResolvedTopics(topics *ResolvedTopics) {
-	s.resolvedTopics = topics
+// SetResolvedSubjects sets the resolved subject names.
+func (s *ServiceConfig) SetResolvedSubjects(subjects *ResolvedSubjects) {
+	s.resolvedSubjects = subjects
 }
 
 // ExternalConfig configures a service to run as an external process or container.

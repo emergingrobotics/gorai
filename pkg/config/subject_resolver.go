@@ -6,21 +6,21 @@ import (
 	"strings"
 )
 
-// TopicResolver resolves topic patterns with variable substitution.
-type TopicResolver struct {
+// SubjectResolver resolves subject patterns with variable substitution.
+type SubjectResolver struct {
 	context map[string]string
 }
 
-// NewTopicResolver creates a new TopicResolver with the given context.
+// NewSubjectResolver creates a new SubjectResolver with the given context.
 // The context contains variable name to value mappings.
-func NewTopicResolver(context map[string]string) *TopicResolver {
-	return &TopicResolver{
+func NewSubjectResolver(context map[string]string) *SubjectResolver {
+	return &SubjectResolver{
 		context: context,
 	}
 }
 
-// NewTopicResolverFromConfig creates a TopicResolver from robot config and service info.
-func NewTopicResolverFromConfig(cfg *RDL, serviceName string, attrs map[string]any) *TopicResolver {
+// NewSubjectResolverFromConfig creates a SubjectResolver from robot config and service info.
+func NewSubjectResolverFromConfig(cfg *RDL, serviceName string, attrs map[string]any) *SubjectResolver {
 	context := make(map[string]string)
 
 	// Add robot-level variables
@@ -38,12 +38,12 @@ func NewTopicResolverFromConfig(cfg *RDL, serviceName string, attrs map[string]a
 		}
 	}
 
-	return NewTopicResolver(context)
+	return NewSubjectResolver(context)
 }
 
-// Resolve resolves a single topic pattern.
+// Resolve resolves a single subject pattern.
 // Pattern variables are in the form {variable_name}.
-func (r *TopicResolver) Resolve(pattern string) (string, error) {
+func (r *SubjectResolver) Resolve(pattern string) (string, error) {
 	// Find all variables in the pattern
 	re := regexp.MustCompile(`\{([^}]+)\}`)
 	matches := re.FindAllStringSubmatch(pattern, -1)
@@ -71,49 +71,49 @@ func (r *TopicResolver) Resolve(pattern string) (string, error) {
 	return result, nil
 }
 
-// ResolveAll resolves all topics in a ServiceRDLTopics configuration.
-func (r *TopicResolver) ResolveAll(topics *ServiceRDLTopics) (*ResolvedTopics, error) {
-	result := &ResolvedTopics{
+// ResolveAll resolves all subjects in a ServiceRDLSubjects configuration.
+func (r *SubjectResolver) ResolveAll(subjects *ServiceRDLSubjects) (*ResolvedSubjects, error) {
+	result := &ResolvedSubjects{
 		Subscribe: make(map[string]string),
 		Publish:   make(map[string]string),
 	}
 
 	var errs []string
 
-	// Resolve subscribe topics
-	for _, topic := range topics.Subscribe {
-		resolved, err := r.Resolve(topic.Pattern)
+	// Resolve subscribe subjects
+	for _, subject := range subjects.Subscribe {
+		resolved, err := r.Resolve(subject.Pattern)
 		if err != nil {
-			errs = append(errs, fmt.Sprintf("subscribe.%s: %v", topic.Name, err))
+			errs = append(errs, fmt.Sprintf("subscribe.%s: %v", subject.Name, err))
 			continue
 		}
-		result.Subscribe[topic.Name] = resolved
+		result.Subscribe[subject.Name] = resolved
 	}
 
-	// Resolve publish topics
-	for _, topic := range topics.Publish {
-		resolved, err := r.Resolve(topic.Pattern)
+	// Resolve publish subjects
+	for _, subject := range subjects.Publish {
+		resolved, err := r.Resolve(subject.Pattern)
 		if err != nil {
-			errs = append(errs, fmt.Sprintf("publish.%s: %v", topic.Name, err))
+			errs = append(errs, fmt.Sprintf("publish.%s: %v", subject.Name, err))
 			continue
 		}
-		result.Publish[topic.Name] = resolved
+		result.Publish[subject.Name] = resolved
 	}
 
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("topic resolution errors:\n  %s", strings.Join(errs, "\n  "))
+		return nil, fmt.Errorf("subject resolution errors:\n  %s", strings.Join(errs, "\n  "))
 	}
 
 	return result, nil
 }
 
 // AddVariable adds a variable to the context.
-func (r *TopicResolver) AddVariable(name, value string) {
+func (r *SubjectResolver) AddVariable(name, value string) {
 	r.context[name] = value
 }
 
 // GetContext returns a copy of the current context.
-func (r *TopicResolver) GetContext() map[string]string {
+func (r *SubjectResolver) GetContext() map[string]string {
 	result := make(map[string]string)
 	for k, v := range r.context {
 		result[k] = v
@@ -141,7 +141,7 @@ func ExtractVariables(pattern string) []string {
 }
 
 // ValidatePatternVariables checks if all variables in patterns can be resolved.
-func ValidatePatternVariables(topics *ServiceRDLTopics, attrs ServiceRDLAttributes) error {
+func ValidatePatternVariables(subjects *ServiceRDLSubjects, attrs ServiceRDLAttributes) error {
 	var errs []string
 
 	// Built-in variables that are always available
@@ -158,13 +158,13 @@ func ValidatePatternVariables(topics *ServiceRDLTopics, attrs ServiceRDLAttribut
 		pattern string
 	}, 0)
 
-	for _, t := range topics.Subscribe {
+	for _, t := range subjects.Subscribe {
 		allPatterns = append(allPatterns, struct {
 			name    string
 			pattern string
 		}{"subscribe." + t.Name, t.Pattern})
 	}
-	for _, t := range topics.Publish {
+	for _, t := range subjects.Publish {
 		allPatterns = append(allPatterns, struct {
 			name    string
 			pattern string

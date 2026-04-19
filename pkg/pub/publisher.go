@@ -1,4 +1,4 @@
-// Package pub provides publishers for Gorai topics.
+// Package pub provides publishers for Gorai subjects.
 package pub
 
 import (
@@ -10,14 +10,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Publisher publishes messages to a topic.
+// Publisher publishes messages to a subject.
 type Publisher[T proto.Message] struct {
-	nc     *nats.Conn
-	js     nats.JetStreamContext
-	topic  string
-	qos    QoS
-	opts   options
-	stream string
+	nc      *nats.Conn
+	js      nats.JetStreamContext
+	subject string
+	qos     QoS
+	opts    options
+	stream  string
 }
 
 // NATSGetter is an interface for types that provide a NATS connection.
@@ -75,12 +75,12 @@ func WithStreamName(name string) Option {
 	}
 }
 
-// New creates a new Publisher for the given topic.
-func New[T proto.Message](n NATSGetter, topic string, opts ...Option) *Publisher[T] {
+// New creates a new Publisher for the given subject.
+func New[T proto.Message](n NATSGetter, subject string, opts ...Option) *Publisher[T] {
 	p := &Publisher[T]{
-		nc:    n.NATS(),
-		topic: topic,
-		qos:   BestEffort,
+		nc:      n.NATS(),
+		subject: subject,
+		qos:     BestEffort,
 	}
 
 	// Apply options
@@ -105,8 +105,8 @@ func (p *Publisher[T]) ensureStream() error {
 
 	streamName := p.opts.streamName
 	if streamName == "" {
-		// Generate stream name from topic
-		streamName = strings.ReplaceAll(p.topic, ".", "_")
+		// Generate stream name from subject
+		streamName = strings.ReplaceAll(p.subject, ".", "_")
 		streamName = strings.ReplaceAll(streamName, "*", "STAR")
 		streamName = strings.ReplaceAll(streamName, ">", "GT")
 	}
@@ -114,7 +114,7 @@ func (p *Publisher[T]) ensureStream() error {
 
 	cfg := &nats.StreamConfig{
 		Name:     streamName,
-		Subjects: []string{p.topic},
+		Subjects: []string{p.subject},
 	}
 
 	switch p.qos {
@@ -152,7 +152,7 @@ func (p *Publisher[T]) ensureStream() error {
 	return err
 }
 
-// Publish publishes a message to the topic.
+// Publish publishes a message to the subject.
 func (p *Publisher[T]) Publish(ctx context.Context, msg T) error {
 	if p.nc == nil {
 		return fmt.Errorf("no NATS connection")
@@ -165,7 +165,7 @@ func (p *Publisher[T]) Publish(ctx context.Context, msg T) error {
 
 	switch p.qos {
 	case BestEffort:
-		if err := p.nc.Publish(p.topic, data); err != nil {
+		if err := p.nc.Publish(p.subject, data); err != nil {
 			return fmt.Errorf("failed to publish message: %w", err)
 		}
 
@@ -176,7 +176,7 @@ func (p *Publisher[T]) Publish(ctx context.Context, msg T) error {
 			}
 		}
 
-		_, err := p.js.Publish(p.topic, data)
+		_, err := p.js.Publish(p.subject, data)
 		if err != nil {
 			return fmt.Errorf("failed to publish to JetStream: %w", err)
 		}
@@ -196,12 +196,12 @@ func (p *Publisher[T]) PublishAsync(msg T) error {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	return p.nc.Publish(p.topic, data)
+	return p.nc.Publish(p.subject, data)
 }
 
-// Topic returns the topic name.
-func (p *Publisher[T]) Topic() string {
-	return p.topic
+// Subject returns the subject name.
+func (p *Publisher[T]) Subject() string {
+	return p.subject
 }
 
 // QoS returns the quality of service level.

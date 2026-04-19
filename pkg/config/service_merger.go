@@ -76,13 +76,13 @@ func (m *ServiceMerger) mergeService(svc *ServiceConfig, rdl *ServiceRDL) error 
 		return fmt.Errorf("attribute validation: %w", err)
 	}
 
-	// Resolve topic patterns
-	resolver := NewTopicResolverFromConfig(m.robotConfig, svc.Name, svc.Attributes)
-	resolved, err := resolver.ResolveAll(&rdl.Topics)
+	// Resolve subject patterns
+	resolver := NewSubjectResolverFromConfig(m.robotConfig, svc.Name, svc.Attributes)
+	resolved, err := resolver.ResolveAll(&rdl.Subjects)
 	if err != nil {
-		return fmt.Errorf("topic resolution: %w", err)
+		return fmt.Errorf("subject resolution: %w", err)
 	}
-	svc.SetResolvedTopics(resolved)
+	svc.SetResolvedSubjects(resolved)
 
 	// Merge external/runtime configuration
 	if err := m.mergeRuntimeConfig(svc, rdl); err != nil {
@@ -116,7 +116,7 @@ func (m *ServiceMerger) mergeRuntimeConfig(svc *ServiceConfig, rdl *ServiceRDL) 
 		// Image (with variable substitution)
 		if svcContainer.Image == "" && rdlContainer.Image != "" {
 			// Resolve variables in image name
-			resolver := NewTopicResolverFromConfig(m.robotConfig, svc.Name, svc.Attributes)
+			resolver := NewSubjectResolverFromConfig(m.robotConfig, svc.Name, svc.Attributes)
 			resolved, err := resolver.Resolve(rdlContainer.Image)
 			if err != nil {
 				return fmt.Errorf("resolving image name: %w", err)
@@ -201,30 +201,30 @@ func GetResolvedEnvironment(cfg *RDL, svc *ServiceConfig) map[string]string {
 		}
 	}
 
-	// Add resolved topics if available
-	if topics := svc.GetResolvedTopics(); topics != nil {
-		// Input topics as JSON
-		if len(topics.Subscribe) > 0 {
-			if data, err := json.Marshal(topics.Subscribe); err == nil {
-				env["GORAI_INPUT_TOPICS"] = string(data)
+	// Add resolved subjects if available
+	if subjects := svc.GetResolvedSubjects(); subjects != nil {
+		// Input subjects as JSON
+		if len(subjects.Subscribe) > 0 {
+			if data, err := json.Marshal(subjects.Subscribe); err == nil {
+				env["GORAI_INPUT_SUBJECTS"] = string(data)
 			}
 		}
 
-		// Output topics as JSON
-		if len(topics.Publish) > 0 {
-			if data, err := json.Marshal(topics.Publish); err == nil {
-				env["GORAI_OUTPUT_TOPICS"] = string(data)
+		// Output subjects as JSON
+		if len(subjects.Publish) > 0 {
+			if data, err := json.Marshal(subjects.Publish); err == nil {
+				env["GORAI_OUTPUT_SUBJECTS"] = string(data)
 			}
 		}
 
-		// Also add individual topics as environment variables for convenience
-		for name, topic := range topics.Subscribe {
-			envKey := fmt.Sprintf("INPUT_TOPIC_%s", strings.ToUpper(name))
-			env[envKey] = topic
+		// Also add individual subjects as environment variables for convenience
+		for name, subject := range subjects.Subscribe {
+			envKey := fmt.Sprintf("INPUT_SUBJECT_%s", strings.ToUpper(name))
+			env[envKey] = subject
 		}
-		for name, topic := range topics.Publish {
-			envKey := fmt.Sprintf("OUTPUT_TOPIC_%s", strings.ToUpper(name))
-			env[envKey] = topic
+		for name, subject := range subjects.Publish {
+			envKey := fmt.Sprintf("OUTPUT_SUBJECT_%s", strings.ToUpper(name))
+			env[envKey] = subject
 		}
 	}
 

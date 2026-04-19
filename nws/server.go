@@ -46,7 +46,7 @@ func Wrap(nc *nats.Conn, res resource.Resource, allowedMethods ...string) (*Reso
 		return nil, fmt.Errorf("NATS connection is required")
 	}
 
-	subject := res.Name().Topic() + ".rpc"
+	subject := res.Name().Subject() + ".rpc"
 
 	s := &ResourceServer{
 		nc:       nc,

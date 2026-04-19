@@ -23,7 +23,7 @@ func TestParseServiceRDL(t *testing.T) {
 					"model": "yolo",
 					"description": "Test detection service"
 				},
-				"topics": {
+				"subjects": {
 					"subscribe": [
 						{
 							"name": "input_frame",
@@ -99,8 +99,8 @@ func TestServiceRDLValidate(t *testing.T) {
 					Model:       "yolo",
 					Description: "A test service",
 				},
-				Topics: ServiceRDLTopics{
-					Subscribe: []ServiceRDLTopicEntry{
+				Subjects: ServiceRDLSubjects{
+					Subscribe: []ServiceRDLSubjectEntry{
 						{Name: "input", Pattern: "test.input"},
 					},
 				},
@@ -115,8 +115,8 @@ func TestServiceRDLValidate(t *testing.T) {
 					Type:  "test",
 					Model: "v1",
 				},
-				Topics: ServiceRDLTopics{
-					Subscribe: []ServiceRDLTopicEntry{{Name: "t", Pattern: "p"}},
+				Subjects: ServiceRDLSubjects{
+					Subscribe: []ServiceRDLSubjectEntry{{Name: "t", Pattern: "p"}},
 				},
 			},
 			wantErr: true,
@@ -129,8 +129,8 @@ func TestServiceRDLValidate(t *testing.T) {
 					Type:  "test",
 					Model: "v1",
 				},
-				Topics: ServiceRDLTopics{
-					Subscribe: []ServiceRDLTopicEntry{{Name: "t", Pattern: "p"}},
+				Subjects: ServiceRDLSubjects{
+					Subscribe: []ServiceRDLSubjectEntry{{Name: "t", Pattern: "p"}},
 				},
 			},
 			wantErr: true,
@@ -143,8 +143,8 @@ func TestServiceRDLValidate(t *testing.T) {
 				Service: ServiceRDLMeta{
 					Model: "v1",
 				},
-				Topics: ServiceRDLTopics{
-					Subscribe: []ServiceRDLTopicEntry{{Name: "t", Pattern: "p"}},
+				Subjects: ServiceRDLSubjects{
+					Subscribe: []ServiceRDLSubjectEntry{{Name: "t", Pattern: "p"}},
 				},
 			},
 			wantErr: true,
@@ -181,7 +181,7 @@ func TestLoadServiceRDL(t *testing.T) {
 			"model": "test-model",
 			"description": "Test"
 		},
-		"topics": {
+		"subjects": {
 			"subscribe": [{"name": "input", "pattern": "test.in"}],
 			"publish": []
 		}
@@ -216,7 +216,7 @@ func TestMergeAttributes(t *testing.T) {
 		Version: "1",
 		Kind:    "service",
 		Service: ServiceRDLMeta{Type: "test", Model: "v1"},
-		Topics:  ServiceRDLTopics{Subscribe: []ServiceRDLTopicEntry{{Name: "t", Pattern: "p"}}},
+		Subjects: ServiceRDLSubjects{Subscribe: []ServiceRDLSubjectEntry{{Name: "t", Pattern: "p"}}},
 		Attrs: ServiceRDLAttributes{
 			"threshold": {Type: "float", Default: 0.5},
 			"debug":     {Type: "bool", Default: false},
@@ -246,7 +246,7 @@ func TestValidateAttributes(t *testing.T) {
 		Version: "1",
 		Kind:    "service",
 		Service: ServiceRDLMeta{Type: "test", Model: "v1"},
-		Topics:  ServiceRDLTopics{Subscribe: []ServiceRDLTopicEntry{{Name: "t", Pattern: "p"}}},
+		Subjects: ServiceRDLSubjects{Subscribe: []ServiceRDLSubjectEntry{{Name: "t", Pattern: "p"}}},
 		Attrs: ServiceRDLAttributes{
 			"threshold": {Type: "float", Required: true},
 			"optional":  {Type: "string", Required: false},

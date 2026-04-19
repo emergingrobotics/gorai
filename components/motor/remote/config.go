@@ -17,9 +17,9 @@ type Config struct {
 	//   "nats" - publishes {"power": float64} to MotorTopic
 	OutputMode string `json:"output_mode"`
 
-	// MotorTopic is the NATS subject to publish motor power commands to.
+	// MotorSubject is the NATS subject to publish motor power commands to.
 	// Required when OutputMode is "nats".
-	MotorTopic string `json:"motor_topic"`
+	MotorSubject string `json:"motor_subject"`
 
 	// Firmware-mode fields (used when OutputMode is "firmware")
 	NATSSubjectPrefix string `json:"nats_subject_prefix"`
@@ -51,8 +51,8 @@ func NewConfigFromResource(conf resource.Config) (*Config, error) {
 	if v, ok := conf.GetString("output_mode"); ok {
 		cfg.OutputMode = v
 	}
-	if v, ok := conf.GetString("motor_topic"); ok {
-		cfg.MotorTopic = v
+	if v, ok := conf.GetString("motor_subject"); ok {
+		cfg.MotorSubject = v
 	}
 	if v, ok := conf.GetString("nats_subject_prefix"); ok {
 		cfg.NATSSubjectPrefix = v
@@ -113,8 +113,8 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("max_speed must be positive")
 		}
 	case OutputModeNATS:
-		if c.MotorTopic == "" {
-			return fmt.Errorf("motor_topic is required for nats output_mode")
+		if c.MotorSubject == "" {
+			return fmt.Errorf("motor_subject is required for nats output_mode")
 		}
 	default:
 		return fmt.Errorf("output_mode must be %q or %q, got %q", OutputModeFirmware, OutputModeNATS, c.OutputMode)

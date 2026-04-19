@@ -73,39 +73,39 @@ func (rdl *ServiceRDL) Validate(sourcePath string) error {
 		errs = append(errs, prefix+"service.model is required")
 	}
 
-	// Check topics
-	if len(rdl.Topics.Subscribe) == 0 && len(rdl.Topics.Publish) == 0 {
-		errs = append(errs, prefix+"at least one topic (subscribe or publish) is required")
+	// Check subjects
+	if len(rdl.Subjects.Subscribe) == 0 && len(rdl.Subjects.Publish) == 0 {
+		errs = append(errs, prefix+"at least one subject (subscribe or publish) is required")
 	}
 
-	// Validate subscribe topics
-	topicNames := make(map[string]bool)
-	for i, topic := range rdl.Topics.Subscribe {
-		if topic.Name == "" {
-			errs = append(errs, fmt.Sprintf("%stopics.subscribe[%d].name is required", prefix, i))
-		} else if topicNames[topic.Name] {
-			errs = append(errs, fmt.Sprintf("%stopics.subscribe[%d].name: duplicate topic name %q", prefix, i, topic.Name))
+	// Validate subscribe subjects
+	subjectNames := make(map[string]bool)
+	for i, subject := range rdl.Subjects.Subscribe {
+		if subject.Name == "" {
+			errs = append(errs, fmt.Sprintf("%ssubjects.subscribe[%d].name is required", prefix, i))
+		} else if subjectNames[subject.Name] {
+			errs = append(errs, fmt.Sprintf("%ssubjects.subscribe[%d].name: duplicate subject name %q", prefix, i, subject.Name))
 		} else {
-			topicNames[topic.Name] = true
+			subjectNames[subject.Name] = true
 		}
 
-		if topic.Pattern == "" {
-			errs = append(errs, fmt.Sprintf("%stopics.subscribe[%d].pattern is required", prefix, i))
+		if subject.Pattern == "" {
+			errs = append(errs, fmt.Sprintf("%ssubjects.subscribe[%d].pattern is required", prefix, i))
 		}
 	}
 
-	// Validate publish topics
-	for i, topic := range rdl.Topics.Publish {
-		if topic.Name == "" {
-			errs = append(errs, fmt.Sprintf("%stopics.publish[%d].name is required", prefix, i))
-		} else if topicNames[topic.Name] {
-			errs = append(errs, fmt.Sprintf("%stopics.publish[%d].name: duplicate topic name %q", prefix, i, topic.Name))
+	// Validate publish subjects
+	for i, subject := range rdl.Subjects.Publish {
+		if subject.Name == "" {
+			errs = append(errs, fmt.Sprintf("%ssubjects.publish[%d].name is required", prefix, i))
+		} else if subjectNames[subject.Name] {
+			errs = append(errs, fmt.Sprintf("%ssubjects.publish[%d].name: duplicate subject name %q", prefix, i, subject.Name))
 		} else {
-			topicNames[topic.Name] = true
+			subjectNames[subject.Name] = true
 		}
 
-		if topic.Pattern == "" {
-			errs = append(errs, fmt.Sprintf("%stopics.publish[%d].pattern is required", prefix, i))
+		if subject.Pattern == "" {
+			errs = append(errs, fmt.Sprintf("%ssubjects.publish[%d].pattern is required", prefix, i))
 		}
 	}
 

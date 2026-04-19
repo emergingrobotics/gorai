@@ -121,7 +121,7 @@ func cmdValidate() error {
 			return fmt.Errorf("  ! Service RDL error: %w", err)
 		}
 		fmt.Println("  + All Service RDL files valid")
-		fmt.Println("  + All topic patterns resolved")
+		fmt.Println("  + All subject patterns resolved")
 		fmt.Println("  + All required attributes provided")
 	}
 

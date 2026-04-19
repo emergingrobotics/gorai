@@ -22,7 +22,7 @@ func TestServiceMerger_LoadAndMergeServices(t *testing.T) {
 			"type": "vision",
 			"model": "yolo"
 		},
-		"topics": {
+		"subjects": {
 			"subscribe": [
 				{
 					"name": "input",
@@ -100,7 +100,7 @@ func TestServiceMerger_MissingRequiredAttribute(t *testing.T) {
 		"version": "1",
 		"kind": "service",
 		"service": {"type": "test", "model": "v1"},
-		"topics": {"subscribe": [{"name": "t", "pattern": "p"}]},
+		"subjects": {"subscribe": [{"name": "t", "pattern": "p"}]},
 		"attributes": {
 			"must_have": {"type": "string", "required": true}
 		}
@@ -163,8 +163,8 @@ func TestGetResolvedEnvironment(t *testing.T) {
 		},
 	}
 
-	// Set resolved topics
-	svc.SetResolvedTopics(&ResolvedTopics{
+	// Set resolved subjects
+	svc.SetResolvedSubjects(&ResolvedSubjects{
 		Subscribe: map[string]string{
 			"input": "test-ns.camera.camera1.frame",
 		},
@@ -192,12 +192,12 @@ func TestGetResolvedEnvironment(t *testing.T) {
 		t.Errorf("expected INPUT_COMPONENT=camera1, got %s", env["INPUT_COMPONENT"])
 	}
 
-	// Check resolved topics
-	if env["INPUT_TOPIC_INPUT"] != "test-ns.camera.camera1.frame" {
-		t.Errorf("unexpected input topic: %s", env["INPUT_TOPIC_INPUT"])
+	// Check resolved subjects
+	if env["INPUT_SUBJECT_INPUT"] != "test-ns.camera.camera1.frame" {
+		t.Errorf("unexpected input subject: %s", env["INPUT_SUBJECT_INPUT"])
 	}
-	if env["OUTPUT_TOPIC_OUTPUT"] != "test-ns.detection.detector.objects" {
-		t.Errorf("unexpected output topic: %s", env["OUTPUT_TOPIC_OUTPUT"])
+	if env["OUTPUT_SUBJECT_OUTPUT"] != "test-ns.detection.detector.objects" {
+		t.Errorf("unexpected output subject: %s", env["OUTPUT_SUBJECT_OUTPUT"])
 	}
 }
 
@@ -213,7 +213,7 @@ func TestLoadWithServiceRDL(t *testing.T) {
 		"version": "1",
 		"kind": "service",
 		"service": {"type": "test", "model": "v1"},
-		"topics": {"subscribe": [{"name": "in", "pattern": "test.in"}], "publish": []},
+		"subjects": {"subscribe": [{"name": "in", "pattern": "test.in"}], "publish": []},
 		"attributes": {}
 	}`
 	rdlPath := filepath.Join(tmpDir, "svc.rdl.json")
@@ -276,8 +276,8 @@ func TestServiceConfigRDLAccessors(t *testing.T) {
 	if svc.GetServiceRDL() != nil {
 		t.Error("expected nil ServiceRDL initially")
 	}
-	if svc.GetResolvedTopics() != nil {
-		t.Error("expected nil ResolvedTopics initially")
+	if svc.GetResolvedSubjects() != nil {
+		t.Error("expected nil ResolvedSubjects initially")
 	}
 
 	// Set and get
@@ -287,9 +287,9 @@ func TestServiceConfigRDLAccessors(t *testing.T) {
 		t.Error("SetServiceRDL/GetServiceRDL mismatch")
 	}
 
-	topics := &ResolvedTopics{Subscribe: map[string]string{"a": "b"}}
-	svc.SetResolvedTopics(topics)
-	if svc.GetResolvedTopics() != topics {
-		t.Error("SetResolvedTopics/GetResolvedTopics mismatch")
+	subjects := &ResolvedSubjects{Subscribe: map[string]string{"a": "b"}}
+	svc.SetResolvedSubjects(subjects)
+	if svc.GetResolvedSubjects() != subjects {
+		t.Error("SetResolvedSubjects/GetResolvedSubjects mismatch")
 	}
 }

@@ -22,7 +22,7 @@ import (
 	gorainats "github.com/gorai/gorai/pkg/nats"
 	"github.com/gorai/gorai/pkg/registry"
 	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/pkg/topics"
+	"github.com/gorai/gorai/pkg/subjects"
 )
 
 // Robot represents a running robot instance.
@@ -37,8 +37,8 @@ type Robot struct {
 	embeddedNATS *embeddednats.Server
 
 	// NATS client for messaging
-	nats   *gorainats.Client
-	topics *topics.Builder
+	nats     *gorainats.Client
+	subjects *subjects.Builder
 
 	// Web dashboard
 	dashboard *dashboard.Dashboard
@@ -100,7 +100,7 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 		logger:           slog.Default(),
 		ctx:              rCtx,
 		cancel:           cancel,
-		topics:           topics.NewBuilder(cfg.Robot.Name),
+		subjects:         subjects.NewBuilder(cfg.Robot.Name),
 		components:       make(map[string]any),
 		services:         make(map[string]any),
 		externalServices: make(map[string]*ExternalService),
@@ -140,7 +140,7 @@ func (r *Robot) Start(ctx context.Context) error {
 	}
 
 	// Publish robot started event
-	r.publishStartupEvent(topics.EventRobotStarted, "", "", "Robot starting initialization", true, nil)
+	r.publishStartupEvent(subjects.EventRobotStarted, "", "", "Robot starting initialization", true, nil)
 
 	// Sort components by dependency order
 	sortedComponents, err := topoSortComponents(r.cfg.Components)
@@ -194,7 +194,7 @@ func (r *Robot) Start(ctx context.Context) error {
 	}
 
 	// Publish robot ready event
-	r.publishStartupEvent(topics.EventRobotReady, "", "", "Robot initialization complete", true, map[string]any{
+	r.publishStartupEvent(subjects.EventRobotReady, "", "", "Robot initialization complete", true, map[string]any{
 		"components": len(r.cfg.Components),
 		"services":   len(r.cfg.Services),
 	})
@@ -332,7 +332,7 @@ func (r *Robot) startDashboard(ctx context.Context) error {
 
 	d, err := dashboard.New(dashCfg, r.cfg,
 		dashboard.WithNATS(r.nats),
-		dashboard.WithTopics(r.topics),
+		dashboard.WithSubjects(r.subjects),
 		dashboard.WithLogger(r.logger),
 	)
 	if err != nil {
@@ -416,7 +416,7 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 	r.sharedDeps.Add(comp.Name, component)
 	r.componentOrder = append(r.componentOrder, comp.Name)
 
-	r.publishStartupEvent(topics.EventComponentDetected, comp.Name, comp.Type,
+	r.publishStartupEvent(subjects.EventComponentDetected, comp.Name, comp.Type,
 		fmt.Sprintf("Component %q started", comp.Name), true, nil)
 
 	return nil
@@ -564,7 +564,7 @@ func (r *Robot) publishStartupEvent(eventType, component, componentType, message
 		return
 	}
 
-	event := topics.StartupEvent{
+	event := subjects.StartupEvent{
 		EventType:     eventType,
 		Component:     component,
 		ComponentType: componentType,
@@ -574,7 +574,7 @@ func (r *Robot) publishStartupEvent(eventType, component, componentType, message
 		Success:       success,
 	}
 
-	subject := r.topics.SystemStartup()
+	subject := r.subjects.SystemStartup()
 	if err := r.nats.PublishJSON(subject, event); err != nil {
 		r.logger.Warn("Failed to publish startup event", "error", err, "subject", subject)
 	} else {
@@ -806,7 +806,7 @@ func (r *Robot) Stop(ctx context.Context) error {
 	r.logger.Info("Stopping robot", "name", r.cfg.Robot.Name)
 
 	// Publish shutdown event
-	r.publishStartupEvent(topics.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
+	r.publishStartupEvent(subjects.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
 
 	// Stop external services first (they may depend on NATS)
 	r.stopExternalServices(ctx)
@@ -888,7 +888,7 @@ func (r *Robot) NATS() *gorainats.Client {
 	return r.nats
 }
 
-// Topics returns the topic builder for this robot.
-func (r *Robot) Topics() *topics.Builder {
-	return r.topics
+// Subjects returns the subject builder for this robot.
+func (r *Robot) Subjects() *subjects.Builder {
+	return r.subjects
 }

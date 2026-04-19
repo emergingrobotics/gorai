@@ -15,7 +15,7 @@ import (
 	"github.com/gorai/gorai/pkg/dashboard/cameras"
 	"github.com/gorai/gorai/pkg/dashboard/models"
 	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/topics"
+	"github.com/gorai/gorai/pkg/subjects"
 )
 
 // Dashboard represents the web dashboard service.
@@ -24,7 +24,7 @@ type Dashboard struct {
 	robotCfg *config.RDL
 	logger   *slog.Logger
 	nats     *gorainats.Client
-	topics   *topics.Builder
+	subjects *subjects.Builder
 
 	server *http.Server
 	router *chi.Mux
@@ -52,10 +52,10 @@ func WithNATS(client *gorainats.Client) Option {
 	}
 }
 
-// WithTopics sets the topic builder.
-func WithTopics(builder *topics.Builder) Option {
+// WithSubjects sets the subject builder.
+func WithSubjects(builder *subjects.Builder) Option {
 	return func(d *Dashboard) {
-		d.topics = builder
+		d.subjects = builder
 	}
 }
 
@@ -92,7 +92,7 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 	// Create camera monitor
 	d.cameraMonitor = cameras.NewMonitor(
 		d.nats,
-		d.topics,
+		d.subjects,
 		d.robotCfg,
 		cameras.WithMonitorLogger(d.logger),
 	)
@@ -105,7 +105,7 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 	// Create model service monitor
 	d.modelMonitor = models.NewMonitor(
 		d.nats,
-		d.topics,
+		d.subjects,
 		d.logger,
 	)
 

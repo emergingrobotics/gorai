@@ -101,12 +101,12 @@ func TestConfigValidation(t *testing.T) {
 			name: "valid nats config",
 			cfg: Config{
 				OutputMode: OutputModeNATS,
-				MotorTopic: "gorai.main-robot.motor.motor_fl.command",
+				MotorSubject: "gorai.main-robot.motor.motor_fl.command",
 			},
 			want_ok: true,
 		},
 		{
-			name: "nats missing motor_topic",
+			name: "nats missing motor_subject",
 			cfg: Config{
 				OutputMode: OutputModeNATS,
 			},
@@ -116,7 +116,7 @@ func TestConfigValidation(t *testing.T) {
 			name: "nats does not require firmware fields",
 			cfg: Config{
 				OutputMode: OutputModeNATS,
-				MotorTopic: "gorai.main-robot.motor.motor_fl.command",
+				MotorSubject: "gorai.main-robot.motor.motor_fl.command",
 			},
 			want_ok: true,
 		},
@@ -237,7 +237,7 @@ func TestNewConfigFromResourceNATS(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
 			"output_mode": "nats",
-			"motor_topic": "gorai.main-robot.motor.motor_fl.command",
+			"motor_subject": "gorai.main-robot.motor.motor_fl.command",
 		},
 	}
 
@@ -249,8 +249,8 @@ func TestNewConfigFromResourceNATS(t *testing.T) {
 	if cfg.OutputMode != OutputModeNATS {
 		t.Errorf("OutputMode = %q, want %q", cfg.OutputMode, OutputModeNATS)
 	}
-	if cfg.MotorTopic != "gorai.main-robot.motor.motor_fl.command" {
-		t.Errorf("MotorTopic = %q, want %q", cfg.MotorTopic, "gorai.main-robot.motor.motor_fl.command")
+	if cfg.MotorSubject != "gorai.main-robot.motor.motor_fl.command" {
+		t.Errorf("MotorTopic = %q, want %q", cfg.MotorSubject, "gorai.main-robot.motor.motor_fl.command")
 	}
 	if !cfg.IsNATSMode() {
 		t.Error("IsNATSMode() should return true")

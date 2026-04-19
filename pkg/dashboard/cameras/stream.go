@@ -9,27 +9,27 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/topics"
+	"github.com/gorai/gorai/pkg/subjects"
 	"github.com/nats-io/nats.go"
 )
 
 // StreamHandler bridges NATS camera frames to HTTP MJPEG.
 type StreamHandler struct {
-	nats    *gorainats.Client
-	topics  *topics.Builder
+	nats     *gorainats.Client
+	subjects *subjects.Builder
 	monitor *Monitor
 	logger  *slog.Logger
 	maxFPS  float64
 }
 
 // NewStreamHandler creates a new stream handler.
-func NewStreamHandler(natsClient *gorainats.Client, topicsBuilder *topics.Builder, monitor *Monitor, logger *slog.Logger, maxFPS float64) *StreamHandler {
+func NewStreamHandler(natsClient *gorainats.Client, subjectsBuilder *subjects.Builder, monitor *Monitor, logger *slog.Logger, maxFPS float64) *StreamHandler {
 	if maxFPS <= 0 {
 		maxFPS = 30.0
 	}
 	return &StreamHandler{
-		nats:    natsClient,
-		topics:  topicsBuilder,
+		nats:     natsClient,
+		subjects: subjectsBuilder,
 		monitor: monitor,
 		logger:  logger,
 		maxFPS:  maxFPS,
@@ -49,14 +49,14 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the correct topic for this camera (handles remote cameras)
-	var topic string
+	// Get the correct subject for this camera (handles remote cameras)
+	var subject string
 	if h.monitor != nil {
-		topic = h.monitor.GetCameraTopic(cameraName)
-	} else if h.topics != nil {
-		topic = h.topics.ComponentData(cameraName)
+		subject = h.monitor.GetCameraSubject(cameraName)
+	} else if h.subjects != nil {
+		subject = h.subjects.ComponentData(cameraName)
 	} else {
-		http.Error(w, "Topics not configured", http.StatusServiceUnavailable)
+		http.Error(w, "Subjects not configured", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 	frameCh := make(chan []byte, 2)
 
 	// Subscribe to camera frames
-	sub, err := h.nats.Subscribe(topic, func(msg *nats.Msg) {
+	sub, err := h.nats.Subscribe(subject, func(msg *nats.Msg) {
 		if limiter.Allow() {
 			// Non-blocking send
 			select {
@@ -154,14 +154,14 @@ func (h *StreamHandler) HandleSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the correct topic for this camera (handles remote cameras)
-	var topic string
+	// Get the correct subject for this camera (handles remote cameras)
+	var subject string
 	if h.monitor != nil {
-		topic = h.monitor.GetCameraTopic(cameraName)
-	} else if h.topics != nil {
-		topic = h.topics.ComponentData(cameraName)
+		subject = h.monitor.GetCameraSubject(cameraName)
+	} else if h.subjects != nil {
+		subject = h.subjects.ComponentData(cameraName)
 	} else {
-		http.Error(w, "Topics not configured", http.StatusServiceUnavailable)
+		http.Error(w, "Subjects not configured", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -170,7 +170,7 @@ func (h *StreamHandler) HandleSnapshot(w http.ResponseWriter, r *http.Request) {
 	timeout := time.After(5 * time.Second)
 
 	// Subscribe to get one frame
-	sub, err := h.nats.Subscribe(topic, func(msg *nats.Msg) {
+	sub, err := h.nats.Subscribe(subject, func(msg *nats.Msg) {
 		select {
 		case frameCh <- msg.Data:
 		default:

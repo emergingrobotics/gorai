@@ -57,7 +57,7 @@ func TestName_Short(t *testing.T) {
 	}
 }
 
-func TestName_Topic(t *testing.T) {
+func TestName_Subject(t *testing.T) {
 	n := resource.Name{
 		Namespace: "gorai",
 		Type:      "component",
@@ -65,10 +65,10 @@ func TestName_Topic(t *testing.T) {
 		Name:      "cpu_temp",
 	}
 
-	got := n.Topic()
+	got := n.Subject()
 	expected := "gorai.component.sensor.cpu_temp"
 	if got != expected {
-		t.Errorf("Name.Topic() = %q, want %q", got, expected)
+		t.Errorf("Name.Subject() = %q, want %q", got, expected)
 	}
 }
 

@@ -203,13 +203,13 @@ func (r *RemoteKeyboard) start(ctx context.Context) error {
 	}
 
 	// Subscribe to keyboard events
-	sub, err := r.nc.Subscribe(r.config.Topic, r.handleMessage)
+	sub, err := r.nc.Subscribe(r.config.Subject, r.handleMessage)
 	if err != nil {
 		r.mu.Lock()
 		r.state = StateError
 		r.errorMsg = fmt.Sprintf("failed to subscribe: %v", err)
 		r.mu.Unlock()
-		return fmt.Errorf("failed to subscribe to %s: %w", r.config.Topic, err)
+		return fmt.Errorf("failed to subscribe to %s: %w", r.config.Subject, err)
 	}
 	r.sub = sub
 
@@ -222,7 +222,7 @@ func (r *RemoteKeyboard) start(ctx context.Context) error {
 	go r.staleDetectionLoop()
 
 	r.logger.Info("Remote keyboard started",
-		"topic", r.config.Topic,
+		"subject", r.config.Subject,
 		"buffer_size", r.config.BufferSize,
 	)
 
@@ -451,13 +451,13 @@ func (r *RemoteKeyboard) Reconfigure(ctx context.Context, deps resource.Dependen
 		return fmt.Errorf("invalid config: %w", err)
 	}
 
-	// Check if topic changed (requires restart)
+	// Check if subject changed (requires restart)
 	r.mu.RLock()
-	topicChanged := r.config.Topic != cfg.Topic
+	subjectChanged := r.config.Subject != cfg.Subject
 	r.mu.RUnlock()
 
-	if topicChanged {
-		return fmt.Errorf("topic cannot be changed at runtime, restart required")
+	if subjectChanged {
+		return fmt.Errorf("subject cannot be changed at runtime, restart required")
 	}
 
 	r.mu.Lock()
@@ -482,7 +482,7 @@ func (r *RemoteKeyboard) DoCommand(ctx context.Context, cmd map[string]any) (map
 		return map[string]any{
 			"state":         state,
 			"error_message": errorMsg,
-			"topic":         r.config.Topic,
+			"subject":       r.config.Subject,
 			"last_event_ms": time.Since(lastEvent).Milliseconds(),
 		}, nil
 
@@ -517,7 +517,7 @@ func (r *RemoteKeyboard) DoCommand(ctx context.Context, cmd map[string]any) (map
 
 	case "get_config":
 		return map[string]any{
-			"topic":                      r.config.Topic,
+			"subject":                    r.config.Subject,
 			"buffer_size":                r.config.BufferSize,
 			"stale_threshold_ms":         r.config.StaleThresholdMs,
 			"auto_release_on_disconnect": r.config.AutoReleaseOnDisconnect,

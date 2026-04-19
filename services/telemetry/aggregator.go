@@ -750,7 +750,7 @@ func (a *Aggregator) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		result := map[string]any{
 			"name":              sourceName,
 			"type":              string(src.Type),
-			"topic":             src.Topic,
+			"subject":           src.Subject,
 			"required":          src.Required,
 			"stale_threshold":   src.StaleThresholdMs,
 			"messages_received": stats.MessagesReceived.Load(),
@@ -773,7 +773,7 @@ func (a *Aggregator) DoCommand(ctx context.Context, cmd map[string]any) (map[str
 		for i, src := range a.config.Sources {
 			sources[i] = map[string]any{
 				"name":            src.Name,
-				"topic":           src.Topic,
+				"subject":         src.Subject,
 				"type":            string(src.Type),
 				"required":        src.Required,
 				"stale_threshold": src.StaleThresholdMs,

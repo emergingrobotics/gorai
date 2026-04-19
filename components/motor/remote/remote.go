@@ -103,7 +103,7 @@ func New(ctx context.Context, deps registry.Dependencies, conf registry.Config) 
 	if cfg.IsNATSMode() {
 		r.logger.Info("remote motor component created",
 			"output_mode", cfg.OutputMode,
-			"motor_topic", cfg.MotorTopic,
+			"motor_subject", cfg.MotorSubject,
 		)
 	} else {
 		r.logger.Info("remote motor component created",
@@ -126,7 +126,7 @@ func (r *RemoteMotor) Start(ctx context.Context) error {
 	r.mu.RUnlock()
 
 	if cfg.IsNATSMode() {
-		r.logger.Info("motor ready in nats output mode", "motor_topic", cfg.MotorTopic)
+		r.logger.Info("motor ready in nats output mode", "motor_subject", cfg.MotorSubject)
 		return nil
 	}
 
@@ -199,8 +199,8 @@ func (r *RemoteMotor) setPowerNATS(power float64) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal power payload: %w", err)
 	}
-	if err := r.nc.Publish(r.config.MotorTopic, data); err != nil {
-		return fmt.Errorf("failed to publish to %s: %w", r.config.MotorTopic, err)
+	if err := r.nc.Publish(r.config.MotorSubject, data); err != nil {
+		return fmt.Errorf("failed to publish to %s: %w", r.config.MotorSubject, err)
 	}
 
 	r.mu.Lock()
@@ -208,7 +208,7 @@ func (r *RemoteMotor) setPowerNATS(power float64) error {
 	r.is_powered = power != 0
 	r.mu.Unlock()
 
-	r.logger.Debug("motor power published", "topic", r.config.MotorTopic, "power", power)
+	r.logger.Debug("motor power published", "subject", r.config.MotorSubject, "power", power)
 	return nil
 }
 
@@ -309,7 +309,7 @@ func (r *RemoteMotor) DoCommand(ctx context.Context, cmd map[string]any) (map[st
 			"is_powered":    r.is_powered,
 		}
 		if r.config.IsNATSMode() {
-			result["motor_topic"] = r.config.MotorTopic
+			result["motor_subject"] = r.config.MotorSubject
 		} else {
 			result["motor_index"] = r.config.MotorIndex
 			result["device_id"] = r.config.DeviceID

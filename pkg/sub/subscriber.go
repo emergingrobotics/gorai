@@ -1,4 +1,4 @@
-// Package sub provides subscribers for Gorai topics.
+// Package sub provides subscribers for Gorai subjects.
 package sub
 
 import (
@@ -12,17 +12,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Subscriber subscribes to messages on a topic.
+// Subscriber subscribes to messages on a subject.
 type Subscriber[T proto.Message] struct {
-	nc       *nats.Conn
-	js       nats.JetStreamContext
-	topic    string
-	sub      *nats.Subscription
-	jsSub    *nats.Subscription
-	qos      QoS
-	opts     options
-	logger   *slog.Logger
-	cancel   context.CancelFunc
+	nc      *nats.Conn
+	js      nats.JetStreamContext
+	subject string
+	sub     *nats.Subscription
+	jsSub   *nats.Subscription
+	qos     QoS
+	opts    options
+	logger  *slog.Logger
+	cancel  context.CancelFunc
 }
 
 // NATSGetter is an interface for types that provide a NATS connection.
@@ -43,9 +43,9 @@ type MessageHandler[T proto.Message] func(msg T, meta *MessageMeta)
 
 // MessageMeta contains metadata about a received message.
 type MessageMeta struct {
-	Topic     string
-	Timestamp time.Time
-	Sequence  uint64
+	Subject     string
+	Timestamp   time.Time
+	Sequence    uint64
 	Redelivered bool
 }
 
@@ -127,13 +127,13 @@ func WithSubLogger(logger *slog.Logger) Option {
 	}
 }
 
-// New creates a new Subscriber for the given topic.
-func New[T proto.Message](n NATSGetter, topic string, handler Handler[T], opts ...Option) (*Subscriber[T], error) {
+// New creates a new Subscriber for the given subject.
+func New[T proto.Message](n NATSGetter, subject string, handler Handler[T], opts ...Option) (*Subscriber[T], error) {
 	s := &Subscriber[T]{
-		nc:     n.NATS(),
-		topic:  topic,
-		qos:    BestEffort,
-		logger: slog.Default(),
+		nc:      n.NATS(),
+		subject: subject,
+		qos:     BestEffort,
+		logger:  slog.Default(),
 	}
 
 	// Apply options
@@ -171,13 +171,13 @@ func New[T proto.Message](n NATSGetter, topic string, handler Handler[T], opts .
 
 // subscribeBestEffort creates a regular NATS subscription.
 func (s *Subscriber[T]) subscribeBestEffort(handler Handler[T]) error {
-	sub, err := s.nc.Subscribe(s.topic, func(m *nats.Msg) {
+	sub, err := s.nc.Subscribe(s.subject, func(m *nats.Msg) {
 		var msg T
 		// Create a new instance of T
 		msg = msg.ProtoReflect().New().Interface().(T)
 
 		if err := proto.Unmarshal(m.Data, msg); err != nil {
-			s.logger.Error("failed to unmarshal message", "error", err, "topic", s.topic)
+			s.logger.Error("failed to unmarshal message", "error", err, "subject", s.subject)
 			return
 		}
 
@@ -224,12 +224,12 @@ func (s *Subscriber[T]) subscribeJetStream(handler Handler[T]) error {
 	consumerOpts = append(consumerOpts, nats.ManualAck())
 
 	// Subscribe via JetStream
-	sub, err := s.js.Subscribe(s.topic, func(m *nats.Msg) {
+	sub, err := s.js.Subscribe(s.subject, func(m *nats.Msg) {
 		var msg T
 		msg = msg.ProtoReflect().New().Interface().(T)
 
 		if err := proto.Unmarshal(m.Data, msg); err != nil {
-			s.logger.Error("failed to unmarshal message", "error", err, "topic", s.topic)
+			s.logger.Error("failed to unmarshal message", "error", err, "subject", s.subject)
 			m.Nak() // Negative ack to trigger redelivery
 			return
 		}
@@ -242,7 +242,7 @@ func (s *Subscriber[T]) subscribeJetStream(handler Handler[T]) error {
 		// If stream doesn't exist, fall back to best effort
 		if strings.Contains(err.Error(), "stream not found") ||
 		   strings.Contains(err.Error(), "no stream") {
-			s.logger.Warn("JetStream stream not found, falling back to best effort", "topic", s.topic)
+			s.logger.Warn("JetStream stream not found, falling back to best effort", "subject", s.subject)
 			s.qos = BestEffort
 			return s.subscribeBestEffort(handler)
 		}
@@ -253,9 +253,9 @@ func (s *Subscriber[T]) subscribeJetStream(handler Handler[T]) error {
 	return nil
 }
 
-// Topic returns the topic name.
-func (s *Subscriber[T]) Topic() string {
-	return s.topic
+// Subject returns the subject name.
+func (s *Subscriber[T]) Subject() string {
+	return s.subject
 }
 
 // QoS returns the quality of service level.

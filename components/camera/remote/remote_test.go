@@ -23,7 +23,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "valid config",
 			config: &Config{
-				Topic:            "gorai.test.camera.data",
+				Subject:            "gorai.test.camera.data",
 				Width:            640,
 				Height:           480,
 				BufferSize:       10,
@@ -32,21 +32,21 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "missing topic",
+			name: "missing subject",
 			config: &Config{
-				Topic:            "",
+				Subject:            "",
 				Width:            640,
 				Height:           480,
 				BufferSize:       10,
 				StaleThresholdMs: 5000,
 			},
 			wantErr: true,
-			errMsg:  "topic is required",
+			errMsg:  "subject is required",
 		},
 		{
 			name: "invalid width",
 			config: &Config{
-				Topic:            "gorai.test.camera.data",
+				Subject:            "gorai.test.camera.data",
 				Width:            0,
 				Height:           480,
 				BufferSize:       10,
@@ -58,7 +58,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "invalid height",
 			config: &Config{
-				Topic:            "gorai.test.camera.data",
+				Subject:            "gorai.test.camera.data",
 				Width:            640,
 				Height:           0,
 				BufferSize:       10,
@@ -70,7 +70,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "invalid buffer_size",
 			config: &Config{
-				Topic:            "gorai.test.camera.data",
+				Subject:            "gorai.test.camera.data",
 				Width:            640,
 				Height:           480,
 				BufferSize:       0,
@@ -82,7 +82,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "invalid stale_threshold",
 			config: &Config{
-				Topic:            "gorai.test.camera.data",
+				Subject:            "gorai.test.camera.data",
 				Width:            640,
 				Height:           480,
 				BufferSize:       10,
@@ -109,7 +109,7 @@ func TestConfigValidation(t *testing.T) {
 func TestConfigParsing(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
-			"topic":              "gorai.main-robot.camera.data",
+			"subject":              "gorai.main-robot.camera.data",
 			"width":              float64(1280),
 			"height":             float64(720),
 			"buffer_size":        float64(20),
@@ -120,7 +120,7 @@ func TestConfigParsing(t *testing.T) {
 	cfg, err := NewConfigFromResource(conf)
 	require.NoError(t, err)
 
-	assert.Equal(t, "gorai.main-robot.camera.data", cfg.Topic)
+	assert.Equal(t, "gorai.main-robot.camera.data", cfg.Subject)
 	assert.Equal(t, 1280, cfg.Width)
 	assert.Equal(t, 720, cfg.Height)
 	assert.Equal(t, 20, cfg.BufferSize)
@@ -130,14 +130,14 @@ func TestConfigParsing(t *testing.T) {
 func TestConfigDefaults(t *testing.T) {
 	conf := resource.Config{
 		Attributes: map[string]any{
-			"topic": "gorai.test.camera.data",
+			"subject": "gorai.test.camera.data",
 		},
 	}
 
 	cfg, err := NewConfigFromResource(conf)
 	require.NoError(t, err)
 
-	assert.Equal(t, "gorai.test.camera.data", cfg.Topic)
+	assert.Equal(t, "gorai.test.camera.data", cfg.Subject)
 	assert.Equal(t, 640, cfg.Width)
 	assert.Equal(t, 480, cfg.Height)
 	assert.Equal(t, 10, cfg.BufferSize)
@@ -219,7 +219,7 @@ func TestGetLatestFrameEmpty(t *testing.T) {
 func TestStreamFanOutMultipleConsumers(t *testing.T) {
 	r := &RemoteCamera{
 		config: &Config{
-			Topic:            "gorai.test.camera.data",
+			Subject:            "gorai.test.camera.data",
 			Width:            640,
 			Height:           480,
 			BufferSize:       10,

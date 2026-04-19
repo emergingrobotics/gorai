@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestTopicResolver_Resolve(t *testing.T) {
+func TestSubjectResolver_Resolve(t *testing.T) {
 	tests := []struct {
 		name    string
 		vars    map[string]string
@@ -34,8 +34,8 @@ func TestTopicResolver_Resolve(t *testing.T) {
 		{
 			name:    "no variables",
 			vars:    map[string]string{},
-			pattern: "static.topic.name",
-			want:    "static.topic.name",
+			pattern: "static.subject.name",
+			want:    "static.subject.name",
 			wantErr: false,
 		},
 		{
@@ -43,7 +43,7 @@ func TestTopicResolver_Resolve(t *testing.T) {
 			vars: map[string]string{
 				"namespace": "test",
 			},
-			pattern: "{namespace}.{missing}.topic",
+			pattern: "{namespace}.{missing}.subject",
 			want:    "",
 			wantErr: true,
 		},
@@ -61,7 +61,7 @@ func TestTopicResolver_Resolve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewTopicResolver(tt.vars)
+			r := NewSubjectResolver(tt.vars)
 			got, err := r.Resolve(tt.pattern)
 
 			if tt.wantErr {
@@ -83,51 +83,51 @@ func TestTopicResolver_Resolve(t *testing.T) {
 	}
 }
 
-func TestTopicResolver_ResolveAll(t *testing.T) {
+func TestSubjectResolver_ResolveAll(t *testing.T) {
 	vars := map[string]string{
 		"namespace":       "myrobot",
 		"service":         "detector",
 		"input_component": "camera1",
 	}
 
-	topics := &ServiceRDLTopics{
-		Subscribe: []ServiceRDLTopicEntry{
+	subjects := &ServiceRDLSubjects{
+		Subscribe: []ServiceRDLSubjectEntry{
 			{Name: "input", Pattern: "{namespace}.camera.{input_component}.frame"},
 		},
-		Publish: []ServiceRDLTopicEntry{
+		Publish: []ServiceRDLSubjectEntry{
 			{Name: "output", Pattern: "{namespace}.detection.{service}.objects"},
 			{Name: "annotated", Pattern: "{namespace}.detection.{service}.annotated"},
 		},
 	}
 
-	resolver := NewTopicResolver(vars)
-	resolved, err := resolver.ResolveAll(topics)
+	resolver := NewSubjectResolver(vars)
+	resolved, err := resolver.ResolveAll(subjects)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Check subscribe topics
+	// Check subscribe subjects
 	if len(resolved.Subscribe) != 1 {
-		t.Errorf("expected 1 subscribe topic, got %d", len(resolved.Subscribe))
+		t.Errorf("expected 1 subscribe subject, got %d", len(resolved.Subscribe))
 	}
 	if resolved.Subscribe["input"] != "myrobot.camera.camera1.frame" {
-		t.Errorf("unexpected input topic: %q", resolved.Subscribe["input"])
+		t.Errorf("unexpected input subject: %q", resolved.Subscribe["input"])
 	}
 
-	// Check publish topics
+	// Check publish subjects
 	if len(resolved.Publish) != 2 {
-		t.Errorf("expected 2 publish topics, got %d", len(resolved.Publish))
+		t.Errorf("expected 2 publish subjects, got %d", len(resolved.Publish))
 	}
 	if resolved.Publish["output"] != "myrobot.detection.detector.objects" {
-		t.Errorf("unexpected output topic: %q", resolved.Publish["output"])
+		t.Errorf("unexpected output subject: %q", resolved.Publish["output"])
 	}
 	if resolved.Publish["annotated"] != "myrobot.detection.detector.annotated" {
-		t.Errorf("unexpected annotated topic: %q", resolved.Publish["annotated"])
+		t.Errorf("unexpected annotated subject: %q", resolved.Publish["annotated"])
 	}
 }
 
-func TestNewTopicResolverFromConfig(t *testing.T) {
+func TestNewSubjectResolverFromConfig(t *testing.T) {
 	cfg := &RDL{
 		Robot: RobotConfig{
 			Name:      "test-robot",
@@ -139,7 +139,7 @@ func TestNewTopicResolverFromConfig(t *testing.T) {
 		"input_component": "main_camera",
 	}
 
-	resolver := NewTopicResolverFromConfig(cfg, "detector", attrs)
+	resolver := NewSubjectResolverFromConfig(cfg, "detector", attrs)
 
 	// Test that default variables are set
 	resolved, err := resolver.Resolve("{namespace}.{service}.{input_component}.test")
@@ -163,7 +163,7 @@ func TestExtractVariables(t *testing.T) {
 			want:    []string{"namespace", "service"},
 		},
 		{
-			pattern: "static.topic",
+			pattern: "static.subject",
 			want:    []string{},
 		},
 		{
@@ -189,10 +189,10 @@ func TestExtractVariables(t *testing.T) {
 }
 
 func TestAddVariable(t *testing.T) {
-	resolver := NewTopicResolver(map[string]string{})
+	resolver := NewSubjectResolver(map[string]string{})
 
 	// Initially should fail
-	_, err := resolver.Resolve("{test}.topic")
+	_, err := resolver.Resolve("{test}.subject")
 	if err == nil {
 		t.Error("expected error for undefined variable")
 	}
@@ -201,12 +201,12 @@ func TestAddVariable(t *testing.T) {
 	resolver.AddVariable("test", "myvalue")
 
 	// Now should succeed
-	result, err := resolver.Resolve("{test}.topic")
+	result, err := resolver.Resolve("{test}.subject")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if result != "myvalue.topic" {
-		t.Errorf("got %q, want %q", result, "myvalue.topic")
+	if result != "myvalue.subject" {
+		t.Errorf("got %q, want %q", result, "myvalue.subject")
 	}
 }
 
@@ -215,7 +215,7 @@ func TestGetContext(t *testing.T) {
 		"a": "1",
 		"b": "2",
 	}
-	resolver := NewTopicResolver(original)
+	resolver := NewSubjectResolver(original)
 
 	// Get context
 	ctx := resolver.GetContext()

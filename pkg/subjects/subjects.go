@@ -1,6 +1,6 @@
-// Package topics defines NATS topic naming conventions for Gorai.
+// Package subjects defines NATS subject naming conventions for Gorai.
 //
-// Topic Structure:
+// Subject Structure:
 //
 //	gorai.<robot_id>.<component>.<message_type>
 //	gorai.<robot_id>.system.<category>
@@ -13,7 +13,7 @@
 //	gorai.my-robot.system.startup          - System startup events
 //	gorai.my-robot.system.logs             - System logs
 //	gorai.my-robot.system.diagnostics      - System diagnostics
-package topics
+package subjects
 
 import "fmt"
 
@@ -48,85 +48,85 @@ const (
 	EmergencyStop = "estop"
 )
 
-// Builder helps construct topic strings.
+// Builder helps construct subject strings.
 type Builder struct {
 	robotID string
 }
 
-// NewBuilder creates a new topic builder for the given robot ID.
+// NewBuilder creates a new subject builder for the given robot ID.
 func NewBuilder(robotID string) *Builder {
 	return &Builder{robotID: robotID}
 }
 
-// Component returns a topic for a specific component and message type.
+// Component returns a subject for a specific component and message type.
 // Example: Component("main_camera", "data") -> "gorai.my-robot.main_camera.data"
 func (b *Builder) Component(component, messageType string) string {
 	return fmt.Sprintf("gorai.%s.%s.%s", b.robotID, component, messageType)
 }
 
-// ComponentData returns a data topic for a component.
+// ComponentData returns a data subject for a component.
 func (b *Builder) ComponentData(component string) string {
 	return b.Component(component, Data)
 }
 
-// ComponentCommand returns a command topic for a component.
+// ComponentCommand returns a command subject for a component.
 func (b *Builder) ComponentCommand(component string) string {
 	return b.Component(component, Command)
 }
 
-// ComponentState returns a state topic for a component.
+// ComponentState returns a state subject for a component.
 func (b *Builder) ComponentState(component string) string {
 	return b.Component(component, State)
 }
 
-// ComponentStatus returns a status topic for a component.
+// ComponentStatus returns a status subject for a component.
 func (b *Builder) ComponentStatus(component string) string {
 	return b.Component(component, Status)
 }
 
-// System returns a system topic for the given category.
+// System returns a system subject for the given category.
 // Example: System("startup") -> "gorai.my-robot.system.startup"
 func (b *Builder) System(category string) string {
 	return fmt.Sprintf("gorai.%s.%s.%s", b.robotID, SystemComponent, category)
 }
 
-// SystemStartup returns the system startup topic.
+// SystemStartup returns the system startup subject.
 func (b *Builder) SystemStartup() string {
 	return b.System(Startup)
 }
 
-// SystemLogs returns the system logs topic.
+// SystemLogs returns the system logs subject.
 func (b *Builder) SystemLogs() string {
 	return b.System(Logs)
 }
 
-// SystemDiagnostics returns the system diagnostics topic.
+// SystemDiagnostics returns the system diagnostics subject.
 func (b *Builder) SystemDiagnostics() string {
 	return b.System(Diagnostics)
 }
 
-// SystemHeartbeat returns the system heartbeat topic.
+// SystemHeartbeat returns the system heartbeat subject.
 func (b *Builder) SystemHeartbeat() string {
 	return b.System(Heartbeat)
 }
 
-// SystemShutdown returns the system shutdown topic.
+// SystemShutdown returns the system shutdown subject.
 func (b *Builder) SystemShutdown() string {
 	return b.System(Shutdown)
 }
 
-// SystemEmergencyStop returns the emergency stop topic.
+// SystemEmergencyStop returns the emergency stop subject.
 // All actuators should subscribe to this and immediately cease motion.
 func (b *Builder) SystemEmergencyStop() string {
 	return b.System(EmergencyStop)
 }
 
-// GlobalEmergencyStop returns the global emergency stop topic (all robots).
+// GlobalEmergencyStop returns the global emergency stop subject (all robots).
 func GlobalEmergencyStop() string {
 	return "gorai.estop"
 }
 
-// All returns a wildcard topic for all messages from this robot.
+// All returns a wildcard subject for all messages from this robot.
 // Example: All() -> "gorai.my-robot.>"
 func (b *Builder) All() string {
 	return fmt.Sprintf("gorai.%s.>", b.robotID)

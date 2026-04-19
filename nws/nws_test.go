@@ -86,9 +86,9 @@ func TestResourceServer_Subject(t *testing.T) {
 	name := resource.NewComponentName("gorai", "motor", "left")
 	expectedSubject := "gorai.component.motor.left.rpc"
 
-	// The subject is name.Topic() + ".rpc"
-	if name.Topic()+".rpc" != expectedSubject {
-		t.Errorf("subject = %q, want %q", name.Topic()+".rpc", expectedSubject)
+	// The subject is name.Subject() + ".rpc"
+	if name.Subject()+".rpc" != expectedSubject {
+		t.Errorf("subject = %q, want %q", name.Subject()+".rpc", expectedSubject)
 	}
 }
 

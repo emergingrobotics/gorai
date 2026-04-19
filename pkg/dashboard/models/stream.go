@@ -9,23 +9,23 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/topics"
+	"github.com/gorai/gorai/pkg/subjects"
 	"github.com/nats-io/nats.go"
 )
 
 // StreamHandler handles MJPEG streaming of annotated model outputs.
 type StreamHandler struct {
-	nats   *gorainats.Client
-	topics *topics.Builder
+	nats     *gorainats.Client
+	subjects *subjects.Builder
 	logger *slog.Logger
 	maxFPS float64
 }
 
 // NewStreamHandler creates a new model stream handler.
-func NewStreamHandler(nats *gorainats.Client, topics *topics.Builder, logger *slog.Logger, maxFPS float64) *StreamHandler {
+func NewStreamHandler(nats *gorainats.Client, subjectsBuilder *subjects.Builder, logger *slog.Logger, maxFPS float64) *StreamHandler {
 	return &StreamHandler{
-		nats:   nats,
-		topics: topics,
+		nats:     nats,
+		subjects: subjectsBuilder,
 		logger: logger,
 		maxFPS: maxFPS,
 	}
@@ -40,14 +40,14 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.nats == nil || h.topics == nil {
+	if h.nats == nil || h.subjects == nil {
 		http.Error(w, "NATS not available", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Build topic for annotated output
-	topic := h.topics.Component(modelName, "annotated")
-	h.logger.Debug("Starting model stream", "model", modelName, "topic", topic)
+	// Build subject for annotated output
+	subject := h.subjects.Component(modelName, "annotated")
+	h.logger.Debug("Starting model stream", "model", modelName, "subject", subject)
 
 	// Set MJPEG headers
 	w.Header().Set("Content-Type", "multipart/x-mixed-replace; boundary=frame")
@@ -68,7 +68,7 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 	frameCh := make(chan []byte, 2)
 
 	// Subscribe to annotated frames
-	sub, err := h.nats.Subscribe(topic, func(msg *nats.Msg) {
+	sub, err := h.nats.Subscribe(subject, func(msg *nats.Msg) {
 		frameMu.Lock()
 		defer frameMu.Unlock()
 
@@ -87,7 +87,7 @@ func (h *StreamHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 	if err != nil {
-		h.logger.Error("Failed to subscribe to model stream", "error", err, "topic", topic)
+		h.logger.Error("Failed to subscribe to model stream", "error", err, "subject", subject)
 		http.Error(w, "Failed to connect to stream", http.StatusInternalServerError)
 		return
 	}
@@ -141,20 +141,20 @@ func (h *StreamHandler) HandleSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.nats == nil || h.topics == nil {
+	if h.nats == nil || h.subjects == nil {
 		http.Error(w, "NATS not available", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Build topic for annotated output
-	topic := h.topics.Component(modelName, "annotated")
+	// Build subject for annotated output
+	subject := h.subjects.Component(modelName, "annotated")
 
 	frameChan := make(chan []byte, 1)
 	timeout := time.NewTimer(5 * time.Second)
 	defer timeout.Stop()
 
 	// Subscribe and get one frame
-	sub, err := h.nats.Subscribe(topic, func(msg *nats.Msg) {
+	sub, err := h.nats.Subscribe(subject, func(msg *nats.Msg) {
 		select {
 		case frameChan <- msg.Data:
 		default:

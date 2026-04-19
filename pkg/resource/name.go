@@ -61,8 +61,8 @@ func (n Name) Short() string {
 	return fmt.Sprintf("%s/%s", n.Subtype, n.Name)
 }
 
-// Topic returns a NATS-compatible topic string.
-func (n Name) Topic() string {
+// Subject returns a NATS-compatible subject string.
+func (n Name) Subject() string {
 	return fmt.Sprintf("%s.%s.%s.%s", n.Namespace, n.Type, n.Subtype, n.Name)
 }
 

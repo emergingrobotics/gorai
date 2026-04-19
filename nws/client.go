@@ -37,7 +37,7 @@ func Connect(nc *nats.Conn, name resource.Name, opts ...ClientOption) (*Resource
 	c := &ResourceClient{
 		nc:      nc,
 		name:    name,
-		subject: name.Topic() + ".rpc",
+		subject: name.Subject() + ".rpc",
 		timeout: 5 * time.Second,
 	}
 

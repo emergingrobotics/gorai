@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorai/gorai/pkg/config"
 	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/topics"
+	"github.com/gorai/gorai/pkg/subjects"
 	"github.com/nats-io/nats.go"
 )
 
@@ -38,7 +38,7 @@ type CameraStatus struct {
 type cameraState struct {
 	info         CameraInfo
 	model        string // Component model (e.g., "v4l2", "remote")
-	sourceTopic  string // For remote cameras, the configured source topic
+	sourceSubject string // For remote cameras, the configured source subject
 	frameCount   int
 	fpsWindow    time.Time
 	subscription *nats.Subscription
@@ -49,7 +49,7 @@ type Monitor struct {
 	mu       sync.RWMutex
 	cameras  map[string]*cameraState
 	nats     *gorainats.Client
-	topics   *topics.Builder
+	subjects *subjects.Builder
 	robotCfg *config.RDL
 	logger   *slog.Logger
 
@@ -79,11 +79,11 @@ func WithOfflineTTL(ttl time.Duration) MonitorOption {
 }
 
 // NewMonitor creates a new camera monitor.
-func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, robotCfg *config.RDL, opts ...MonitorOption) *Monitor {
+func NewMonitor(natsClient *gorainats.Client, subjectsBuilder *subjects.Builder, robotCfg *config.RDL, opts ...MonitorOption) *Monitor {
 	m := &Monitor{
 		cameras:    make(map[string]*cameraState),
 		nats:       natsClient,
-		topics:     topicsBuilder,
+		subjects:   subjectsBuilder,
 		robotCfg:   robotCfg,
 		logger:     slog.Default(),
 		offlineTTL: 5 * time.Second,
@@ -100,7 +100,7 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, rob
 				device := "/dev/video0"
 				width := 640
 				height := 480
-				sourceTopic := "" // For remote cameras, this is the NATS topic to subscribe to
+				sourceSubject := "" // For remote cameras, this is the NATS subject to subscribe to
 
 				if comp.Attributes != nil {
 					if d, ok := comp.Attributes["device"].(string); ok {
@@ -112,9 +112,9 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, rob
 					if h, ok := comp.Attributes["height"].(float64); ok {
 						height = int(h)
 					}
-					// For remote cameras, get the source topic
+					// For remote cameras, get the source subject
 					if t, ok := comp.Attributes["topic"].(string); ok {
-						sourceTopic = t
+						sourceSubject = t
 					}
 				}
 
@@ -127,7 +127,7 @@ func NewMonitor(natsClient *gorainats.Client, topicsBuilder *topics.Builder, rob
 						Online: false,
 					},
 					model:       comp.Model,
-					sourceTopic: sourceTopic,
+					sourceSubject: sourceSubject,
 					fpsWindow:   time.Now(),
 				}
 			}
@@ -176,10 +176,10 @@ func (m *Monitor) Stop() {
 	m.logger.Info("Camera monitor stopped")
 }
 
-// subscribeToCamera subscribes to a camera's data topic.
+// subscribeToCamera subscribes to a camera's data subject.
 // Must be called with m.mu held.
 func (m *Monitor) subscribeToCamera(cameraName string) error {
-	if m.nats == nil || m.topics == nil {
+	if m.nats == nil || m.subjects == nil {
 		return nil
 	}
 
@@ -188,16 +188,16 @@ func (m *Monitor) subscribeToCamera(cameraName string) error {
 		return nil
 	}
 
-	// For remote cameras, use the configured source topic
-	// For local cameras, use the standard component data topic
-	var topic string
-	if state.model == "remote" && state.sourceTopic != "" {
-		topic = state.sourceTopic
+	// For remote cameras, use the configured source subject
+	// For local cameras, use the standard component data subject
+	var subject string
+	if state.model == "remote" && state.sourceSubject != "" {
+		subject = state.sourceSubject
 	} else {
-		topic = m.topics.ComponentData(cameraName)
+		subject = m.subjects.ComponentData(cameraName)
 	}
 
-	sub, err := m.nats.Subscribe(topic, func(msg *nats.Msg) {
+	sub, err := m.nats.Subscribe(subject, func(msg *nats.Msg) {
 		m.handleFrame(cameraName, msg.Data)
 	})
 	if err != nil {
@@ -205,7 +205,7 @@ func (m *Monitor) subscribeToCamera(cameraName string) error {
 	}
 
 	state.subscription = sub
-	m.logger.Debug("Subscribed to camera", "camera", cameraName, "topic", topic, "model", state.model)
+	m.logger.Debug("Subscribed to camera", "camera", cameraName, "subject", subject, "model", state.model)
 	return nil
 }
 
@@ -320,23 +320,23 @@ func (m *Monitor) GetCamera(name string) (CameraInfo, bool) {
 	return state.info, true
 }
 
-// GetCameraTopic returns the NATS topic for a camera's data stream.
-// For remote cameras, this returns the configured source topic.
-// For local cameras, this returns the standard component data topic.
-func (m *Monitor) GetCameraTopic(name string) string {
+// GetCameraSubject returns the NATS subject for a camera's data stream.
+// For remote cameras, this returns the configured source subject.
+// For local cameras, this returns the standard component data subject.
+func (m *Monitor) GetCameraSubject(name string) string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	state, ok := m.cameras[name]
 	if !ok {
-		// Fall back to standard topic
-		return m.topics.ComponentData(name)
+		// Fall back to standard subject
+		return m.subjects.ComponentData(name)
 	}
 
-	// For remote cameras, use the configured source topic
-	if state.model == "remote" && state.sourceTopic != "" {
-		return state.sourceTopic
+	// For remote cameras, use the configured source subject
+	if state.model == "remote" && state.sourceSubject != "" {
+		return state.sourceSubject
 	}
 
-	return m.topics.ComponentData(name)
+	return m.subjects.ComponentData(name)
 }

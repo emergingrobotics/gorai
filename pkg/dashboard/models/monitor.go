@@ -9,7 +9,7 @@ import (
 	"time"
 
 	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/topics"
+	"github.com/gorai/gorai/pkg/subjects"
 	"github.com/nats-io/nats.go"
 )
 
@@ -18,8 +18,8 @@ type ModelStatus struct {
 	Name            string    `json:"name"`
 	Type            string    `json:"type"`
 	Status          string    `json:"status"`    // running, offline, error
-	InputTopic      string    `json:"input_topic"`
-	OutputTopic     string    `json:"output_topic"`
+	InputSubject    string    `json:"input_subject"`
+	OutputSubject   string    `json:"output_subject"`
 	FPS             float64   `json:"fps"`
 	InferenceMs     float64   `json:"inference_ms"`
 	FramesProcessed uint64    `json:"frames_processed"`
@@ -58,7 +58,7 @@ type BBox struct {
 // Monitor tracks model service status via NATS messages.
 type Monitor struct {
 	nats         *gorainats.Client
-	topics       *topics.Builder
+	subjects     *subjects.Builder
 	logger       *slog.Logger
 
 	models       map[string]*ModelStatus
@@ -78,11 +78,11 @@ type Monitor struct {
 }
 
 // NewMonitor creates a new model service monitor.
-func NewMonitor(nats *gorainats.Client, topicsBuilder *topics.Builder, logger *slog.Logger) *Monitor {
+func NewMonitor(nats *gorainats.Client, subjectsBuilder *subjects.Builder, logger *slog.Logger) *Monitor {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Monitor{
 		nats:             nats,
-		topics:           topicsBuilder,
+		subjects:         subjectsBuilder,
 		logger:           logger,
 		models:           make(map[string]*ModelStatus),
 		recentDetections: make([]DetectionEvent, 0),
@@ -94,16 +94,16 @@ func NewMonitor(nats *gorainats.Client, topicsBuilder *topics.Builder, logger *s
 
 // Start begins monitoring model services.
 func (m *Monitor) Start(ctx context.Context) error {
-	if m.nats == nil || m.topics == nil {
-		m.logger.Warn("NATS or topics not configured, model monitor disabled")
+	if m.nats == nil || m.subjects == nil {
+		m.logger.Warn("NATS or subjects not configured, model monitor disabled")
 		return nil
 	}
 
 	// Subscribe to heartbeat messages
-	heartbeatTopic := m.topics.SystemHeartbeat()
-	m.logger.Debug("Subscribing to heartbeat topic", "topic", heartbeatTopic)
+	heartbeatSubject := m.subjects.SystemHeartbeat()
+	m.logger.Debug("Subscribing to heartbeat subject", "subject", heartbeatSubject)
 
-	sub, err := m.nats.Subscribe(heartbeatTopic, func(msg *nats.Msg) {
+	sub, err := m.nats.Subscribe(heartbeatSubject, func(msg *nats.Msg) {
 		m.handleHeartbeat(msg.Data)
 	})
 	if err != nil {
@@ -113,7 +113,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 
 	// Subscribe to detection events (wildcard)
 	// Pattern: gorai.<robot>.*.detections
-	detectionPattern := m.topics.AllComponents("detections")
+	detectionPattern := m.subjects.AllComponents("detections")
 	m.logger.Debug("Subscribing to detection events", "pattern", detectionPattern)
 
 	detSub, err := m.nats.Subscribe(detectionPattern, func(msg *nats.Msg) {

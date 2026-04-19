@@ -22,7 +22,7 @@ func TestConfigValidation(t *testing.T) {
 				RobotID:       "test-robot",
 				PublishRateHz: 10,
 				Sources: []*SourceConfig{
-					{Name: "imu", Topic: "gorai.test.imu.data", Type: SourceTypeIMU, StaleThresholdMs: 1000},
+					{Name: "imu", Subject: "gorai.test.imu.data", Type: SourceTypeIMU, StaleThresholdMs: 1000},
 				},
 			},
 			expectErr: false,
@@ -60,10 +60,10 @@ func TestConfigValidation(t *testing.T) {
 				RobotID:            "test-robot",
 				PublishRateHz:      10,
 				IncludeMotorStates: true,
-				MotorStateTopic:    "",
+				MotorStateSubject:    "",
 			},
 			expectErr: true,
-			errMsg:    "motor_state_topic is required",
+			errMsg:    "motor_state_subject is required",
 		},
 		{
 			name: "duplicate source names",
@@ -71,8 +71,8 @@ func TestConfigValidation(t *testing.T) {
 				RobotID:       "test-robot",
 				PublishRateHz: 10,
 				Sources: []*SourceConfig{
-					{Name: "imu", Topic: "gorai.test.imu.data", Type: SourceTypeIMU, StaleThresholdMs: 1000},
-					{Name: "imu", Topic: "gorai.test.imu2.data", Type: SourceTypeIMU, StaleThresholdMs: 1000},
+					{Name: "imu", Subject: "gorai.test.imu.data", Type: SourceTypeIMU, StaleThresholdMs: 1000},
+					{Name: "imu", Subject: "gorai.test.imu2.data", Type: SourceTypeIMU, StaleThresholdMs: 1000},
 				},
 			},
 			expectErr: true,
@@ -106,7 +106,7 @@ func TestSourceConfigValidation(t *testing.T) {
 			name: "valid source",
 			config: &SourceConfig{
 				Name:             "imu",
-				Topic:            "gorai.test.imu.data",
+				Subject:            "gorai.test.imu.data",
 				Type:             SourceTypeIMU,
 				StaleThresholdMs: 1000,
 			},
@@ -116,7 +116,7 @@ func TestSourceConfigValidation(t *testing.T) {
 			name: "missing name",
 			config: &SourceConfig{
 				Name:             "",
-				Topic:            "gorai.test.imu.data",
+				Subject:            "gorai.test.imu.data",
 				Type:             SourceTypeIMU,
 				StaleThresholdMs: 1000,
 			},
@@ -124,21 +124,21 @@ func TestSourceConfigValidation(t *testing.T) {
 			errMsg:    "name is required",
 		},
 		{
-			name: "missing topic",
+			name: "missing subject",
 			config: &SourceConfig{
 				Name:             "imu",
-				Topic:            "",
+				Subject:            "",
 				Type:             SourceTypeIMU,
 				StaleThresholdMs: 1000,
 			},
 			expectErr: true,
-			errMsg:    "topic is required",
+			errMsg:    "subject is required",
 		},
 		{
 			name: "invalid type",
 			config: &SourceConfig{
 				Name:             "imu",
-				Topic:            "gorai.test.imu.data",
+				Subject:            "gorai.test.imu.data",
 				Type:             "invalid",
 				StaleThresholdMs: 1000,
 			},
@@ -149,7 +149,7 @@ func TestSourceConfigValidation(t *testing.T) {
 			name: "invalid stale threshold",
 			config: &SourceConfig{
 				Name:             "imu",
-				Topic:            "gorai.test.imu.data",
+				Subject:            "gorai.test.imu.data",
 				Type:             SourceTypeIMU,
 				StaleThresholdMs: 0,
 			},
@@ -180,18 +180,18 @@ func TestConfigParsing(t *testing.T) {
 			"publish_rate_hz":      20.0,
 			"include_system_stats": false,
 			"include_motor_states": true,
-			"motor_state_topic":    "gorai.my-robot.motors.state",
+			"motor_state_subject":    "gorai.my-robot.motors.state",
 			"sources": []any{
 				map[string]any{
 					"name":               "imu",
-					"topic":              "gorai.my-robot.imu.data",
+					"subject":              "gorai.my-robot.imu.data",
 					"type":               "imu",
 					"required":           true,
 					"stale_threshold_ms": 500.0,
 				},
 				map[string]any{
 					"name":               "gps",
-					"topic":              "gorai.my-robot.gps.data",
+					"subject":              "gorai.my-robot.gps.data",
 					"type":               "gps",
 					"required":           false,
 					"stale_threshold_ms": 2000.0,
@@ -207,12 +207,12 @@ func TestConfigParsing(t *testing.T) {
 	assert.Equal(t, 20.0, cfg.PublishRateHz)
 	assert.False(t, cfg.IncludeSystemStats)
 	assert.True(t, cfg.IncludeMotorStates)
-	assert.Equal(t, "gorai.my-robot.motors.state", cfg.MotorStateTopic)
+	assert.Equal(t, "gorai.my-robot.motors.state", cfg.MotorStateSubject)
 
 	require.Len(t, cfg.Sources, 2)
 
 	assert.Equal(t, "imu", cfg.Sources[0].Name)
-	assert.Equal(t, "gorai.my-robot.imu.data", cfg.Sources[0].Topic)
+	assert.Equal(t, "gorai.my-robot.imu.data", cfg.Sources[0].Subject)
 	assert.Equal(t, SourceTypeIMU, cfg.Sources[0].Type)
 	assert.True(t, cfg.Sources[0].Required)
 	assert.Equal(t, int64(500), cfg.Sources[0].StaleThresholdMs)
@@ -390,8 +390,8 @@ func TestGetSourceConfig(t *testing.T) {
 	cfg := &Config{
 		RobotID: "test",
 		Sources: []*SourceConfig{
-			{Name: "imu", Topic: "gorai.test.imu.data", Type: SourceTypeIMU},
-			{Name: "gps", Topic: "gorai.test.gps.data", Type: SourceTypeGPS},
+			{Name: "imu", Subject: "gorai.test.imu.data", Type: SourceTypeIMU},
+			{Name: "gps", Subject: "gorai.test.gps.data", Type: SourceTypeGPS},
 		},
 	}
 
@@ -424,8 +424,8 @@ func TestHealthDetermination(t *testing.T) {
 		RobotID:       "test",
 		PublishRateHz: 10,
 		Sources: []*SourceConfig{
-			{Name: "imu", Topic: "t1", Type: SourceTypeIMU, Required: true, StaleThresholdMs: 500, staleThreshold: 500 * time.Millisecond},
-			{Name: "gps", Topic: "t2", Type: SourceTypeGPS, Required: false, StaleThresholdMs: 2000, staleThreshold: 2000 * time.Millisecond},
+			{Name: "imu", Subject: "t1", Type: SourceTypeIMU, Required: true, StaleThresholdMs: 500, staleThreshold: 500 * time.Millisecond},
+			{Name: "gps", Subject: "t2", Type: SourceTypeGPS, Required: false, StaleThresholdMs: 2000, staleThreshold: 2000 * time.Millisecond},
 		},
 	}
 
@@ -459,7 +459,7 @@ func TestBuildTelemetryFrame(t *testing.T) {
 		PublishRateHz:      10,
 		IncludeSystemStats: false,
 		Sources: []*SourceConfig{
-			{Name: "imu", Topic: "t1", Type: SourceTypeIMU, StaleThresholdMs: 1000},
+			{Name: "imu", Subject: "t1", Type: SourceTypeIMU, StaleThresholdMs: 1000},
 		},
 	}
 
@@ -505,7 +505,7 @@ func TestAggregatorHandleSourceMessage(t *testing.T) {
 		RobotID:       "test",
 		PublishRateHz: 10,
 		Sources: []*SourceConfig{
-			{Name: "imu", Topic: "t1", Type: SourceTypeIMU, StaleThresholdMs: 1000},
+			{Name: "imu", Subject: "t1", Type: SourceTypeIMU, StaleThresholdMs: 1000},
 		},
 	}
 
