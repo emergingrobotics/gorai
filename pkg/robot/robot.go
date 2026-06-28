@@ -100,7 +100,7 @@ func New(ctx context.Context, cfg *config.RDL, opts ...Option) (*Robot, error) {
 		logger:           slog.Default(),
 		ctx:              rCtx,
 		cancel:           cancel,
-		subjects:         subjects.NewBuilder(cfg.Robot.Name),
+		subjects:         subjects.NewBuilder(cfg.GetEffectiveNamespace()),
 		components:       make(map[string]any),
 		services:         make(map[string]any),
 		externalServices: make(map[string]*ExternalService),
@@ -381,7 +381,7 @@ func (r *Robot) startRegistryComponent(ctx context.Context, comp config.Componen
 		"model": comp.Model,
 		// Pass NATS configuration for components that need it
 		"nats_url":   r.getNATSURL(),
-		"namespace":  "gorai",
+		"namespace":  r.cfg.GetEffectiveNamespace(),
 		"robot_name": r.cfg.Robot.Name,
 	}
 	// Merge component attributes into conf
@@ -514,7 +514,7 @@ func (r *Robot) startInternalService(ctx context.Context, svc config.ServiceConf
 		"type":       svc.Type,
 		"model":      svc.Model,
 		"nats_url":   r.getNATSURL(),
-		"namespace":  "gorai",
+		"namespace":  r.cfg.GetEffectiveNamespace(),
 		"robot_name": r.cfg.Robot.Name,
 	}
 	// Merge service attributes into conf
