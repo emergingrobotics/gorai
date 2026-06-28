@@ -4,6 +4,8 @@
 
 Gorai is a Go-based robotics framework designed for makers, citizen scientists, students, and small organizations who need real autonomy without ROS 2's complexity. Build a robot in under an hour with a single binary and NATS messaging.
 
+> **North star: [VISION.md](VISION.md)** — capabilities over NATS (NCP) and the Composite Robot. Gorai gives AI agents the capability model MCP defines — **resources (sensors) to read, tools (actuators) to call**, events, and live discovery — natively over NATS, with no MCP server in the path. A robot is a logical scope over a set of capabilities on the mesh, not a chassis: one robot can span many physical platforms. The core packages below (`pkg/mesh`, `pkg/proxy`, `pkg/topics`, `pkg/resource`) are the machinery that makes this real.
+
 > **Documentation has moved to [../gorai-docs](https://github.com/emergingrobotics/gorai-docs)** — all strategy, specifications, architecture docs, book content, plans, and guides are in the gorai-docs repository. This repo focuses on design and implementation of the core gorai system.
 
 ## What This Repo Contains
@@ -31,15 +33,9 @@ This repository is the **core implementation** — Go source code, component int
 - **Simple deployment** — Copy binary to Pi, run with systemd
 - **Low overhead** — ~20-50MB RAM (vs 512MB+ for containers)
 
-## Hardware Products
+## Hardware Targets
 
-| Product | Type | Status |
-|---------|------|--------|
-| **ORCA** | Autonomous submersible (2 motors + dive planes, 80ft depth, under $2,500) | Prototype |
-| **Surf** | Autonomous surface vessel (under $1,500) | Prototype |
-| Drive | Land robot | Deferred |
-
-ORCA is the flagship hardware project. It runs `gorai run` on a Raspberry Pi inside a pressure housing.
+Gorai targets prosumer-accessible field robots across marine, surface, underwater, and land domains — for example, an autonomous submersible running `gorai run` on a Linux host (Raspberry Pi/Orange Pi/etc) inside a pressure housing.
 
 ## Hardware Access Patterns
 
@@ -198,11 +194,13 @@ gorai/
 
 ## Design Principles
 
-1. **Single binary deployment** — Embedded NATS, no external services
-2. **NATS-based messaging** — All component communication via embedded NATS pub/sub
-3. **Caddy model component ecosystem** — Components are Go modules, blank imports in main.go are the manifest, `go build` produces the binary
-4. **Go-first, pragmatic polyglot** — Go core, Python/C++ as external services via NATS (future)
-5. **Cloud-native patterns** — NATS, Prometheus, JetStream (event sourcing)
+1. **Capabilities over NATS (NCP)** — Sensors are resources, actuators are tools; agents read and act over NATS subjects, discovered through the mesh. The capability model MCP gives AI agents, with no MCP server in the path. See [VISION.md](VISION.md).
+2. **A robot is a logical scope, not a chassis (Composite Robot)** — One `robot_id` can span many physical platforms sharing the mesh; capabilities are addressed by name, not by location.
+3. **Single binary deployment** — Embedded NATS, no external services
+4. **NATS-based messaging** — All component communication via embedded NATS pub/sub
+5. **Caddy model component ecosystem** — Components are Go modules, blank imports in main.go are the manifest, `go build` produces the binary
+6. **Go-first, pragmatic polyglot** — Go core, Python/C++ as external services via NATS (future)
+7. **Cloud-native patterns** — NATS, Prometheus, JetStream (event sourcing)
 
 ---
 

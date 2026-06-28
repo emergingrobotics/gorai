@@ -13,7 +13,7 @@ GoRAI uses the [Caddy model](./package-dev-approach.md) for component distributi
 ### Why
 
 - The core repo stays hardware-agnostic. It contains interfaces and the runtime, not hardware-specific drivers.
-- PiCar-X users don't need ORCA's motor drivers. ORCA users don't need PiCar-X's Robot HAT driver. The Caddy model means each binary contains exactly what its RDL references.
+- PiCar-X users don't need a submersible's motor drivers. Submersible users don't need PiCar-X's Robot HAT driver. The Caddy model means each binary contains exactly what its RDL references.
 - Third-party contributors (including SunFounder themselves) could maintain PiCar-X components independently.
 - The HC-SR04 ultrasonic driver is reusable beyond PiCar-X. It belongs in its own module so other robots can import it without pulling in Robot HAT code.
 

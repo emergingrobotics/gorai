@@ -8,19 +8,25 @@
 
 ## Why Gorai?
 
-> **Autonomy without replay is folklore.** Gorai treats action logs, state streams, and replay as first-class platform concerns — not optional add-ons.
+> **A robot is a distributed system — so build it like one.** Even a "single" robot is already a network of MCUs, SBCs, sensors, and sometimes a base station. Gorai stops pretending otherwise: every sensor and actuator is a service on a NATS mesh — discovered at runtime, addressed by name, never wired by hand. The discipline that built reliable cloud systems — service discovery, location transparency, health checks, fan-out, replay — is exactly what a real robot needs.
 
-> **Agent-compatible. Not agent-dependent.** AI-driven execution is a first-class citizen, but the platform works just as well with deterministic state machines, scripts, and rule-based planners. No autonomy method is mandatory. All are constrained.
+> **Capabilities, not wiring.** Sensors are *resources* you read; actuators are *tools* you call. Any agent on the mesh can perceive the world and change it — the capability model MCP gives AI agents, delivered natively over NATS with **no MCP server in the path**. We call it NCP, the NATS Capability Protocol.
 
-> **Build robots like software. Run them like systems.** Gorai is a software engineer's robotics platform — opinionated, pragmatic, and operational. If you already think in APIs, distributed systems, and deployments, you'll be productive in days, not months.
+> **One robot can be many machines.** Because capabilities are addressed by name and not by location, a single logical robot can span a rover, a drone, a sensor mast, and a compute box — composed at runtime, degrading gracefully as platforms join and leave. This is the **Composite Robot**, and it's the whole point.
+
+> **Autonomy without replay is folklore.** Action logs, state streams, and replay are first-class platform concerns — not add-ons. AI execution is welcome but never trusted: safety is enforced at the capability node, not the agent. **Agent-compatible, not agent-dependent** — deterministic state machines and rule-based planners drive the same capabilities.
+
+> **Build robots like software. Run them like systems.** Opinionated, pragmatic, operational. If you already think in APIs, distributed systems, and deployments, you'll be productive in days, not months.
+
+Read the north star: **[VISION.md](VISION.md)**.
 
 ---
 
-> **Full documentation lives at [gorai-docs](https://github.com/emergingrobotics/gorai-docs).** Strategy, architecture, specifications, hardware analysis, a 20-chapter book, and implementation guides — all indexed for both humans and AI agents. Point your AI coding assistant at that repo and it will navigate 100+ documents via `CLAUDE.md` and `INDEX.md` automatically.
+> **Full documentation lives at [gorai-docs](https://github.com/emergingrobotics/gorai-docs).** Strategy, architecture, specifications, hardware analysis, a 20-chapter book, and implementation guides — all indexed for both humans and AI agents. Point your AI agent at that repo and it will navigate 100+ documents via `CLAUDE.md` and `INDEX.md` automatically.
 
 ---
 
-Build a robot in under an hour. Write JSON, get a binary, deploy to a Raspberry Pi.
+Build a robot in under an hour. Write JSON, get a binary, deploy to a Linux host (Raspberry Pi/Orange Pi/etc).
 
 ```bash
 # 1. Install the CLI
@@ -39,19 +45,13 @@ gorai build robot.json -o robot --target linux/arm64
 scp robot pi@raspberrypi:~ && ssh pi@raspberrypi ./robot
 ```
 
-No containers. No K8s. No external services. Just a single binary that runs on a Raspberry Pi 5 or Orange Pi 5.
+No containers. No K8s. No external services — just a single binary on a Raspberry Pi 5 or Orange Pi 5. That's the simple case, not the ceiling: point several binaries at a shared NATS bus (or a leaf node) and the mesh ties multiple platforms into one logical robot — same code, no rewrite.
 
 ---
 
-## Hardware Products Powered by Gorai
+## Hardware Powered by Gorai
 
-| Product | Type | Price | Status |
-|---------|------|-------|--------|
-| **ORCA** | Autonomous submersible (2 motors + dive planes, 80ft depth) | Under $2,500 | Prototype |
-| **Surf** | Autonomous surface vessel | Under $1,500 | Prototype |
-| Drive | Land robot | TBD | Deferred |
-
-**ORCA** is the flagship hardware project. "Autonomous submersible under $2,500" is a category with zero competition — BlueROV2 ($4,600) is purely remote-controlled, and professional AUVs start at $50,000+. ORCA runs `gorai run` on a Raspberry Pi inside a pressure housing.
+Gorai targets prosumer-accessible field robots across marine, surface, underwater, and land domains — autonomous submersibles, autonomous surface vessels, and land robots. An autonomous submersible, for example, runs `gorai run` on a Linux host (Raspberry Pi/Orange Pi/etc) inside a pressure housing.
 
 ---
 
@@ -272,7 +272,7 @@ See Hardware Requirements in the [gorai-docs](https://github.com/emergingrobotic
 
 Gorai supports two patterns for accessing hardware. Both produce components with identical interfaces — application code doesn't know or care which is used.
 
-**Co-processor (RP2040 via GSP/2):** An RP2040 microcontroller handles real-time hardware I/O (PWM, motor control, encoders). The RPi communicates with it over USB serial using the Gorai Serial Protocol v2. Best for timing-critical control, isolating hardware from Linux scheduler jitter, and reliability-critical applications (e.g., ORCA — motor control must not glitch underwater).
+**Co-processor (RP2040 via GSP/2):** An RP2040 microcontroller handles real-time hardware I/O (PWM, motor control, encoders). The RPi communicates with it over USB serial using the Gorai Serial Protocol v2. Best for timing-critical control, isolating hardware from Linux scheduler jitter, and reliability-critical applications (e.g., an autonomous submersible — motor control must not glitch underwater).
 
 **Native RPi hardware (GPIO/I2C/SPI):** Direct access to Raspberry Pi GPIO pins, I2C buses, and SPI buses from Go code. Best for simple sensors, I2C devices, prototyping, and cost-sensitive builds where an RP2040 is unnecessary.
 

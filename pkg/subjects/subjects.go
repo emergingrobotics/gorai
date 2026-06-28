@@ -1,5 +1,10 @@
 // Package subjects defines NATS subject naming conventions for Gorai.
 //
+// These suffixes are the wire form of NCP (the NATS Capability Protocol):
+// a resource (sensor) is read on .state and streamed on .data; a tool
+// (actuator) is invoked on .command; a capability pushes asynchronous
+// notifications on .event. See ../../VISION.md.
+//
 // Subject Structure:
 //
 //	gorai.<robot_id>.<component>.<message_type>
@@ -7,9 +12,10 @@
 //
 // Examples:
 //
-//	gorai.my-robot.main_camera.data         - Camera image data
-//	gorai.my-robot.left_motor.command       - Motor command
-//	gorai.my-robot.imu.state                - IMU state
+//	gorai.my-robot.main_camera.data         - Camera image data (resource stream)
+//	gorai.my-robot.left_motor.command       - Motor command (tool invocation)
+//	gorai.my-robot.imu.state                - IMU state (resource snapshot)
+//	gorai.my-robot.estop_button.event       - Asynchronous event (notification)
 //	gorai.my-robot.system.startup          - System startup events
 //	gorai.my-robot.system.logs             - System logs
 //	gorai.my-robot.system.diagnostics      - System diagnostics
@@ -27,6 +33,10 @@ const (
 	State = "state"
 	// Status is for component status (health, errors)
 	Status = "status"
+	// Event is for asynchronous notifications pushed by a capability
+	// (faults, limit switches, threshold crossings, button presses) — the
+	// NCP equivalent of an MCP server-to-client notification.
+	Event = "event"
 )
 
 // System categories (component name is system)
@@ -82,6 +92,13 @@ func (b *Builder) ComponentState(component string) string {
 // ComponentStatus returns a status subject for a component.
 func (b *Builder) ComponentStatus(component string) string {
 	return b.Component(component, Status)
+}
+
+// ComponentEvent returns an event subject for a component.
+// Capabilities publish asynchronous notifications here (faults, limits,
+// button presses); observers subscribe without polling.
+func (b *Builder) ComponentEvent(component string) string {
+	return b.Component(component, Event)
 }
 
 // System returns a system subject for the given category.

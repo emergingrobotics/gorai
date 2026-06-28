@@ -27,7 +27,7 @@ Today, none of this has a defined workflow. This document proposes one.
 - **Go-first, but not Go-only.** Most components will be Go. Some (vision, ML, SLAM) will be Python or C++. The approach must handle both without forcing containers on everyone.
 - **No custom package manager.** Go modules already handle versioning, checksums, and dependency resolution. Use them.
 - **Custom components live alongside shared ones.** A user's robot repo will contain both third-party and custom components in the same source tree. The boundary should be clean but not burdensome.
-- **Start simple.** The first version needs to work for two people building ORCA and Surf. Scalability of the registry can come later.
+- **Start simple.** The first version needs to work for a couple of people building the early robots. Scalability of the registry can come later.
 
 ---
 
@@ -119,7 +119,7 @@ gorai component search imu
 ```json
 {
   "version": "2",
-  "robot": {"name": "orca", "description": "Autonomous submersible"},
+  "robot": {"name": "sub", "description": "Autonomous submersible"},
   "components": [
     {"name": "imu", "type": "sensor", "model": "bno055",
      "attributes": {"i2c_bus": 1, "address": "0x28"}},
@@ -146,11 +146,11 @@ Validation checks the RDL against the component registry that `init()` populated
 ### Step 6: Build and Run
 
 ```bash
-gorai build robot.rdl.json -o orca --target linux/arm64
-# Under the hood: GOOS=linux GOARCH=arm64 go build -o orca .
+gorai build robot.rdl.json -o sub --target linux/arm64
+# Under the hood: GOOS=linux GOARCH=arm64 go build -o sub .
 
-scp orca pi@orca.local:~
-ssh pi@orca.local ./orca
+scp sub pi@sub.local:~
+ssh pi@sub.local ./sub
 ```
 
 Or for development:
@@ -440,7 +440,7 @@ The template is a GitHub template repository. Users click "Use this template" or
 
 ## What to Build First
 
-### Now (supports ORCA and Surf development)
+### Now (supports early robot development)
 
 1. **Template repo** — `gorai-robot-template` with the structure above
 2. **`main.go` blank import pattern** — verify it works with the existing `gorai run` entrypoint

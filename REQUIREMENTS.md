@@ -5,6 +5,8 @@
 **Status:** Active
 **Supersedes:** Embedded NATS Requirements v1.0
 
+> **North star: [VISION.md](VISION.md).** These requirements implement the vision: capabilities over NATS (**NCP, the NATS Capability Protocol**) and the **Composite Robot**. Sensors are *resources*, actuators are *tools*, the mesh KV catalog is the capability registry, and a robot is a logical scope (`robot_id`) over capabilities on the mesh — not a chassis. Where this document and `VISION.md` disagree, the VISION is authoritative.
+
 ---
 
 ## Document Index
@@ -14,6 +16,9 @@ This document is structured for autonomous agent consumption. Each section is se
 | Section | What It Covers | When to Read |
 |---------|---------------|--------------|
 | [1. Vision](#1-vision) | What GoRAI is, who it's for, strategic positioning | Understanding the project |
+| [1A. NCP Capability Model](#1a-ncp-the-nats-capability-protocol) | Resources (sensors), tools (actuators), mesh catalog as capability registry | Understanding how agents read and act over the mesh |
+| [1B. The Composite Robot](#1b-the-composite-robot) | One robot_id spanning many platforms; location transparency; runtime join/leave | Understanding multi-platform robots |
+| [1C. Safety & Audit/Replay](#1c-safety-at-the-node-and-auditreplay) | Safety at the capability node; JetStream audit and replay | Enforcing safety and auditability |
 | [2. Architecture](#2-architecture) | Single binary, embedded NATS, Caddy model overview | Understanding the system design |
 | [3. Caddy Model](#3-caddy-model-component-ecosystem) | How components are packaged, distributed, imported | Building the component ecosystem |
 | [4. Template Repo](#4-template-repo) | The user's robot project structure | Creating gorai-robot-template |
@@ -33,7 +38,7 @@ This document is structured for autonomous agent consumption. Each section is se
 
 ## 1. Vision
 
-GoRAI is **"npm for robotics"** — a platform where you describe your robot in JSON, install the components you need, and build a single binary that runs on a Raspberry Pi.
+GoRAI is **"npm for robotics"** — a platform where you describe your robot in JSON, install the components you need, and build a single binary that runs on a Linux host (Raspberry Pi/Orange Pi/etc).
 
 **Target users:** Software engineers, makers, citizen scientists, and small teams who want real autonomy without ROS 2's complexity. They already own a Raspberry Pi and cheap COTS hardware kits (PiCar-X, custom boats, drones).
 
@@ -44,6 +49,94 @@ robot.json  -->  gorai build  -->  single binary  -->  scp to Pi  -->  running r
 ```
 
 **Strategic positioning:** GoRAI is to ROS 2 what Express.js is to Java EE. Opinionated, simple, fast to start, scales when you need it.
+
+**The capability thesis (see [VISION.md](VISION.md)):** A robot is a set of capabilities on a message mesh, not a chassis. GoRAI gives AI agents the capability model the Model Context Protocol (MCP) defines — typed **resources** to read, typed **tools** to call, **events** pushed without polling, and **live discovery** — but delivered natively over NATS with no MCP server and no JSON-RPC bridge. We keep MCP's capabilities and drop MCP's interfaces; this is **NCP, the NATS Capability Protocol** (Section 1A). Because capabilities are addressed by name on the mesh rather than by their physical host, one logical robot (`robot_id`) can span many physical platforms acting as one — the **Composite Robot** (Section 1B).
+
+**Scope:** GoRAI is for AI and robotics meeting in the **physical world**. In scope: agents using NCP resources (sensors) and tools (actuators) over NATS to perceive and act, the Composite Robot, and the core framework, gateways, and device services that make those real. Out of scope: software-only coding agents and standalone LLM-serving infrastructure. Where a robot needs reasoning, the reasoning agent is a *client* of the mesh — it reads resources and calls tools like any other agent — but GoRAI does not build general-purpose software-development agents.
+
+---
+
+## 1A. NCP: The NATS Capability Protocol
+
+NCP is the capability contract every GoRAI capability and every agent speaks. It is not a new wire format; it is the existing GoRAI subject convention and mesh catalog, named and required. MCP's primitives map onto NATS subjects:
+
+| MCP primitive | NCP equivalent (pure NATS) |
+|---|---|
+| **Resource** (read-only context) | **Sensor / state.** Snapshot via request/reply on `…<name>.state`; live stream via pub/sub on `…<name>.data`. |
+| **Tool** (callable action, typed args) | **Actuator / command.** Request/reply on `…<name>.command`, arguments validated against a registered JSON Schema. |
+| **Notification** (server → client push) | **Event.** Fire-and-forget pub/sub on `…<name>.event`. |
+| **`tools/list` / resource listing** | **Mesh KV catalog** of every live capability. |
+| **`list_changed`** | **KV watch + heartbeats** — joins and departures arrive as events. |
+| **`initialize` / lifecycle** | **Announce / heartbeat / TTL**, with a tombstone on graceful exit. |
+| **Transport** (stdio, HTTP+SSE) | **NATS** — request/reply, pub/sub, queue groups, JetStream, leaf nodes. |
+
+The subject convention is `gorai.<robot_id>.<component>.<instance>.<suffix>`.
+
+**REQ-NCP-1: Resources are sensors, exposed read-only over NATS.**
+Every read-only capability (sensor, state source) MUST be exposed as an NCP *resource*: a current-state snapshot via request/reply on `<name>.state`, and, where it streams, live readings via pub/sub on `<name>.data`. Resources MUST NOT have side effects. Agents observe the world exclusively through resources.
+
+**REQ-NCP-2: Tools are actuators, invoked over NATS with typed arguments.**
+Every side-effecting capability (actuator, command) MUST be exposed as an NCP *tool*: request/reply on `<name>.command`, with arguments validated against a JSON Schema registered in the mesh `gorai-schemas` catalog. Agents change the world exclusively through tools. A tool MUST return a structured result or a structured error (see REQ-SAFETY-4).
+
+**REQ-NCP-3: Events are pushed, not polled.**
+Faults, limit-switch trips, threshold crossings, and other notable occurrences MUST be published as fire-and-forget NCP *events* on `<name>.event`. Agents MUST be able to react to events without polling.
+
+**REQ-NCP-4: The mesh KV catalog is the capability registry (`tools/list` equivalent).**
+The mesh JetStream KV buckets — `gorai-services` (who is alive, TTL-bounded), `gorai-channels` (what subjects carry what, and their QoS), and `gorai-schemas` (the JSON Schemas that type tool arguments and resource payloads) — MUST constitute the complete, queryable catalog of every live resource and tool. An agent that can read those three buckets MUST be able to learn the robot's entire capability surface — by name, type, `robot_id`, or capability tag — with no out-of-band configuration. This catalog is GoRAI's `tools/list`.
+
+**REQ-NCP-5: Capability discovery is live and self-maintaining.**
+The catalog MUST be watchable. A capability MUST announce on join, heartbeat on an interval, be reaped on TTL expiry, and publish a tombstone on graceful exit. An agent watching the catalog MUST see joins and departures as events within seconds, so its action space (the set of resources and tools available to it) stays current without polling, restart, or manual reconfiguration.
+
+**REQ-NCP-6: No MCP server, no bridge.**
+GoRAI MUST NOT require an MCP server, a JSON-RPC bridge, or any translation component in the path between an agent and a capability. Agents speak NATS; capabilities speak NATS. The capability model is kept; the MCP transport and any 1:1 client/server intermediary are dropped.
+
+**REQ-NCP-7: Fan-out is native.**
+A single resource stream MUST be consumable by many agents concurrently (pub/sub). Redundant actuators of the same class MUST be load-balanceable behind a NATS queue group so tool calls distribute across whichever node is free. No agent owns the connection to a capability.
+
+---
+
+## 1B. The Composite Robot
+
+A robot in GoRAI is a **logical scope** (`robot_id`) over a set of capabilities registered in the mesh, not a single physical unit. Where a capability physically lives is an implementation detail; the agent addresses it by name and NATS routes the message to wherever it runs. One logical robot can therefore be assembled at runtime from many physical platforms — a rover with a manipulator, a drone with an overhead camera, a sensor mast, a compute box — that together present as one robot to the agent.
+
+**REQ-COMPOSITE-1: Location-transparent capability addressing.**
+Agents and components MUST address a capability by its NCP name (within a `robot_id`), never by the host, address, or process that provides it. The framework MUST resolve a name to its current provider via the mesh catalog, so a capability can move between platforms with no change to the addressing agent.
+
+**REQ-COMPOSITE-2: One `robot_id` may span many physical platforms.**
+A single `robot_id` MUST be able to encompass capabilities provided by multiple, independent physical platforms simultaneously. No requirement, RDL field, or runtime check may assume that all capabilities of a robot live in one binary, on one machine, or in one chassis. The capabilities registered under a `robot_id` are its surface, wherever they run.
+
+**REQ-COMPOSITE-3: Reach across machines via leaf nodes and proxies.**
+The framework MUST allow a robot's mesh — and therefore a single `robot_id` — to span machines, sites, and links via NATS leaf nodes and clustering. A capability hosted on one platform MUST be presentable as a first-class resource or tool to agents on another platform via the framework's proxy machinery (`pkg/proxy`), with no semantic difference from a locally hosted capability.
+
+**REQ-COMPOSITE-4: Runtime join and leave with graceful degradation.**
+Physical platforms MUST be able to join and leave a running robot without restarting it. When a platform leaves (planned or by link/health failure), its capabilities MUST disappear from the catalog (REQ-NCP-5) and the agent's action space MUST shrink accordingly; the robot MUST continue operating with its remaining capabilities. When the platform returns, its capabilities MUST reappear in the catalog and become callable again — all through the same KV-watch / heartbeat machinery, with no manual reconfiguration.
+
+**REQ-COMPOSITE-5: Heterogeneous platforms are peers.**
+A Raspberry Pi host, an RP2040 actuator board behind a serial/GSP gateway, an x86 compute box, and an off-the-shelf device behind a protocol gateway MUST be able to contribute capabilities to the same `robot_id` as equal peers on the mesh. Nothing about a capability's contract (REQ-NCP-1, REQ-NCP-2) may depend on the host's architecture or how it joined the mesh.
+
+---
+
+## 1C. Safety at the Node and Audit/Replay
+
+An agent reasons about goals and is allowed to be wrong — it can hallucinate an argument, misread context, or be steered by a hostile prompt. Therefore the agent is **never** trusted to be safe. Every physical constraint is enforced at the capability node — the thing actually touching hardware — and every command and reading is recorded for replay.
+
+**REQ-SAFETY-1: Safety is enforced at the capability node, never at the agent.**
+Physical-safety enforcement (value clamping, interlocks, rate limits) MUST live in the capability node's tool handler — the component that drives the hardware — and MUST apply regardless of what arrived on the wire. The framework MUST NOT rely on the agent, the planner, or any upstream reasoning client for physical safety.
+
+**REQ-SAFETY-2: Clamp and interlock at the hardware boundary.**
+A capability node MUST clamp every commanded value to the hardware's safe range before it reaches a pin, PWM channel, or actuator, and MUST enforce interlocks (e-stop, thermal limits, mechanical limits) in the node handler.
+
+**REQ-SAFETY-3: Rate-limit to hardware survivability.**
+A capability node MUST rate-limit tool invocations to what the hardware can physically survive, independent of the rate at which commands arrive.
+
+**REQ-SAFETY-4: Structured errors, not silent failure.**
+When a tool call is rejected or fails, the node MUST return a structured error an agent can reason about and recover from (e.g., "speed out of range"). Silent failure is prohibited.
+
+**REQ-AUDIT-1: JetStream audit of all commands and readings.**
+The platform MUST support a JetStream stream capturing traffic on `gorai.>`, providing a complete, durable record of every tool invocation, every resource reading, and every event — who acted, when, and the outcome. Audit and replay are first-class platform concerns, not optional add-ons.
+
+**REQ-AUDIT-2: Replayability.**
+The recorded action and state streams MUST be replayable after the fact, so a robot's behavior can be reconstructed and reviewed. This is non-negotiable precisely because the entity issuing commands is allowed to be wrong: autonomy without replay is not acceptable.
 
 ---
 
@@ -56,7 +149,7 @@ Every GoRAI robot is a single Go binary with:
 - An embedded NATS server (with JetStream)
 - Exactly the components the robot needs (compiled in via Go imports)
 
-There are **no containers, no external services, no package managers, no runtime dependency resolution.** The binary runs on a Raspberry Pi with systemd. That's the entire deployment.
+There are **no containers, no external services, no package managers, no runtime dependency resolution.** The binary runs on a Linux host (Raspberry Pi/Orange Pi/etc) with systemd. That's the entire deployment.
 
 ### 2.2 How It Works Today (Monolithic)
 
@@ -69,7 +162,7 @@ gorai/gorai (single repo)
 └── driver/                 # ALL hardware drivers
 
 Problem: Every gorai binary contains every component.
-         PiCar-X code ships in ORCA's binary.
+         PiCar-X code ships in every robot's binary.
          Users can't add custom components without forking the repo.
 ```
 
@@ -294,10 +387,11 @@ The following MUST be moved from `gorai/gorai` to external modules. They MUST NO
 | `pkg/robot/` | Robot lifecycle, startup, shutdown |
 | `pkg/nats/` | NATS client wrapper |
 | `pkg/embeddednats/` | Embedded NATS server |
-| `pkg/resource/` | Resource naming and interfaces |
-| `pkg/topics/` | NATS topic conventions |
+| `pkg/resource/` | Resource naming and interfaces (NCP resources/tools) |
+| `pkg/topics/` | NATS subject conventions — the NCP wire format (`gorai.<robot_id>.<component>.<instance>.<suffix>`) |
 | `pkg/dashboard/` | Web dashboard |
-| `pkg/mesh/` | Mesh service discovery |
+| `pkg/mesh/` | Mesh service discovery — the NCP capability catalog (`gorai-services`/`gorai-channels`/`gorai-schemas`) |
+| `pkg/proxy/` | Component proxy — presents a capability hosted on one platform as a first-class resource/tool on another (Composite Robot, REQ-COMPOSITE-3) |
 | `pkg/node/` | Node lifecycle |
 | `pkg/pub/`, `pkg/sub/` | NATS publisher/subscriber |
 | `pkg/log/` | Structured logging |
@@ -881,6 +975,9 @@ The core platform works without any external services. External services add cap
 | gorai-component.yaml metadata file | Not needed for launch. The registry JSON is sufficient for discovery. Component metadata in Go code (comments, struct tags) is sufficient for documentation. |
 | Automated non-Go service installation | `pip install` instructions in README are fine for now. Automated polyglot installation is Phase 2+ complexity. |
 | Container build support | `gorai build` means `go build`. Period. If users need containers for external services, they use `podman build` directly. |
+| Software-only coding agents | Out of scope. GoRAI is for the physical world. A reasoning agent that *drives* a robot is a welcome mesh client (it reads resources and calls tools), but building general-purpose software-development agents is not this project. |
+| Standalone LLM-serving infrastructure | Out of scope. GoRAI does not provide an LLM-hosting service. Where a robot needs reasoning, the reasoning agent connects to the mesh as a client; how it obtains a model is its own concern. |
+| An MCP server or JSON-RPC bridge | Forbidden (REQ-NCP-6). NCP delivers MCP's capability model natively over NATS; there is no server or bridge to translate calls. |
 
 ---
 
@@ -888,6 +985,11 @@ The core platform works without any external services. External services add cap
 
 | Term | Definition |
 |------|-----------|
+| **NCP** | NATS Capability Protocol. MCP's capability model — resources (sensors), tools (actuators), events, live discovery — delivered natively over NATS subjects and the mesh KV catalog, with no MCP server and no JSON-RPC bridge. See Section 1A and `VISION.md`. |
+| **Resource (NCP)** | A read-only capability (a sensor / state source). Snapshot on `<name>.state`, stream on `<name>.data`. Agents *observe* through resources. |
+| **Tool (NCP)** | A side-effecting capability (an actuator / command). Request/reply on `<name>.command`, arguments typed by a registered JSON Schema. Agents *act* through tools. |
+| **Composite Robot** | A robot defined as a logical scope (`robot_id`) over capabilities on the mesh rather than a single chassis; one `robot_id` can span many physical platforms, composed at runtime and degrading gracefully as platforms join and leave. See Section 1B and `VISION.md`. |
+| **Mesh catalog** | The `gorai-services` / `gorai-channels` / `gorai-schemas` JetStream KV buckets that together list every live capability — NCP's `tools/list` equivalent. |
 | **Caddy model** | Component packaging pattern from the Caddy web server: blank imports in main.go trigger init() registration. The import list is the component manifest. |
 | **RDL** | Robot Definition Language. The `robot.json` configuration file that describes a robot's components, services, and settings. |
 | **Blank import** | A Go import prefixed with `_` (e.g., `_ "github.com/foo/bar"`). Executes the package's `init()` function without importing any names. |
