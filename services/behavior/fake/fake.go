@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/services/behavior"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/services/behavior"
 )
 
 func init() {

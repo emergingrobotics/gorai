@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/components/metadata"
-	"github.com/gorai/gorai/pkg/services/rdl"
+	"github.com/emergingrobotics/gorai/pkg/components/metadata"
+	"github.com/emergingrobotics/gorai/pkg/services/rdl"
 )
 
 // ComponentValidator validates component repositories

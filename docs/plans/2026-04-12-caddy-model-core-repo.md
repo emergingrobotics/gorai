@@ -104,7 +104,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gorai/gorai/cmd/gorai/commands"
+	"github.com/emergingrobotics/gorai/cmd/gorai/commands"
 )
 
 // Run is the main entrypoint for GoRAI robot projects.
@@ -116,7 +116,7 @@ import (
 //	package main
 //
 //	import (
-//	    gorai "github.com/gorai/gorai/cmd/gorai"
+//	    gorai "github.com/emergingrobotics/gorai/cmd/gorai"
 //	    _ "github.com/emergingrobotics/gorai-picarx"
 //	)
 //
@@ -131,7 +131,7 @@ func Run() {
 }
 ```
 
-Note: This lives in `package main` alongside the existing `main.go`. For external callers, the package path is `github.com/gorai/gorai/cmd/gorai`. The problem: Go doesn't allow importing a `package main`. We need a different approach.
+Note: This lives in `package main` alongside the existing `main.go`. For external callers, the package path is `github.com/emergingrobotics/gorai/cmd/gorai`. The problem: Go doesn't allow importing a `package main`. We need a different approach.
 
 **Revised approach:** Create a new importable package.
 
@@ -147,7 +147,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gorai/gorai/cmd/gorai/commands"
+	"github.com/emergingrobotics/gorai/cmd/gorai/commands"
 )
 
 // Run is the main entrypoint for GoRAI robot projects.
@@ -173,16 +173,16 @@ Modify `cmd/gorai/main.go`:
 package main
 
 import (
-	"github.com/gorai/gorai/pkg/gorai"
+	"github.com/emergingrobotics/gorai/pkg/gorai"
 
 	// Remote proxy components (core infrastructure, stay in core)
-	_ "github.com/gorai/gorai/components/camera/remote"
-	_ "github.com/gorai/gorai/components/gpio/remote"
-	_ "github.com/gorai/gorai/components/input/remote"
-	_ "github.com/gorai/gorai/components/motor/remote"
-	_ "github.com/gorai/gorai/components/pwm/input/remote"
-	_ "github.com/gorai/gorai/components/pwm/remote"
-	_ "github.com/gorai/gorai/components/sensor/encoder/remote"
+	_ "github.com/emergingrobotics/gorai/components/camera/remote"
+	_ "github.com/emergingrobotics/gorai/components/gpio/remote"
+	_ "github.com/emergingrobotics/gorai/components/input/remote"
+	_ "github.com/emergingrobotics/gorai/components/motor/remote"
+	_ "github.com/emergingrobotics/gorai/components/pwm/input/remote"
+	_ "github.com/emergingrobotics/gorai/components/pwm/remote"
+	_ "github.com/emergingrobotics/gorai/components/sensor/encoder/remote"
 )
 
 func main() {
@@ -223,7 +223,7 @@ package robot
 import (
 	"testing"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 func TestTopoSort_NoDeps(t *testing.T) {
@@ -322,7 +322,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // topoSortComponents returns components ordered so that dependencies come
@@ -436,7 +436,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 	"github.com/nats-io/nats.go"
 )
 
@@ -941,7 +941,7 @@ func TestAddBlankImport(t *testing.T) {
 	os.WriteFile(mainPath, []byte(`package main
 
 import (
-	"github.com/gorai/gorai/pkg/gorai"
+	"github.com/emergingrobotics/gorai/pkg/gorai"
 )
 
 func main() {
@@ -966,7 +966,7 @@ func TestAddBlankImport_AlreadyPresent(t *testing.T) {
 	os.WriteFile(mainPath, []byte(`package main
 
 import (
-	"github.com/gorai/gorai/pkg/gorai"
+	"github.com/emergingrobotics/gorai/pkg/gorai"
 	_ "github.com/example/gorai-driver-hcsr04"
 )
 
@@ -1114,7 +1114,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/componentregistry"
+	"github.com/emergingrobotics/gorai/pkg/componentregistry"
 )
 
 const defaultRegistryPath = "registry.json"

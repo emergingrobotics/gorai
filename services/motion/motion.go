@@ -4,7 +4,7 @@ package motion
 import (
 	"context"
 
-	"github.com/gorai/gorai/services"
+	"github.com/emergingrobotics/gorai/services"
 )
 
 // Service provides motion planning capabilities.

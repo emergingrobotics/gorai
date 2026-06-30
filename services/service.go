@@ -12,7 +12,7 @@
 package service
 
 import (
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Service is the base interface for all services.

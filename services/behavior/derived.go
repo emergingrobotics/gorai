@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // DerivedSensor is a virtual sensor exposed by a behavior.

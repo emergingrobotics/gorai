@@ -23,7 +23,7 @@ package discovery
 import (
 	"time"
 
-	"github.com/gorai/gorai/pkg/mesh"
+	"github.com/emergingrobotics/gorai/pkg/mesh"
 )
 
 // Config holds discovery configuration from RDL.

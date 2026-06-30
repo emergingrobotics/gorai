@@ -3,7 +3,7 @@ package l298n
 import (
 	"fmt"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // MotorDef describes a single motor controlled by an L298N board.

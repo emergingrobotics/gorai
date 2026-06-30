@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/gorai/gorai/components/motor"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/motor"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {

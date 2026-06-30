@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gorai/gorai/driver/i2c"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/driver/i2c"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // HAL interface stub - will be provided by reimplemented HAL package

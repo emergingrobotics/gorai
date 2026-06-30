@@ -13,7 +13,7 @@ package pwm
 import (
 	"context"
 
-	component "github.com/gorai/gorai/components"
+	component "github.com/emergingrobotics/gorai/components"
 )
 
 // PWM represents a PWM output component.

@@ -4,7 +4,7 @@ package sensor
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Sensor is a generic sensor that returns key-value readings.

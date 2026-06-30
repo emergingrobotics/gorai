@@ -10,7 +10,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/gorai/gorai/pkg/mesh"
+	"github.com/emergingrobotics/gorai/pkg/mesh"
 )
 
 // RemoteMotor is a proxy that implements the Motor interface via NATS.

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/thruster"
-	"github.com/gorai/gorai/components/thruster/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/thruster"
+	"github.com/emergingrobotics/gorai/components/thruster/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestThruster_IsActuator(t *testing.T) {

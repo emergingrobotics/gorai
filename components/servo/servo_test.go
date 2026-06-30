@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/servo"
-	"github.com/gorai/gorai/components/servo/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/servo"
+	"github.com/emergingrobotics/gorai/components/servo/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestServo_IsActuator(t *testing.T) {

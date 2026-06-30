@@ -7,8 +7,8 @@ package power
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Power represents a power source or energy storage component.

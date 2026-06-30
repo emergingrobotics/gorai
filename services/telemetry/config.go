@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // SourceType represents the type of a data source.

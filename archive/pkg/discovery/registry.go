@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gorai/gorai/pkg/components/metadata"
+	"github.com/emergingrobotics/gorai/pkg/components/metadata"
 	"gopkg.in/yaml.v3"
 )
 

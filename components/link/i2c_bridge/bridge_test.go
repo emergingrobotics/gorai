@@ -3,7 +3,7 @@ package i2c_bridge
 import (
 	"testing"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -19,7 +19,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/gorai/gorai/pkg/mesh"
+	"github.com/emergingrobotics/gorai/pkg/mesh"
 )
 
 // Factory creates proxy components for discovered services.

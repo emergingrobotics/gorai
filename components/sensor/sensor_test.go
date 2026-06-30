@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/components/sensor"
-	"github.com/gorai/gorai/components/sensor/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/sensor"
+	"github.com/emergingrobotics/gorai/components/sensor/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Interface compliance tests

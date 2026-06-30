@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorai/gorai/pkg/node"
+	"github.com/emergingrobotics/gorai/pkg/node"
 )
 
 func TestNode_New(t *testing.T) {

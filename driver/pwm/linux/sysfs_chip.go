@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/driver/pwm"
+	"github.com/emergingrobotics/gorai/driver/pwm"
 )
 
 const (

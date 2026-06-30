@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/subjects"
+	gorainats "github.com/emergingrobotics/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/subjects"
 	"github.com/nats-io/nats.go"
 )
 

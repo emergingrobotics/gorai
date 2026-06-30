@@ -3,7 +3,7 @@ package remote
 import (
 	"fmt"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 const (

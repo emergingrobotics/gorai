@@ -18,8 +18,8 @@ package space
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Space represents a virtual container on the robot that aggregates other components.

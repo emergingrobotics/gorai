@@ -12,7 +12,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/spf13/cobra"
 
-	"github.com/gorai/gorai/pkg/mesh"
+	"github.com/emergingrobotics/gorai/pkg/mesh"
 )
 
 // NewMeshCmd creates the mesh command tree.

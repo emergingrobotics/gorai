@@ -3,7 +3,7 @@ package imu
 import (
 	"fmt"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Config holds the configuration for the IMU formatter service.

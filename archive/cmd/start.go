@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 func cmdStart() error {

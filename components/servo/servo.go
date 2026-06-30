@@ -12,7 +12,7 @@ package servo
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Servo represents a position-controlled servo motor.

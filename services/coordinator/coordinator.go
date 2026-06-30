@@ -15,9 +15,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/services"
-	"github.com/gorai/gorai/services/behavior"
+	"github.com/emergingrobotics/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/services"
+	"github.com/emergingrobotics/gorai/services/behavior"
 )
 
 // Service orchestrates multiple behaviors without directly using components.

@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/pkg/config"
-	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/subjects"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	gorainats "github.com/emergingrobotics/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/subjects"
 	"github.com/nats-io/nats.go"
 )
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/gorai/gorai/pkg/mesh"
+	"github.com/emergingrobotics/gorai/pkg/mesh"
 )
 
 // RemoteServo is a proxy that implements the Servo interface via NATS.

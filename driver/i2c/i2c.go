@@ -4,7 +4,7 @@ package i2c
 import (
 	"context"
 
-	"github.com/gorai/gorai/driver"
+	"github.com/emergingrobotics/gorai/driver"
 )
 
 // Bus represents an I2C bus.

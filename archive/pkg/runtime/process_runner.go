@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // ProcessRunner manages native process-based services.

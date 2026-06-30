@@ -3,7 +3,7 @@ package remote
 import (
 	"testing"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestGPIOConfigValidation(t *testing.T) {

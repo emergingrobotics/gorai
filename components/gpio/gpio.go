@@ -12,7 +12,7 @@ package gpio
 import (
 	"context"
 
-	component "github.com/gorai/gorai/components"
+	component "github.com/emergingrobotics/gorai/components"
 )
 
 // GPIO represents a digital GPIO pin component.

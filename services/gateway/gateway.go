@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Gateway bridges GSP serial devices to NATS messaging.

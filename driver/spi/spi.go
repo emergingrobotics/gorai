@@ -4,7 +4,7 @@ package spi
 import (
 	"context"
 
-	"github.com/gorai/gorai/driver"
+	"github.com/emergingrobotics/gorai/driver"
 )
 
 // Bus represents an SPI bus.

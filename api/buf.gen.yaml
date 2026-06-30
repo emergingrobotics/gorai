@@ -3,7 +3,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/gorai/gorai/api/gen
+      value: github.com/emergingrobotics/gorai/api/gen
 plugins:
   - remote: buf.build/protocolbuffers/go
     out: gen

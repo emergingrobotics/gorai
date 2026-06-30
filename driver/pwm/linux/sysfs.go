@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gorai/gorai/driver/pwm"
+	"github.com/emergingrobotics/gorai/driver/pwm"
 )
 
 // Common errors for PWM operations.

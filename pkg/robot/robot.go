@@ -16,13 +16,13 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/dashboard"
-	"github.com/gorai/gorai/pkg/embeddednats"
-	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/pkg/subjects"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/dashboard"
+	"github.com/emergingrobotics/gorai/pkg/embeddednats"
+	gorainats "github.com/emergingrobotics/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/subjects"
 )
 
 // Robot represents a running robot instance.
@@ -347,7 +347,7 @@ func (r *Robot) startDashboard(ctx context.Context) error {
 
 	listen := dashCfg.Listen
 	if listen == "" {
-		listen = ":8080"
+		listen = ":10101"
 	}
 	r.logger.Info("Dashboard started", "listen", listen)
 	return nil

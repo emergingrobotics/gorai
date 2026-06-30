@@ -4,7 +4,7 @@ package input
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Modifiers represents the state of modifier keys.

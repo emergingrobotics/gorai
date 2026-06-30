@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 )
 
 // cmdValidate handles the 'gorai validate' command.

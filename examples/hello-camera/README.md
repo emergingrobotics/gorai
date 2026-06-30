@@ -8,7 +8,7 @@ A camera robot demonstrating V4L2 capture and web dashboard.
 
 - Captures video from a V4L2 camera (USB or CSI)
 - Publishes JPEG frames to NATS
-- Provides a web dashboard on port 8080
+- Provides a web dashboard on port 10101
 
 ## Prerequisites
 
@@ -53,7 +53,7 @@ From the gorai root directory:
 
 ### 4. Access the Dashboard
 
-Open http://localhost:8080 in your browser to view the camera feed.
+Open http://localhost:10101 in your browser to view the camera feed.
 
 ### 5. Watch Camera Data via NATS
 
@@ -68,7 +68,7 @@ The `hello-camera.json` defines:
 | Component | Type | Description |
 |-----------|------|-------------|
 | `main_camera` | camera (v4l2) | USB/CSI camera at /dev/video0 |
-| `dashboard` | service | Web UI on port 8080 |
+| `dashboard` | service | Web UI on port 10101 |
 
 ### Camera Attributes
 

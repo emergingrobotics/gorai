@@ -16,8 +16,8 @@ package link
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Link represents an additional communication channel beyond NATS.

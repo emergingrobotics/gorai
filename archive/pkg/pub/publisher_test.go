@@ -3,8 +3,8 @@ package pub_test
 import (
 	"testing"
 
-	"github.com/gorai/gorai/api/gen/gorai/std"
-	"github.com/gorai/gorai/pkg/pub"
+	"github.com/emergingrobotics/gorai/api/gen/gorai/std"
+	"github.com/emergingrobotics/gorai/pkg/pub"
 	"github.com/nats-io/nats.go"
 )
 

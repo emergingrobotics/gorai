@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Config holds the configuration for the Remote Camera component.

@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gorai/gorai/components/servo"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/servo"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {

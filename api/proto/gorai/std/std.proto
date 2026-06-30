@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gorai.std;
 
-option go_package = "github.com/gorai/gorai/api/gen/gorai/std";
+option go_package = "github.com/emergingrobotics/gorai/api/gen/gorai/std";
 
 // Header contains metadata common to all messages.
 message Header {

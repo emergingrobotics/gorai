@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/camera"
-	"github.com/gorai/gorai/components/camera/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/camera"
+	"github.com/emergingrobotics/gorai/components/camera/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestCamera_IsComponent(t *testing.T) {

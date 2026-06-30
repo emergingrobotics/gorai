@@ -5,7 +5,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/gorai/gorai/driver"
+	"github.com/emergingrobotics/gorai/driver"
 )
 
 // Port represents a serial port.

@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	v4l2driver "github.com/gorai/gorai/driver/camera/v4l2"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	v4l2driver "github.com/emergingrobotics/gorai/driver/camera/v4l2"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {

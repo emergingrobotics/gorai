@@ -44,7 +44,7 @@ help:
 	@echo ""
 	@echo "Quick Start:"
 	@echo "  make run      # Run the robot (foreground)"
-	@echo "  # Open http://localhost:8080 in browser"
+	@echo "  # Open http://localhost:10101 in browser"
 
 .DEFAULT_GOAL := help
 
@@ -55,7 +55,7 @@ help:
 .PHONY: run
 run:
 	@echo "==> Running $(ROBOT_NAME)..."
-	@echo "    Dashboard: http://localhost:8080"
+	@echo "    Dashboard: http://localhost:10101"
 	@echo "    Press Ctrl+C to stop"
 	@echo ""
 	gorai run --config $(RDL_FILE)
@@ -65,7 +65,7 @@ run-background:
 	@echo "==> Starting $(ROBOT_NAME) as background service..."
 	gorai start --config $(RDL_FILE)
 	@echo ""
-	@echo "Robot started! Dashboard: http://localhost:8080"
+	@echo "Robot started! Dashboard: http://localhost:10101"
 	@echo "Use 'make logs' to view logs, 'make stop' to stop"
 
 .PHONY: stop

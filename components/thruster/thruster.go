@@ -11,7 +11,7 @@ package thruster
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Thruster represents an underwater propulsion thruster.

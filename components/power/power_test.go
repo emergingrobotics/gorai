@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/power"
-	"github.com/gorai/gorai/components/power/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/power"
+	"github.com/emergingrobotics/gorai/components/power/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestPower_IsComponent(t *testing.T) {

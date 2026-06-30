@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/nws"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/nws"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
 )
 

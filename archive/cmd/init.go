@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // cmdInit handles the 'gorai init' command.
@@ -297,8 +297,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/robot"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/robot"
 
 	// Generated imports - do not remove this import
 	_ "%s/internal/generated"
@@ -396,7 +396,7 @@ func generateGoMod(robotName string) string {
 
 go 1.22
 
-require github.com/gorai/gorai v0.1.0
+require github.com/emergingrobotics/gorai v0.1.0
 `, robotName)
 }
 
@@ -697,7 +697,7 @@ jobs:
           go-version: '1.22'
 
       - name: Install gorai
-        run: go install github.com/gorai/gorai/cmd/gorai@latest
+        run: go install github.com/emergingrobotics/gorai/cmd/gorai@latest
 
       - name: Validate config
         run: gorai validate %s
@@ -717,7 +717,7 @@ jobs:
           go-version: '1.22'
 
       - name: Install gorai
-        run: go install github.com/gorai/gorai/cmd/gorai@latest
+        run: go install github.com/emergingrobotics/gorai/cmd/gorai@latest
 
       - name: Generate
         run: gorai generate %s
@@ -748,7 +748,7 @@ jobs:
           go-version: '1.22'
 
       - name: Install gorai
-        run: go install github.com/gorai/gorai/cmd/gorai@latest
+        run: go install github.com/emergingrobotics/gorai/cmd/gorai@latest
 
       - name: Generate
         run: gorai generate %s

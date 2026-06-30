@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorai/gorai/pkg/discovery"
-	"github.com/gorai/gorai/pkg/services/rdl"
-	"github.com/gorai/gorai/pkg/validation"
+	"github.com/emergingrobotics/gorai/pkg/discovery"
+	"github.com/emergingrobotics/gorai/pkg/services/rdl"
+	"github.com/emergingrobotics/gorai/pkg/validation"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ package gripper
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Gripper represents an end effector gripper.

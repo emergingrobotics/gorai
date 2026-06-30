@@ -23,8 +23,8 @@ The Caddy model implementation is structurally sound. The core patterns -- init(
 
 ```go
 import (
-    "github.com/gorai/gorai/driver/camera/v4l2"
-    hwv4l2 "github.com/gorai/gorai/pkg/hardware/v4l2"
+    "github.com/emergingrobotics/gorai/driver/camera/v4l2"
+    hwv4l2 "github.com/emergingrobotics/gorai/pkg/hardware/v4l2"
 )
 ```
 
@@ -95,7 +95,7 @@ The return value of `goTidy.Run()` is discarded. If `go mod tidy` fails (e.g., n
 
 **File:** `pkg/gorai/run.go`, `cmd/gorai/main.go`
 
-REQUIREMENTS.md (REQ-CORE-1) specifies the entrypoint at `github.com/emergingrobotics/gorai/cmd/gorai`. The actual implementation places it at `github.com/gorai/gorai/pkg/gorai`. Two discrepancies:
+REQUIREMENTS.md (REQ-CORE-1) specifies the entrypoint at `github.com/emergingrobotics/gorai/cmd/gorai`. The actual implementation places it at `github.com/emergingrobotics/gorai/pkg/gorai`. Two discrepancies:
 
 1. **Module path**: `gorai/gorai` vs `emergingrobotics/gorai` -- Acceptable if the module has not been published to the final path yet.
 2. **Package location**: `pkg/gorai/` vs `cmd/gorai/` as the Run() export point. The requirements doc and the `package-dev-approach.md` both show `import "github.com/emergingrobotics/gorai/cmd/gorai"` with `gorai.Run()`. The current structure puts Run() in `pkg/gorai` which imports `cmd/gorai/commands`. This adds an indirection layer and means the template main.go imports a different path than the documentation shows.
@@ -236,7 +236,7 @@ The error is silently discarded.
 type Constructor func(ctx context.Context, deps Dependencies, conf Config) (any, error)
 ```
 
-The `Dependencies` interface is minimal (`Get` + `GetByType`). The `Config` type alias (`map[string]any`) is simple. External modules only need `import "github.com/gorai/gorai/pkg/registry"` to register and look up components.
+The `Dependencies` interface is minimal (`Get` + `GetByType`). The `Config` type alias (`map[string]any`) is simple. External modules only need `import "github.com/emergingrobotics/gorai/pkg/registry"` to register and look up components.
 
 The use of `any` return types in both Constructor and Dependencies.Get is intentional (components define local interfaces for their dependencies, per REQ-AUTHOR-4), but means type errors are caught at runtime, not compile time.
 

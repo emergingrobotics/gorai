@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/link"
-	"github.com/gorai/gorai/components/link/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/link"
+	"github.com/emergingrobotics/gorai/components/link/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestLink_IsComponent(t *testing.T) {

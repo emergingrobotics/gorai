@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/pkg/gsp"
-	"github.com/gorai/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/gsp"
+	"github.com/emergingrobotics/gorai/pkg/nats"
 	gonats "github.com/nats-io/nats.go"
 	"go.bug.st/serial"
 )

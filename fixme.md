@@ -221,7 +221,7 @@ When `Run()` shuts down and closes the `events` channel, `unregister` and `regis
 
 **File:** `/gorai/go.mod`
 
-`replace github.com/gorai/gorai-gps => ../gorai-gps` — directory does not exist. Build fails without sibling repo.
+`replace github.com/emergingrobotics/gorai-gps => ../gorai-gps` — directory does not exist. Build fails without sibling repo.
 
 ### Warnings
 

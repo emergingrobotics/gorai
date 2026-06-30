@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/stepper"
-	"github.com/gorai/gorai/components/stepper/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/stepper"
+	"github.com/emergingrobotics/gorai/components/stepper/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestStepper_IsActuator(t *testing.T) {

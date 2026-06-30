@@ -295,8 +295,8 @@ package %s
 import (
 	"context"
 
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -379,7 +379,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 )
 
 func TestNew(t *testing.T) {
@@ -438,8 +438,8 @@ package fake
 import (
 	"context"
 
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -495,8 +495,8 @@ package %s
 import (
 	"context"
 
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -579,7 +579,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 )
 
 func TestNew(t *testing.T) {

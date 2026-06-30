@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gorai/gorai/driver/i2c"
+	"github.com/emergingrobotics/gorai/driver/i2c"
 	"golang.org/x/sys/unix"
 )
 

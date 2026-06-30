@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/componentregistry"
+	"github.com/emergingrobotics/gorai/pkg/componentregistry"
 )
 
 const defaultRegistryPath = "registry.json"

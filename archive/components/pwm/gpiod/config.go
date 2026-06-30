@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 )
 
 // HWMode specifies the PWM hardware mode selection.

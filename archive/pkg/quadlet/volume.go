@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // generateVolume generates a .volume unit file content.

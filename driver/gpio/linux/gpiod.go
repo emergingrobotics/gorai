@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/driver/gpio"
+	"github.com/emergingrobotics/gorai/driver/gpio"
 	"github.com/warthog618/go-gpiocdev"
 )
 

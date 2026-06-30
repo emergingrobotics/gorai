@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gorai.sensor;
 
-option go_package = "github.com/gorai/gorai/api/gen/gorai/sensor";
+option go_package = "github.com/emergingrobotics/gorai/api/gen/gorai/sensor";
 
 import "gorai/std/std.proto";
 import "gorai/geometry/geometry.proto";

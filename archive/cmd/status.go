@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/runtime"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/runtime"
 )
 
 func cmdStatus() error {

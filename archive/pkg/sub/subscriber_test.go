@@ -3,8 +3,8 @@ package sub_test
 import (
 	"testing"
 
-	"github.com/gorai/gorai/api/gen/gorai/std"
-	"github.com/gorai/gorai/pkg/sub"
+	"github.com/emergingrobotics/gorai/api/gen/gorai/std"
+	"github.com/emergingrobotics/gorai/pkg/sub"
 	"github.com/nats-io/nats.go"
 )
 

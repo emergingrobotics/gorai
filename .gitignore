@@ -70,4 +70,4 @@ config.local.*
 docs/li-*
 
 # Personal Cursor Rules
-.cursor/rules/
+.cursor/rules/tools/pwm-ramp-test/pwm-ramp-test

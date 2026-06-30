@@ -3,7 +3,7 @@ package mecanum
 import (
 	"testing"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestControllerConfigValidation(t *testing.T) {

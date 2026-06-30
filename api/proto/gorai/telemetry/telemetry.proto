@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gorai.telemetry;
 
-option go_package = "github.com/gorai/gorai/api/gen/gorai/telemetry";
+option go_package = "github.com/emergingrobotics/gorai/api/gen/gorai/telemetry";
 
 import "gorai/std/std.proto";
 

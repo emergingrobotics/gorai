@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/components/space"
-	"github.com/gorai/gorai/components/space/fake"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/components/space"
+	"github.com/emergingrobotics/gorai/components/space/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func TestSpace_IsComponent(t *testing.T) {

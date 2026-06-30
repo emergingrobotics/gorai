@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorai/rp2040-pwm/firmware/gsp"
+	"github.com/emergingrobotics/rp2040-pwm/firmware/gsp"
 	"go.bug.st/serial"
 )
 

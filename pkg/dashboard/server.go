@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/gorai/gorai/pkg/dashboard/cameras"
-	"github.com/gorai/gorai/pkg/dashboard/models"
-	"github.com/gorai/gorai/pkg/dashboard/static"
+	"github.com/emergingrobotics/gorai/pkg/dashboard/cameras"
+	"github.com/emergingrobotics/gorai/pkg/dashboard/models"
+	"github.com/emergingrobotics/gorai/pkg/dashboard/static"
 )
 
 

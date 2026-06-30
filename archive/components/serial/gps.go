@@ -9,9 +9,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/gorai/gorai-gps/pkg/gps/publisher"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai-gps/pkg/gps/publisher"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {

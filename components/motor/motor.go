@@ -4,7 +4,7 @@ package motor
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Motor represents a controllable motor.

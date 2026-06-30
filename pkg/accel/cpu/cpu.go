@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gorai/gorai/pkg/accel"
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/accel"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 )
 
 func init() {

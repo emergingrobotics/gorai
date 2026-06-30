@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gorai.ml;
 
-option go_package = "github.com/gorai/gorai/api/gen/gorai/ml";
+option go_package = "github.com/emergingrobotics/gorai/api/gen/gorai/ml";
 
 // Tensor represents a multi-dimensional array for ML inference.
 message Tensor {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/services"
-	"github.com/gorai/gorai/services/behavior"
-	"github.com/gorai/gorai/services/coordinator"
-	"github.com/gorai/gorai/services/coordinator/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/services"
+	"github.com/emergingrobotics/gorai/services/behavior"
+	"github.com/emergingrobotics/gorai/services/coordinator"
+	"github.com/emergingrobotics/gorai/services/coordinator/fake"
 )
 
 func TestCoordinator_IsService(t *testing.T) {

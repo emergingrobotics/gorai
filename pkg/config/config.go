@@ -542,7 +542,7 @@ func (cfg *RDL) applyDefaults() {
 		enabled := true
 		cfg.Dashboard = &DashboardConfig{
 			Enabled: &enabled,
-			Listen:  "127.0.0.1:8080",
+			Listen:  "127.0.0.1:10101",
 		}
 	} else {
 		if cfg.Dashboard.Enabled == nil {
@@ -550,7 +550,7 @@ func (cfg *RDL) applyDefaults() {
 			cfg.Dashboard.Enabled = &enabled
 		}
 		if cfg.Dashboard.Listen == "" {
-			cfg.Dashboard.Listen = "127.0.0.1:8080"
+			cfg.Dashboard.Listen = "127.0.0.1:10101"
 		}
 	}
 }

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	pwm_input "github.com/gorai/gorai/components/pwm/input"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	pwm_input "github.com/emergingrobotics/gorai/components/pwm/input"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
 )
 

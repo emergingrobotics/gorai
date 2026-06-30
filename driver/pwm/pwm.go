@@ -4,7 +4,7 @@ package pwm
 import (
 	"context"
 
-	"github.com/gorai/gorai/driver"
+	"github.com/emergingrobotics/gorai/driver"
 )
 
 // Chip represents a PWM controller with one or more channels.

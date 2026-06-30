@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/thefloweringash/gorai-gsp/client"
-	"github.com/thefloweringash/gorai-gsp/gsp"
-	"github.com/thefloweringash/gorai-gsp/gsp/messages"
-	"github.com/thefloweringash/gorai-gsp/transport"
+	"github.com/emergingrobotics/gorai-gsp/client"
+	"github.com/emergingrobotics/gorai-gsp/gsp"
+	"github.com/emergingrobotics/gorai-gsp/gsp/messages"
+	"github.com/emergingrobotics/gorai-gsp/transport"
 	"go.bug.st/serial"
 )
 

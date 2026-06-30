@@ -3,8 +3,8 @@ package component_test
 import (
 	"testing"
 
-	"github.com/gorai/gorai/components"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // TestComponent_IsResource verifies that Component embeds resource.Resource.

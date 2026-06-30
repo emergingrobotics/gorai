@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/dashboard/cameras"
-	"github.com/gorai/gorai/pkg/dashboard/models"
-	gorainats "github.com/gorai/gorai/pkg/nats"
-	"github.com/gorai/gorai/pkg/subjects"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/dashboard/cameras"
+	"github.com/emergingrobotics/gorai/pkg/dashboard/models"
+	gorainats "github.com/emergingrobotics/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/subjects"
 )
 
 // Dashboard represents the web dashboard service.
@@ -75,7 +75,7 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 	// Apply defaults — bind to localhost only for safety
 	listen := cfg.Listen
 	if listen == "" {
-		listen = "127.0.0.1:8080"
+		listen = "127.0.0.1:10101"
 	}
 
 	d := &Dashboard{

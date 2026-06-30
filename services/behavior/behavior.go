@@ -17,8 +17,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/services"
+	"github.com/emergingrobotics/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/services"
 )
 
 // Service is the interface for behavior services.

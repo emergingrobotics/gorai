@@ -5,10 +5,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/gorai/gorai/components/input"
-	"github.com/gorai/gorai/components/input/keyboard"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/input"
+	"github.com/emergingrobotics/gorai/components/input/keyboard"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {

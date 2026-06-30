@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gorai/gorai/components/input"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/input"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 	"github.com/nats-io/nats.go"
 )
 

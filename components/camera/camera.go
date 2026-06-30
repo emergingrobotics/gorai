@@ -5,7 +5,7 @@ import (
 	"context"
 	"image"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Camera represents a camera that can capture images.

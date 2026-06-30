@@ -3,7 +3,7 @@ package robot
 import (
 	"testing"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 func TestTopoSort_NoDeps(t *testing.T) {

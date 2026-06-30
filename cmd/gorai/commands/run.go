@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/gorai/gorai/pkg/config"
-	"github.com/gorai/gorai/pkg/robot"
+	"github.com/emergingrobotics/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/robot"
 )
 
 func cmdRun() error {

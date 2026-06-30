@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package gorai.action;
 
-option go_package = "github.com/gorai/gorai/api/gen/gorai/action";
+option go_package = "github.com/emergingrobotics/gorai/api/gen/gorai/action";
 
 import "gorai/std/std.proto";
 

@@ -4,7 +4,7 @@ package mlmodel
 import (
 	"context"
 
-	"github.com/gorai/gorai/services"
+	"github.com/emergingrobotics/gorai/services"
 )
 
 // Service provides ML model inference capabilities.

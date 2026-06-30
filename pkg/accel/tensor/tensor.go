@@ -4,7 +4,7 @@ package tensor
 import (
 	"fmt"
 
-	"github.com/gorai/gorai/pkg/accel"
+	"github.com/emergingrobotics/gorai/pkg/accel"
 )
 
 // Size returns the total number of elements in a tensor.

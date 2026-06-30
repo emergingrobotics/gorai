@@ -9,8 +9,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/gorai/gorai/pkg/mesh"
-	"github.com/gorai/gorai/pkg/proxy"
+	"github.com/emergingrobotics/gorai/pkg/mesh"
+	"github.com/emergingrobotics/gorai/pkg/proxy"
 )
 
 // Manager coordinates discovery from multiple sources and auto-adoption.

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	actionpb "github.com/gorai/gorai/api/gen/gorai/action"
-	"github.com/gorai/gorai/api/gen/gorai/std"
+	actionpb "github.com/emergingrobotics/gorai/api/gen/gorai/action"
+	"github.com/emergingrobotics/gorai/api/gen/gorai/std"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorai/gorai/pkg/resource"
-	"github.com/gorai/gorai/services"
-	"github.com/gorai/gorai/services/behavior"
-	"github.com/gorai/gorai/services/behavior/fake"
+	"github.com/emergingrobotics/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/services"
+	"github.com/emergingrobotics/gorai/services/behavior"
+	"github.com/emergingrobotics/gorai/services/behavior/fake"
 )
 
 func TestBehavior_IsService(t *testing.T) {

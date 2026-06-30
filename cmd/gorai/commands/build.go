@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 func cmdBuild() error {
@@ -110,7 +110,7 @@ func cmdBuild() error {
 	buildArgs := []string{"build", "-o", outputPath}
 
 	// Set ldflags for version info
-	ldflags := fmt.Sprintf("-X github.com/gorai/gorai/cmd/gorai/commands.Version=%s", Version)
+	ldflags := fmt.Sprintf("-X github.com/emergingrobotics/gorai/cmd/gorai/commands.Version=%s", Version)
 	buildArgs = append(buildArgs, "-ldflags", ldflags)
 
 	// Build the current module (the user's robot project)

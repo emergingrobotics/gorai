@@ -9,7 +9,7 @@ package input
 import (
 	"context"
 
-	component "github.com/gorai/gorai/components"
+	component "github.com/emergingrobotics/gorai/components"
 )
 
 // PWMInput represents a PWM input measurement component.

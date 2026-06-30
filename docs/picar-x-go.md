@@ -158,8 +158,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorai/gorai/driver/gpio"
-	"github.com/gorai/gorai/driver/i2c"
+	"github.com/emergingrobotics/gorai/driver/gpio"
+	"github.com/emergingrobotics/gorai/driver/i2c"
 )
 
 const (
@@ -421,7 +421,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gorai/gorai/driver/gpio"
+	"github.com/emergingrobotics/gorai/driver/gpio"
 )
 
 // BoardVersion identifies the Robot HAT board revision.
@@ -523,7 +523,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gorai/gorai/driver/gpio"
+	"github.com/emergingrobotics/gorai/driver/gpio"
 )
 
 const (
@@ -693,10 +693,10 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/gorai/gorai/components/servo"
-	"github.com/gorai/gorai/driver/robothat"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/servo"
+	"github.com/emergingrobotics/gorai/driver/robothat"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -885,11 +885,11 @@ import (
 	"math"
 	"sync"
 
-	"github.com/gorai/gorai/components/motor"
-	"github.com/gorai/gorai/driver/gpio"
-	"github.com/gorai/gorai/driver/robothat"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/motor"
+	"github.com/emergingrobotics/gorai/driver/gpio"
+	"github.com/emergingrobotics/gorai/driver/robothat"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -1110,11 +1110,11 @@ import (
 	"math"
 	"sync"
 
-	"github.com/gorai/gorai/components/base"
-	servocomp "github.com/gorai/gorai/components/servo"
-	motorcomp "github.com/gorai/gorai/components/motor"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/base"
+	servocomp "github.com/emergingrobotics/gorai/components/servo"
+	motorcomp "github.com/emergingrobotics/gorai/components/motor"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -1295,10 +1295,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/gorai/gorai/components/sensor"
-	"github.com/gorai/gorai/driver/robothat"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/sensor"
+	"github.com/emergingrobotics/gorai/driver/robothat"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -1459,12 +1459,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gorai/gorai/components/sensor"
-	"github.com/gorai/gorai/driver/gpio"
-	hcsr04driver "github.com/gorai/gorai/driver/hcsr04"
-	"github.com/gorai/gorai/driver/robothat"
-	"github.com/gorai/gorai/pkg/registry"
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/components/sensor"
+	"github.com/emergingrobotics/gorai/driver/gpio"
+	hcsr04driver "github.com/emergingrobotics/gorai/driver/hcsr04"
+	"github.com/emergingrobotics/gorai/driver/robothat"
+	"github.com/emergingrobotics/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 func init() {
@@ -1850,7 +1850,7 @@ func (db *FileDB) save() error {
 
   "dashboard": {
     "enabled": true,
-    "listen": "127.0.0.1:8080"
+    "listen": "127.0.0.1:10101"
   }
 }
 ```

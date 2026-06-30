@@ -4,7 +4,7 @@ package base
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Base represents a mobile robot base.

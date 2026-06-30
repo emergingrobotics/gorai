@@ -1,9 +1,9 @@
-module github.com/gorai/gorai/tools/pwm-ramp-test
+module github.com/emergingrobotics/gorai/tools/pwm-ramp-test
 
 go 1.22
 
 require (
-	github.com/gorai/rp2040-pwm v0.0.0
+	github.com/emergingrobotics/rp2040-pwm v0.0.0
 	go.bug.st/serial v1.6.4
 )
 
@@ -12,4 +12,4 @@ require (
 	golang.org/x/sys v0.19.0 // indirect
 )
 
-replace github.com/gorai/rp2040-pwm => ../../../rp2040-pwm
+replace github.com/emergingrobotics/rp2040-pwm => ../../../rp2040-pwm

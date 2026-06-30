@@ -4,15 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gorai/gorai/pkg/registry"
+	"github.com/emergingrobotics/gorai/pkg/registry"
 
 	// Import fake implementations to trigger registrations
-	_ "github.com/gorai/gorai/components/motor/fake"
-	_ "github.com/gorai/gorai/components/sensor/fake"
-	_ "github.com/gorai/gorai/components/servo/fake"
-	_ "github.com/gorai/gorai/components/stepper/fake"
-	_ "github.com/gorai/gorai/components/thruster/fake"
-	_ "github.com/gorai/gorai/components/valve/fake"
+	_ "github.com/emergingrobotics/gorai/components/motor/fake"
+	_ "github.com/emergingrobotics/gorai/components/sensor/fake"
+	_ "github.com/emergingrobotics/gorai/components/servo/fake"
+	_ "github.com/emergingrobotics/gorai/components/stepper/fake"
+	_ "github.com/emergingrobotics/gorai/components/thruster/fake"
+	_ "github.com/emergingrobotics/gorai/components/valve/fake"
 )
 
 func TestRegisteredSensorComponents(t *testing.T) {

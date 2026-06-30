@@ -8,52 +8,52 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // Component type to import path mapping
 var componentImports = map[string]string{
 	// Sensors
-	"imu":                "github.com/gorai/gorai/components/sensor/imu",
-	"ahrs":               "github.com/gorai/gorai/components/sensor/ahrs",
-	"gps":                "github.com/gorai/gorai/components/sensor/gps",
-	"encoder":            "github.com/gorai/gorai/components/sensor/encoder",
-	"range_sensor":       "github.com/gorai/gorai/components/sensor/range",
-	"lidar":              "github.com/gorai/gorai/components/sensor/lidar",
-	"presence_sensor":    "github.com/gorai/gorai/components/sensor/presence",
-	"thermal_array":      "github.com/gorai/gorai/components/sensor/thermal",
-	"force_sensor":       "github.com/gorai/gorai/components/sensor/force",
-	"force_6dof":         "github.com/gorai/gorai/components/sensor/force6dof",
-	"current_sensor":     "github.com/gorai/gorai/components/sensor/current",
-	"reflectance_sensor": "github.com/gorai/gorai/components/sensor/reflectance",
-	"camera":             "github.com/gorai/gorai/components/camera",
-	"temperature":        "github.com/gorai/gorai/components/sensor/temperature",
+	"imu":                "github.com/emergingrobotics/gorai/components/sensor/imu",
+	"ahrs":               "github.com/emergingrobotics/gorai/components/sensor/ahrs",
+	"gps":                "github.com/emergingrobotics/gorai/components/sensor/gps",
+	"encoder":            "github.com/emergingrobotics/gorai/components/sensor/encoder",
+	"range_sensor":       "github.com/emergingrobotics/gorai/components/sensor/range",
+	"lidar":              "github.com/emergingrobotics/gorai/components/sensor/lidar",
+	"presence_sensor":    "github.com/emergingrobotics/gorai/components/sensor/presence",
+	"thermal_array":      "github.com/emergingrobotics/gorai/components/sensor/thermal",
+	"force_sensor":       "github.com/emergingrobotics/gorai/components/sensor/force",
+	"force_6dof":         "github.com/emergingrobotics/gorai/components/sensor/force6dof",
+	"current_sensor":     "github.com/emergingrobotics/gorai/components/sensor/current",
+	"reflectance_sensor": "github.com/emergingrobotics/gorai/components/sensor/reflectance",
+	"camera":             "github.com/emergingrobotics/gorai/components/camera",
+	"temperature":        "github.com/emergingrobotics/gorai/components/sensor/temperature",
 
 	// Actuators
-	"motor":    "github.com/gorai/gorai/components/motor",
-	"servo":    "github.com/gorai/gorai/components/servo",
-	"stepper":  "github.com/gorai/gorai/components/stepper",
-	"thruster": "github.com/gorai/gorai/components/thruster",
-	"valve":    "github.com/gorai/gorai/components/valve",
-	"gripper":  "github.com/gorai/gorai/components/gripper",
-	"arm":      "github.com/gorai/gorai/components/arm",
-	"base":     "github.com/gorai/gorai/components/base",
+	"motor":    "github.com/emergingrobotics/gorai/components/motor",
+	"servo":    "github.com/emergingrobotics/gorai/components/servo",
+	"stepper":  "github.com/emergingrobotics/gorai/components/stepper",
+	"thruster": "github.com/emergingrobotics/gorai/components/thruster",
+	"valve":    "github.com/emergingrobotics/gorai/components/valve",
+	"gripper":  "github.com/emergingrobotics/gorai/components/gripper",
+	"arm":      "github.com/emergingrobotics/gorai/components/arm",
+	"base":     "github.com/emergingrobotics/gorai/components/base",
 
 	// Infrastructure
-	"power": "github.com/gorai/gorai/components/power",
-	"space": "github.com/gorai/gorai/components/space",
-	"link":  "github.com/gorai/gorai/components/link",
+	"power": "github.com/emergingrobotics/gorai/components/power",
+	"space": "github.com/emergingrobotics/gorai/components/space",
+	"link":  "github.com/emergingrobotics/gorai/components/link",
 }
 
 // Service type to import path mapping
 var serviceImports = map[string]string{
-	"vision":      "github.com/gorai/gorai/services/vision",
-	"slam":        "github.com/gorai/gorai/services/slam",
-	"navigation":  "github.com/gorai/gorai/services/navigation",
-	"motion":      "github.com/gorai/gorai/services/motion",
-	"behavior":    "github.com/gorai/gorai/services/behavior",
-	"coordinator": "github.com/gorai/gorai/services/coordinator",
-	"mlmodel":     "github.com/gorai/gorai/services/mlmodel",
+	"vision":      "github.com/emergingrobotics/gorai/services/vision",
+	"slam":        "github.com/emergingrobotics/gorai/services/slam",
+	"navigation":  "github.com/emergingrobotics/gorai/services/navigation",
+	"motion":      "github.com/emergingrobotics/gorai/services/motion",
+	"behavior":    "github.com/emergingrobotics/gorai/services/behavior",
+	"coordinator": "github.com/emergingrobotics/gorai/services/coordinator",
+	"mlmodel":     "github.com/emergingrobotics/gorai/services/mlmodel",
 }
 
 // cmdGenerate handles the 'gorai generate' command.

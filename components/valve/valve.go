@@ -13,7 +13,7 @@ package valve
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Valve represents a fluid control valve.

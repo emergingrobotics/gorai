@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // Generator creates systemd unit files from RDL configuration.

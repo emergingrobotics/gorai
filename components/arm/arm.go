@@ -4,7 +4,7 @@ package arm
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Arm represents a robotic arm.

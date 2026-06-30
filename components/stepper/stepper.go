@@ -11,7 +11,7 @@ package stepper
 import (
 	"context"
 
-	"github.com/gorai/gorai/components"
+	"github.com/emergingrobotics/gorai/components"
 )
 
 // Stepper represents a stepper motor with step/direction control.

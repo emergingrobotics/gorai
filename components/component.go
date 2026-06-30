@@ -12,7 +12,7 @@
 package component
 
 import (
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // Component is the base interface for all hardware components.

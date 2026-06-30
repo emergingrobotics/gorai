@@ -3,7 +3,7 @@ package keypress_motor
 import (
 	"fmt"
 
-	"github.com/gorai/gorai/pkg/resource"
+	"github.com/emergingrobotics/gorai/pkg/resource"
 )
 
 // DriveType defines the type of drive signal used to control the component.

@@ -1,4 +1,4 @@
-module github.com/gorai/gorai
+module github.com/emergingrobotics/gorai
 
 go 1.25.0
 
@@ -19,8 +19,8 @@ require (
 
 // gorai-gps is required only when building with the gorai_gps build tag.
 // For local development: go build -tags gorai_gps
-// and add to go.mod: require github.com/gorai/gorai-gps v0.1.0
-// replace github.com/gorai/gorai-gps => ../gorai-gps
+// and add to go.mod: require github.com/emergingrobotics/gorai-gps v0.1.0
+// replace github.com/emergingrobotics/gorai-gps => ../gorai-gps
 
 require (
 	github.com/antithesishq/antithesis-sdk-go v0.6.0-default-no-op // indirect

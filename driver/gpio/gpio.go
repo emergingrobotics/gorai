@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/gorai/gorai/driver"
+	"github.com/emergingrobotics/gorai/driver"
 )
 
 // Driver provides GPIO access.

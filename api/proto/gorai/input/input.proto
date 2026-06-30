@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package gorai.input;
 
-option go_package = "github.com/gorai/gorai/api/gen/gorai/input";
+option go_package = "github.com/emergingrobotics/gorai/api/gen/gorai/input";
 
 import "gorai/std/std.proto";
 

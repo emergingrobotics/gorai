@@ -33,7 +33,7 @@
       "type": "dashboard",
       "model": "web",
       "attributes": {
-        "listen": ":8080"
+        "listen": ":10101"
       }
     }
   ],
@@ -46,6 +46,6 @@
 
   "dashboard": {
     "enabled": true,
-    "listen": ":8080"
+    "listen": ":10101"
   }
 }

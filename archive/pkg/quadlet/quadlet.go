@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gorai/gorai/pkg/config"
+	"github.com/emergingrobotics/gorai/pkg/config"
 )
 
 // Generator creates Quadlet unit files from RDL configuration.

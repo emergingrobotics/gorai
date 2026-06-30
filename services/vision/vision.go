@@ -5,7 +5,7 @@ import (
 	"context"
 	"image"
 
-	"github.com/gorai/gorai/services"
+	"github.com/emergingrobotics/gorai/services"
 )
 
 // Service provides computer vision capabilities.

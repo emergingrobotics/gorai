@@ -30,7 +30,7 @@ Build a robot in under an hour. Write JSON, get a binary, deploy to a Linux host
 
 ```bash
 # 1. Install the CLI
-go install github.com/gorai/gorai/cmd/gorai@latest
+go install github.com/emergingrobotics/gorai/cmd/gorai@latest
 
 # 2. Create a robot project from the template
 git clone https://github.com/emergingrobotics/gorai-robot-template.git my-robot
@@ -67,11 +67,11 @@ A robot's `main.go` declares which components to include via blank imports:
 package main
 
 import (
-    gorai "github.com/gorai/gorai/pkg/gorai"
+    gorai "github.com/emergingrobotics/gorai/pkg/gorai"
 
     // Remote proxy components from GoRAI core
-    _ "github.com/gorai/gorai/components/motor/remote"
-    _ "github.com/gorai/gorai/components/camera/remote"
+    _ "github.com/emergingrobotics/gorai/components/motor/remote"
+    _ "github.com/emergingrobotics/gorai/components/camera/remote"
 
     // Third-party component from the ecosystem
     _ "github.com/someone/gorai-component-lidar/rplidar"
@@ -192,7 +192,7 @@ go install github.com/nats-io/natscli/nats@latest
 ### 1. Install the Gorai CLI
 
 ```bash
-go install github.com/gorai/gorai/cmd/gorai@latest
+go install github.com/emergingrobotics/gorai/cmd/gorai@latest
 ```
 
 ### 2. Create a robot project from the template
@@ -215,7 +215,7 @@ The template includes a skeleton `robot.json`. Add components as needed:
   "version": "2",
   "robot": {"name": "my-robot", "description": "My first robot!"},
   "nats": {"embedded": true, "url": "nats://localhost:4222"},
-  "dashboard": {"enabled": true, "listen": ":8080"},
+  "dashboard": {"enabled": true, "listen": ":10101"},
   "components": []
 }
 ```
