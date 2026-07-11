@@ -85,6 +85,10 @@ type PlatformPWMConfig struct {
 type NATSConfig struct {
 	URL             string     `json:"url,omitempty"`
 	URLs            []string   `json:"urls,omitempty"`
+	// Listen overrides the bind address of the *embedded* server (e.g.
+	// "0.0.0.0:4222" to accept LAN connections) while the robot's own client
+	// still dials URL (typically localhost). Ignored for external NATS.
+	Listen string `json:"listen,omitempty"`
 	JetStream       *bool      `json:"jetstream,omitempty"`
 	CredentialsFile string     `json:"credentials_file,omitempty"`
 	TLS             *TLSConfig `json:"tls,omitempty"`

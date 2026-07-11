@@ -207,6 +207,18 @@ func (r *Robot) Start(ctx context.Context) error {
 func (r *Robot) startEmbeddedNATS() error {
 	host, port := parseNATSURL(r.getNATSURL())
 
+	// An explicit listen address lets the embedded server bind a LAN interface
+	// (e.g. "0.0.0.0:4222") while the robot's own client keeps dialing nats.url
+	// (localhost). This is how you expose the embedded bus on the network.
+	if r.cfg.NATS != nil && r.cfg.NATS.Listen != "" {
+		if lh, lp, ok := parseHostPort(r.cfg.NATS.Listen); ok {
+			host, port = lh, lp
+			r.logger.Info("embedded NATS binding to explicit listen address", "listen", r.cfg.NATS.Listen)
+		} else {
+			r.logger.Warn("invalid nats.listen; using url-derived bind", "listen", r.cfg.NATS.Listen)
+		}
+	}
+
 	natsConfig := embeddednats.Config{
 		Host:      host,
 		Port:      port,
@@ -256,6 +268,24 @@ func parseNATSURL(natsURL string) (string, int) {
 	}
 
 	return host, port
+}
+
+// parseHostPort splits a "host:port" (host may be empty -> 0.0.0.0) into host
+// and port, returning ok=false if the port is missing/invalid.
+func parseHostPort(addr string) (string, int, bool) {
+	i := strings.LastIndex(addr, ":")
+	if i < 0 {
+		return "", 0, false
+	}
+	host := addr[:i]
+	if host == "" {
+		host = "0.0.0.0"
+	}
+	port, err := strconv.Atoi(addr[i+1:])
+	if err != nil {
+		return "", 0, false
+	}
+	return host, port, true
 }
 
 // connectNATS establishes connection to the NATS server.

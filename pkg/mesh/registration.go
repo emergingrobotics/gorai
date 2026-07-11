@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -343,7 +344,53 @@ func (c *Client) RegisterSchema(ctx context.Context, schema SchemaDescriptor) er
 	}
 
 	c.logger.Debug("schema registered", "name", schema.Name, "version", schema.Version)
+
+	// Auto-register a discovery channel when the schema name is a capability
+	// subject (gorai.<robot>.<cap>.<type>). Mesh + MCP discovery are channel-based,
+	// so a schema alone leaves the capability invisible -- the "channels-vs-schemas
+	// gap". Deriving the channel here closes it for every robot that follows the
+	// "one schema per capability subject" convention, with no robot-side code.
+	if ch, ok := capabilityChannelFromSchema(schema); ok {
+		if err := c.RegisterChannel(ctx, ch); err != nil {
+			c.logger.Warn("auto channel registration from schema failed", "subject", ch.Subject, "err", err)
+		}
+	}
 	return nil
+}
+
+// capabilityChannelFromSchema derives a discovery channel from a schema whose
+// Name is a capability subject: gorai.<robot>.<cap>.<type> with type in
+// {data, command, state, event}. Returns ok=false for any other schema name
+// (e.g. shared type schemas like "gorai.sensor.IMUReading"), so those are left
+// as schema-only.
+func capabilityChannelFromSchema(s SchemaDescriptor) (ChannelDescriptor, bool) {
+	parts := strings.Split(s.Name, ".")
+	if len(parts) < 4 || parts[0] != "gorai" {
+		return ChannelDescriptor{}, false
+	}
+	typ := parts[len(parts)-1]
+	switch typ {
+	case "data", "command", "state", "event":
+	default:
+		return ChannelDescriptor{}, false
+	}
+	robot := parts[1]
+	capName := strings.Join(parts[2:len(parts)-1], ".")
+	if robot == "" || capName == "" {
+		return ChannelDescriptor{}, false
+	}
+	dir := DirectionPub // robot publishes data/state/events
+	if typ == "command" {
+		dir = DirectionSub // robot receives commands
+	}
+	return ChannelDescriptor{
+		Subject:     s.Name,
+		Schema:      SchemaKey(s.Name, s.Version),
+		RobotID:     robot,
+		Direction:   dir,
+		QoS:         QoSBestEffort,
+		Description: s.Description,
+	}, true
 }
 
 // BatchRegisterChannels registers multiple channels at once.
