@@ -15,6 +15,7 @@ func cmdBuild() error {
 	var configPath string
 	var outputPath string
 	var targetPlatform string
+	var buildTags string
 
 	args := os.Args[2:]
 	for i := 0; i < len(args); i++ {
@@ -37,6 +38,12 @@ func cmdBuild() error {
 			}
 			i++
 			targetPlatform = args[i]
+		case "--tags":
+			if i+1 >= len(args) {
+				return fmt.Errorf("--tags requires a value")
+			}
+			i++
+			buildTags = args[i]
 		case "-h", "--help":
 			return printBuildUsage()
 		default:
@@ -104,7 +111,11 @@ func cmdBuild() error {
 	fmt.Printf("Building robot %q...\n", cfg.Robot.Name)
 	fmt.Printf("  config:   %s\n", configPath)
 	fmt.Printf("  output:   %s\n", outputPath)
-	fmt.Printf("  platform: %s/%s\n\n", goos, goarch)
+	fmt.Printf("  platform: %s/%s\n", goos, goarch)
+	if buildTags != "" {
+		fmt.Printf("  tags:     %s\n", buildTags)
+	}
+	fmt.Println()
 
 	// Build with go build
 	buildArgs := []string{"build", "-o", outputPath}
@@ -112,6 +123,11 @@ func cmdBuild() error {
 	// Set ldflags for version info
 	ldflags := fmt.Sprintf("-X github.com/emergingrobotics/gorai/cmd/gorai/commands.Version=%s", Version)
 	buildArgs = append(buildArgs, "-ldflags", ldflags)
+
+	// Build constraints (e.g. v4l2 for the real camera source on the Pi)
+	if buildTags != "" {
+		buildArgs = append(buildArgs, "-tags", buildTags)
+	}
 
 	// Build the current module (the user's robot project)
 	buildArgs = append(buildArgs, ".")
@@ -153,12 +169,14 @@ Flags:
   -c, --config <file>     Path to robot configuration file (validates before build)
   -o, --output <path>     Output binary path (default: robot name from config)
   --target <os/arch>      Cross-compile target (e.g., linux/arm64)
+  --tags <tags>           Go build tags, comma-separated (e.g., v4l2)
   -h, --help              Show this help message
 
 Examples:
   gorai build robot.json                         # Build for current platform
   gorai build robot.json -o my-robot             # Custom output name
   gorai build robot.json --target linux/arm64    # Cross-compile for Raspberry Pi
+  gorai build robot.json --tags v4l2             # Include the real V4L2 camera source
 
 Deploy to a Raspberry Pi:
   gorai build robot.json -o robot --target linux/arm64
