@@ -71,3 +71,5 @@ docs/li-*
 
 # Personal Cursor Rules
 .cursor/rules/tools/pwm-ramp-test/pwm-ramp-test
+bin/
+.llm/
