@@ -26,10 +26,34 @@ Read the north star: **[VISION.md](VISION.md)**.
 
 ---
 
+## What `gorai` Is (and Isn't)
+
+There are **two different binaries** in a Gorai project, and it's important not to confuse them:
+
+1. **Your robot binary** — the program that runs on the Pi and *does the robot stuff*. This is your own Go module: a `main.go` that blank-imports the components you want and calls `gorai.Run()`. Its embedded NATS server, the mesh, and every component compile into this one static binary. It is fully self-contained and **needs nothing from the `gorai` tool at runtime** — you copy it to the robot and run it.
+
+2. **The `gorai` CLI** — a **developer and operator tool** you run at your workstation. It never runs on the robot in production. Think of it as `kubectl` + a build wrapper + a package helper, rolled into one command.
+
+So yes — you *could* just `go build .` your robot project and `scp` the result to the Pi. The `gorai` CLI earns its place by doing the things *around* that binary that a plain `go build` does not:
+
+| What you want to do | `gorai` command | What it actually does |
+|---------------------|-----------------|-----------------------|
+| Catch config errors before deploying | `gorai validate robot.json` | Validates your RDL (schema, deprecations) so you don't ship a broken config to the field |
+| Iterate fast without cross-compiling | `gorai run robot.json` | Runs the *same* runtime your robot binary uses, in the foreground — skips the compile-and-copy loop |
+| Produce a deployable binary | `gorai build robot.json --target linux/arm64` | Wraps `go build` with validation, cross-compile ergonomics, version stamping, and deploy hints |
+| Find and add components | `gorai component search/add` | Wraps `go get` and edits the blank-import list in `main.go` (the Caddy model — see below) |
+| See what's running on a live mesh | `gorai mesh services / watch / schemas` | Connects to a running NATS mesh and introspects it — your service-discovery browser for a robot or fleet in the field |
+
+The first three are conveniences over the Go toolchain. The **mesh commands are the part you genuinely cannot replicate with `go build`** — they observe and debug a *running* system, which is what you reach for once a robot (or several) is live.
+
+The rest of this README covers how to install the CLI, define a robot, and build it.
+
+---
+
 Build a robot in under an hour. Write JSON, get a binary, deploy to a Linux host (Raspberry Pi/Orange Pi/etc).
 
 ```bash
-# 1. Install the CLI
+# 1. Install the CLI (a dev/operator tool — not the robot itself)
 go install github.com/emergingrobotics/gorai/cmd/gorai@latest
 
 # 2. Create a robot project from the template
