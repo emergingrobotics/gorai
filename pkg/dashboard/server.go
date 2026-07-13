@@ -43,12 +43,17 @@ func (d *Dashboard) setupRoutes() {
 
 	// Dashboard pages
 	r.Get("/", d.handleIndex)
+	r.Get("/control", d.handleControl)
 	r.Get("/health", d.handleHealth)
 
 	// API endpoints
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/status", d.handleStatus)
 		r.Get("/cameras", d.handleCamerasAPI)
+		r.Get("/pwm", d.handlePWMList)
+		r.Post("/pwm/{name}/pulse", d.handlePWMSetPulse)
+		r.Post("/pwm/{name}/enable", d.handlePWMEnable)
+		r.Post("/pwm/{name}/arm", d.handlePWMArm)
 	})
 
 	// WebSocket for general updates

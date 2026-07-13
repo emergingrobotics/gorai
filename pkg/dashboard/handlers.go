@@ -21,6 +21,9 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Check if there are any PWM components to control
+	hasPWM := len(d.pwmComponents()) > 0
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!DOCTYPE html>
 <html lang="en">
@@ -36,6 +39,10 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
         <ul class="nav-tabs">
             <li><a href="/" class="active">Status</a></li>
             <li><a href="/cameras">Cameras</a></li>`))
+	if hasPWM {
+		w.Write([]byte(`
+            <li><a href="/control">Control</a></li>`))
+	}
 	if hasModels {
 		w.Write([]byte(`
             <li><a href="/models">AI / Models</a></li>`))

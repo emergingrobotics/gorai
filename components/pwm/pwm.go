@@ -38,6 +38,11 @@ type PWM interface {
 	// Disable stops PWM signal generation and sets the pin LOW.
 	Disable(ctx context.Context) error
 
+	// Arm runs the device's arming sequence, blocking until it completes.
+	// For ESCs this typically drives a max-pulse hold followed by a neutral
+	// hold so the controller recognizes the throttle range.
+	Arm(ctx context.Context) error
+
 	// IsEnabled returns true if PWM is currently generating a signal.
 	IsEnabled(ctx context.Context) (bool, error)
 

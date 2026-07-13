@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/emergingrobotics/gorai/components/pwm"
 	"github.com/emergingrobotics/gorai/pkg/registry"
@@ -379,6 +380,39 @@ func (r *RemotePWM) Disable(ctx context.Context) error {
 	r.mu.Unlock()
 
 	r.logger.Debug("pin disabled", "pin", cfg.Pin)
+	return nil
+}
+
+// Arm runs a standard ESC arming sequence on the remote device: max pulse held
+// for one second, then neutral held for one second.
+func (r *RemotePWM) Arm(ctx context.Context) error {
+	r.mu.RLock()
+	cfg := r.config
+	r.mu.RUnlock()
+
+	if err := r.Enable(ctx); err != nil {
+		return fmt.Errorf("failed to enable before arming: %w", err)
+	}
+
+	center := (cfg.MinPulseUs + cfg.MaxPulseUs) / 2.0
+	steps := []struct {
+		pulseUs float64
+		hold    time.Duration
+	}{
+		{cfg.MaxPulseUs, time.Second},
+		{center, time.Second},
+	}
+	for i, step := range steps {
+		if err := r.SetPulse(ctx, step.pulseUs); err != nil {
+			return fmt.Errorf("arm step %d failed: %w", i, err)
+		}
+		select {
+		case <-time.After(step.hold):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	r.logger.Info("ESC armed", "pin", cfg.Pin)
 	return nil
 }
 

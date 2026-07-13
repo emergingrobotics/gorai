@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -20,6 +21,7 @@ import (
 	"github.com/emergingrobotics/gorai/pkg/dashboard"
 	"github.com/emergingrobotics/gorai/pkg/embeddednats"
 	gorainats "github.com/emergingrobotics/gorai/pkg/nats"
+	"github.com/emergingrobotics/gorai/pkg/ncp"
 	"github.com/emergingrobotics/gorai/pkg/registry"
 	"github.com/emergingrobotics/gorai/pkg/resource"
 	"github.com/emergingrobotics/gorai/pkg/subjects"
@@ -39,6 +41,9 @@ type Robot struct {
 	// NATS client for messaging
 	nats     *gorainats.Client
 	subjects *subjects.Builder
+
+	// NCP server exposes local components as capabilities over NATS
+	ncp *ncp.Server
 
 	// Web dashboard
 	dashboard *dashboard.Dashboard
@@ -167,6 +172,10 @@ func (r *Robot) Start(ctx context.Context) error {
 		}
 	}
 
+	// Expose local components as NCP capabilities over NATS so remote robots
+	// (e.g. a ground station) can discover and invoke them.
+	r.exposeCapabilities()
+
 	// Initialize services
 	for _, svc := range r.cfg.Services {
 		if svc.Disabled {
@@ -205,7 +214,12 @@ func (r *Robot) Start(ctx context.Context) error {
 
 // startEmbeddedNATS creates and starts the embedded NATS server.
 func (r *Robot) startEmbeddedNATS() error {
+	// Prefer an explicit listen address (e.g. "0.0.0.0:4222") so the server can
+	// bind to the LAN; otherwise derive the bind address from the client URL.
 	host, port := parseNATSURL(r.getNATSURL())
+	if r.cfg.NATS != nil && r.cfg.NATS.Listen != "" {
+		host, port = parseHostPort(r.cfg.NATS.Listen, host, port)
+	}
 
 	// An explicit listen address lets the embedded server bind a LAN interface
 	// (e.g. "0.0.0.0:4222") while the robot's own client keeps dialing nats.url
@@ -245,6 +259,25 @@ func (r *Robot) startEmbeddedNATS() error {
 
 	r.embeddedNATS = server
 	return nil
+}
+
+// parseHostPort parses a "host:port" bind address, returning the provided
+// fallbacks for any part that is empty or unparseable.
+func parseHostPort(addr, fallbackHost string, fallbackPort int) (string, int) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return fallbackHost, fallbackPort
+	}
+	if host == "" {
+		host = fallbackHost
+	}
+	port := fallbackPort
+	if portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
+	return host, port
 }
 
 // parseNATSURL extracts host and port from a NATS URL.
@@ -348,6 +381,39 @@ func (r *Robot) resetDevices() {
 	}
 }
 
+// getComponent returns a live component instance by name. It is resolved
+// lazily (components start after the dashboard) and is safe for concurrent use.
+func (r *Robot) getComponent(name string) (any, bool) {
+	r.componentsMu.RLock()
+	defer r.componentsMu.RUnlock()
+	comp, ok := r.components[name]
+	return comp, ok
+}
+
+// exposeCapabilities publishes each supported local component over NCP so it
+// can be invoked from other robots on the mesh.
+func (r *Robot) exposeCapabilities() {
+	if r.nats == nil {
+		return
+	}
+
+	r.ncp = ncp.NewServer(r.nats.Conn(), r.subjects, r.logger)
+
+	r.componentsMu.RLock()
+	defer r.componentsMu.RUnlock()
+	for name, comp := range r.components {
+		exposed, err := r.ncp.Expose(name, comp)
+		if err != nil {
+			r.logger.Warn("Failed to expose component over NCP", "name", name, "error", err)
+			continue
+		}
+		if exposed {
+			r.logger.Info("Exposed component over NCP",
+				"name", name, "command", r.subjects.ComponentCommand(name))
+		}
+	}
+}
+
 // startDashboard creates and starts the web dashboard if enabled.
 func (r *Robot) startDashboard(ctx context.Context) error {
 	if !r.cfg.IsDashboardEnabled() {
@@ -364,6 +430,7 @@ func (r *Robot) startDashboard(ctx context.Context) error {
 		dashboard.WithNATS(r.nats),
 		dashboard.WithSubjects(r.subjects),
 		dashboard.WithLogger(r.logger),
+		dashboard.WithComponentGetter(r.getComponent),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create dashboard: %w", err)
@@ -837,6 +904,13 @@ func (r *Robot) Stop(ctx context.Context) error {
 
 	// Publish shutdown event
 	r.publishStartupEvent(subjects.EventRobotShutdown, "", "", "Robot shutting down", true, nil)
+
+	// Stop exposing NCP capabilities
+	if r.ncp != nil {
+		if err := r.ncp.Close(); err != nil {
+			r.logger.Warn("Error closing NCP server", "error", err)
+		}
+	}
 
 	// Stop external services first (they may depend on NATS)
 	r.stopExternalServices(ctx)

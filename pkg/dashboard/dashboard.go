@@ -38,6 +38,9 @@ type Dashboard struct {
 	// WebSocket hub for real-time updates
 	wsHub *WebSocketHub
 
+	// componentGetter resolves a live component instance by name (optional).
+	componentGetter func(name string) (any, bool)
+
 	mu      sync.RWMutex
 	running bool
 }
@@ -63,6 +66,14 @@ func WithSubjects(builder *subjects.Builder) Option {
 func WithLogger(logger *slog.Logger) Option {
 	return func(d *Dashboard) {
 		d.logger = logger
+	}
+}
+
+// WithComponentGetter provides a lookup into the robot's live components so the
+// dashboard can drive actuators (e.g. PWM control widgets).
+func WithComponentGetter(getter func(name string) (any, bool)) Option {
+	return func(d *Dashboard) {
+		d.componentGetter = getter
 	}
 }
 

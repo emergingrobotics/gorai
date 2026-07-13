@@ -10,6 +10,8 @@ import (
 	_ "github.com/emergingrobotics/gorai/components/input/remote"
 	_ "github.com/emergingrobotics/gorai/components/motor/remote"
 	_ "github.com/emergingrobotics/gorai/components/pwm/input/remote"
+	_ "github.com/emergingrobotics/gorai/components/pwm/linux"
+	_ "github.com/emergingrobotics/gorai/components/pwm/ncp"
 	_ "github.com/emergingrobotics/gorai/components/pwm/remote"
 	_ "github.com/emergingrobotics/gorai/components/sensor/encoder/remote"
 )

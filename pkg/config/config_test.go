@@ -140,3 +140,28 @@ func TestDeviceConfigValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestShouldEmbedNATS(t *testing.T) {
+	tests := []struct {
+		name string
+		nats *NATSConfig
+		want bool
+	}{
+		{"nil defaults to embed", nil, true},
+		{"local url embeds", &NATSConfig{URL: "nats://localhost:4222"}, true},
+		{"remote url does not embed", &NATSConfig{URL: "nats://192.168.1.50:4222"}, false},
+		{"external disables embed", &NATSConfig{URL: "nats://localhost:4222", External: true}, false},
+		{"listen forces embed even with remote url", &NATSConfig{URL: "nats://192.168.1.50:4222", Listen: "0.0.0.0:4222"}, true},
+		{"listen forces embed", &NATSConfig{Listen: "0.0.0.0:4222", URL: "nats://127.0.0.1:4222"}, true},
+		{"external beats listen", &NATSConfig{Listen: "0.0.0.0:4222", External: true}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &RDL{Version: "2", Robot: RobotConfig{Name: "test"}, NATS: tt.nats}
+			if got := cfg.ShouldEmbedNATS(); got != tt.want {
+				t.Errorf("ShouldEmbedNATS() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -13,20 +13,20 @@ import (
 
 // RDL represents the complete Robot Definition Language configuration.
 type RDL struct {
-	Schema     string                       `json:"$schema,omitempty"`
-	Version    string                       `json:"version"`
-	Robot      RobotConfig                  `json:"robot"`
-	Platform   *PlatformConfig              `json:"platform,omitempty"`
-	NATS       *NATSConfig                  `json:"nats,omitempty"`
-	Containers map[string]*ContainerConfig  `json:"containers,omitempty"`
-	Networks   map[string]*NetworkConfig    `json:"networks,omitempty"`
-	Volumes    map[string]*VolumeConfig     `json:"volumes,omitempty"`
-	Devices    []DeviceConfig               `json:"devices,omitempty"`
-	Components []ComponentConfig            `json:"components,omitempty"`
-	Services   []ServiceConfig              `json:"services,omitempty"`
-	Remotes    []RemoteConfig               `json:"remotes,omitempty"`
-	Log        *LogConfig                   `json:"log,omitempty"`
-	Dashboard  *DashboardConfig             `json:"dashboard,omitempty"`
+	Schema     string                      `json:"$schema,omitempty"`
+	Version    string                      `json:"version"`
+	Robot      RobotConfig                 `json:"robot"`
+	Platform   *PlatformConfig             `json:"platform,omitempty"`
+	NATS       *NATSConfig                 `json:"nats,omitempty"`
+	Containers map[string]*ContainerConfig `json:"containers,omitempty"`
+	Networks   map[string]*NetworkConfig   `json:"networks,omitempty"`
+	Volumes    map[string]*VolumeConfig    `json:"volumes,omitempty"`
+	Devices    []DeviceConfig              `json:"devices,omitempty"`
+	Components []ComponentConfig           `json:"components,omitempty"`
+	Services   []ServiceConfig             `json:"services,omitempty"`
+	Remotes    []RemoteConfig              `json:"remotes,omitempty"`
+	Log        *LogConfig                  `json:"log,omitempty"`
+	Dashboard  *DashboardConfig            `json:"dashboard,omitempty"`
 }
 
 // RobotConfig defines the robot's identity.
@@ -83,12 +83,12 @@ type PlatformPWMConfig struct {
 
 // NATSConfig defines the NATS connection configuration.
 type NATSConfig struct {
-	URL             string     `json:"url,omitempty"`
-	URLs            []string   `json:"urls,omitempty"`
-	// Listen overrides the bind address of the *embedded* server (e.g.
-	// "0.0.0.0:4222" to accept LAN connections) while the robot's own client
-	// still dials URL (typically localhost). Ignored for external NATS.
-	Listen string `json:"listen,omitempty"`
+	URL  string   `json:"url,omitempty"`
+	URLs []string `json:"urls,omitempty"`
+	// Listen is the bind address (host:port) for the embedded NATS server.
+	// Set this (e.g. "0.0.0.0:4222") to host NATS on the LAN so other robots
+	// can connect. When set, embedded NATS starts regardless of URL locality.
+	Listen          string     `json:"listen,omitempty"`
 	JetStream       *bool      `json:"jetstream,omitempty"`
 	CredentialsFile string     `json:"credentials_file,omitempty"`
 	TLS             *TLSConfig `json:"tls,omitempty"`
@@ -178,7 +178,7 @@ type ServiceConfig struct {
 	DependsOn  []string        `json:"depends_on,omitempty"`
 
 	// Internal fields populated after loading Service RDL
-	serviceRDL       *ServiceRDL      `json:"-"` // Loaded Service RDL (not serialized)
+	serviceRDL       *ServiceRDL       `json:"-"` // Loaded Service RDL (not serialized)
 	resolvedSubjects *ResolvedSubjects `json:"-"` // Resolved subject names (not serialized)
 
 	// Deprecated: Container field is no longer used in RDL v2
@@ -758,6 +758,11 @@ func (cfg *RDL) GetEffectiveNamespace() string {
 func (cfg *RDL) ShouldEmbedNATS() bool {
 	if cfg.NATS != nil && cfg.NATS.External {
 		return false
+	}
+	// An explicit listen address means this robot hosts NATS (e.g. on the LAN),
+	// regardless of the client URL used to connect to it.
+	if cfg.NATS != nil && cfg.NATS.Listen != "" {
+		return true
 	}
 	if cfg.NATS != nil && !cfg.NATS.IsLocalURL() {
 		return false

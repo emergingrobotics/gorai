@@ -513,3 +513,73 @@ main {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* PWM control widgets */
+.pwm-control {
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.pwm-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.pwm-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.pwm-model {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.pwm-readout {
+    margin-left: auto;
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.pwm-control input[type="range"] {
+    width: 100%;
+}
+
+.pwm-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.pwm-buttons button {
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    border: 1px solid var(--border, #333);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.pwm-buttons button:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.pwm-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pwm-arm-status {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #999);
+    min-height: 1rem;
+}
+
+.pwm-control.enabled .pwm-readout {
+    color: #35c46a;
+}

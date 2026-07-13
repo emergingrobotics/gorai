@@ -29,6 +29,7 @@ type PWM struct {
 	SetDutyCalls       []float64
 	EnableCalls        int
 	DisableCalls       int
+	ArmCalls           int
 }
 
 // Config holds configuration for the fake PWM.
@@ -236,6 +237,16 @@ func (p *PWM) Disable(ctx context.Context) error {
 	p.enabled = false
 	p.DisableCalls++
 	return nil
+}
+
+// Arm records an arm call, enables output, and sets the neutral pulse.
+func (p *PWM) Arm(ctx context.Context) error {
+	p.mu.Lock()
+	p.ArmCalls++
+	p.enabled = true
+	p.mu.Unlock()
+	center := (p.config.MinPulseUs + p.config.MaxPulseUs) / 2
+	return p.SetPulse(ctx, center)
 }
 
 // IsEnabled returns true if PWM is currently enabled.
