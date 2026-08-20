@@ -76,6 +76,7 @@ func (d *Dashboard) lookupPWM(name string) (pwm.PWM, error) {
 // handleControl serves the PWM control page with a slider per component.
 func (d *Dashboard) handleControl(w http.ResponseWriter, r *http.Request) {
 	infos := d.pwmComponents()
+	drives := d.driveComponents()
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!DOCTYPE html>
@@ -95,7 +96,13 @@ func (d *Dashboard) handleControl(w http.ResponseWriter, r *http.Request) {
             <li><a href="/control" class="active">Control</a></li>
         </ul>
     </nav>
-    <main>
+    <main>`))
+
+	d.writeTelemetryPanels(w)
+	d.writeDrivePanels(w, drives)
+	d.writeImuPanels(w)
+
+	w.Write([]byte(`
         <div class="status-card">
             <h3>PWM Control</h3>`))
 
@@ -130,6 +137,9 @@ func (d *Dashboard) handleControl(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`
         </div>
     </main>
+    <script src="/static/js/telemetry.js"></script>
+    <script src="/static/js/drive.js"></script>
+    <script src="/static/js/imu.js"></script>
     <script src="/static/js/pwm.js"></script>
 </body>
 </html>

@@ -331,6 +331,20 @@ type DashboardConfig struct {
 	Listen    string           `json:"listen,omitempty"`
 	WebSocket *WebSocketConfig `json:"websocket,omitempty"`
 	Video     *VideoConfig     `json:"video,omitempty"`
+	Telemetry *TelemetryBridge `json:"telemetry,omitempty"`
+}
+
+// TelemetryBridge configures the dashboard's NATS-to-WebSocket telemetry
+// bridge. It subscribes to a remote robot's component data/state subjects and
+// forwards the latest values to connected browsers.
+type TelemetryBridge struct {
+	// Robot is the target robot id whose telemetry to relay.
+	Robot string `json:"robot"`
+
+	// Components lists the component names to subscribe to. Data subjects
+	// (gorai.<robot>.<name>.data) are always subscribed; the drive component's
+	// state subject is also relayed.
+	Components []string `json:"components"`
 }
 
 // WebSocketConfig defines WebSocket settings for the dashboard.

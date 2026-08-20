@@ -220,10 +220,13 @@ func (p *PWM) SetPulse(ctx context.Context, pulseUs float64) error {
 	}
 
 	p.mu.Lock()
+	changed := pulseUs != p.pulseUs
 	p.pulseUs = pulseUs
 	p.mu.Unlock()
 
-	p.logger.Info("set pulse", "pulse_us", pulseUs)
+	if changed {
+		p.logger.Info("set pulse", "pulse_us", pulseUs)
+	}
 	return nil
 }
 

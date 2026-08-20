@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/emergingrobotics/gorai/components/drive"
 	"github.com/emergingrobotics/gorai/components/pwm"
 )
 
@@ -12,8 +13,12 @@ import (
 // here as additional cases.
 func adapterFor(component any) (*capability, bool) {
 	switch c := component.(type) {
+	case drive.Drive:
+		return driveCapability(c), true
 	case pwm.PWM:
 		return pwmCapability(c), true
+	case orientationSensor:
+		return ahrsCapability(c), true
 	default:
 		return nil, false
 	}

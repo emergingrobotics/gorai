@@ -3,9 +3,57 @@ package sensor
 
 import (
 	"context"
+	"time"
 
 	"github.com/emergingrobotics/gorai/components"
 )
+
+// Mounting describes how an orientation sensor is physically mounted by mapping
+// each body axis to a signed sensor axis. Each field is one of "+x","-x","+y",
+// "-y","+z","-z" and names the sensor axis that the given body axis points
+// along. The identity mounting is {X:"+x", Y:"+y", Z:"+z"}.
+type Mounting struct {
+	X string `json:"x"`
+	Y string `json:"y"`
+	Z string `json:"z"`
+}
+
+// OrientationState is a snapshot of an orientation sensor's runtime frame
+// configuration.
+type OrientationState struct {
+	// Mounting is the active axis remap.
+	Mounting Mounting `json:"mounting"`
+
+	// OffsetDeg is the configured hardcoded orientation offset in degrees
+	// (roll, pitch, yaw). It is used as the zero reference until a calibration
+	// overrides it.
+	OffsetDeg [3]float64 `json:"offset_deg"`
+
+	// Zeroed is true when a runtime calibration has captured a zero reference
+	// that overrides OffsetDeg.
+	Zeroed bool `json:"zeroed"`
+}
+
+// OrientationConfigurable is implemented by orientation sensors whose reference
+// frame can be reconfigured at runtime: a captured zero (calibration), a
+// hardcoded offset, and an axis-remap mounting. All operations are runtime-only.
+type OrientationConfigurable interface {
+	// Calibrate samples orientation over dur and sets the average as the zero
+	// reference, overriding any configured offset.
+	Calibrate(ctx context.Context, dur time.Duration) error
+
+	// ClearZero removes a calibrated zero, reverting to the configured offset.
+	ClearZero(ctx context.Context) error
+
+	// SetMounting sets the axis-remap describing the sensor's mounting.
+	SetMounting(ctx context.Context, m Mounting) error
+
+	// SetOffset sets the hardcoded orientation offset in degrees.
+	SetOffset(ctx context.Context, rollDeg, pitchDeg, yawDeg float64) error
+
+	// OrientationConfig returns the current frame configuration.
+	OrientationConfig(ctx context.Context) (OrientationState, error)
+}
 
 // Sensor is a generic sensor that returns key-value readings.
 type Sensor interface {

@@ -21,8 +21,9 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Check if there are any PWM components to control
-	hasPWM := len(d.pwmComponents()) > 0
+	// Check if there is anything controllable (PWM, drive) or telemetry to show,
+	// which warrants exposing the Control page in the nav.
+	hasControl := len(d.pwmComponents()) > 0 || len(d.driveComponents()) > 0 || len(d.imuComponents()) > 0 || d.cfg.Telemetry != nil
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!DOCTYPE html>
@@ -39,7 +40,7 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
         <ul class="nav-tabs">
             <li><a href="/" class="active">Status</a></li>
             <li><a href="/cameras">Cameras</a></li>`))
-	if hasPWM {
+	if hasControl {
 		w.Write([]byte(`
             <li><a href="/control">Control</a></li>`))
 	}
@@ -50,7 +51,12 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`
         </ul>
     </nav>
-    <main>
+    <main>`))
+
+	// Always-on telemetry strip (no-op when telemetry is not configured).
+	d.writeTelemetryPanels(w)
+
+	w.Write([]byte(`
         <div class="status-grid">
             <div class="status-card">
                 <h3>Robot</h3>
@@ -133,6 +139,7 @@ func (d *Dashboard) handleIndex(w http.ResponseWriter, r *http.Request) {
             </div>
         </div>
     </main>
+    <script src="/static/js/telemetry.js"></script>
 </body>
 </html>
 `))

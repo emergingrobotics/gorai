@@ -583,3 +583,275 @@ main {
 .pwm-control.enabled .pwm-readout {
     color: #35c46a;
 }
+
+/* Drive control */
+.drive-control {
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.drive-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.drive-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.drive-model {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.drive-readout {
+    margin-left: auto;
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.drive-body {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.drive-throttle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.drive-throttle input[type="range"] {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 2rem;
+    height: 8rem;
+}
+
+.drive-throttle-val {
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.drive-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.drive-pad-mid {
+    display: flex;
+    gap: 3rem;
+}
+
+.drive-arrow {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border, #333);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+}
+
+.drive-arrow:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.drive-arrow.active {
+    background: #35c46a;
+    color: #05130a;
+}
+
+.drive-arrow:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.drive-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.drive-buttons button {
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    border: 1px solid var(--border, #333);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.drive-buttons button:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.drive-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.drive-status {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #999);
+    min-height: 1rem;
+}
+
+.drive-control.armed .drive-name::after {
+    content: " (armed)";
+    color: #35c46a;
+    font-size: 0.75rem;
+}
+
+/* Telemetry panels */
+.telemetry-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.telemetry-card {
+    flex: 1 1 200px;
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: var(--card-bg, rgba(255, 255, 255, 0.02));
+}
+
+.telemetry-card h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.telemetry-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 0.15rem 0;
+}
+
+.telemetry-row span:first-child {
+    color: var(--text-muted);
+}
+
+.telemetry-row span:last-child {
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+/* IMU calibration & orientation controls */
+.imu-control {
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--card-bg, rgba(255, 255, 255, 0.02));
+}
+
+.imu-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.imu-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.imu-model {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.imu-readout {
+    margin-left: auto;
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.imu-zeroed {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid var(--border, #333);
+    color: var(--text-muted);
+}
+
+.imu-control.zeroed .imu-zeroed {
+    background: #35c46a;
+    color: #05130a;
+    border-color: #35c46a;
+}
+
+.imu-section {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+}
+
+.imu-section label {
+    min-width: 9rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.imu-section span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.imu-section select,
+.imu-section input {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border, #333);
+    border-radius: 4px;
+    padding: 0.2rem 0.3rem;
+}
+
+.imu-offset input {
+    width: 4rem;
+}
+
+.imu-section button {
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    border: 1px solid var(--border, #333);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.imu-section button:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.imu-section button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.imu-status {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #999);
+    min-height: 1rem;
+}

@@ -38,6 +38,9 @@ type Dashboard struct {
 	// WebSocket hub for real-time updates
 	wsHub *WebSocketHub
 
+	// Telemetry bridge (NATS -> WebSocket), optional.
+	telemetry *telemetryMonitor
+
 	// componentGetter resolves a live component instance by name (optional).
 	componentGetter func(name string) (any, bool)
 
@@ -120,6 +123,9 @@ func New(cfg *config.DashboardConfig, robotCfg *config.RDL, opts ...Option) (*Da
 		d.logger,
 	)
 
+	// Create telemetry bridge if configured
+	d.telemetry = newTelemetryMonitor(cfg.Telemetry, d.nats, d.wsHub, d.logger)
+
 	// Set up routes
 	d.setupRoutes()
 
@@ -158,6 +164,13 @@ func (d *Dashboard) Start(ctx context.Context) error {
 		d.logger.Warn("Failed to start model monitor", "error", err)
 	}
 
+	// Start telemetry bridge
+	if d.telemetry != nil {
+		if err := d.telemetry.Start(ctx); err != nil {
+			d.logger.Warn("Failed to start telemetry bridge", "error", err)
+		}
+	}
+
 	// Warn if binding to all interfaces without authentication
 	if strings.HasPrefix(d.server.Addr, ":") || strings.HasPrefix(d.server.Addr, "0.0.0.0:") {
 		d.logger.Warn("Dashboard is bound to all network interfaces with no authentication",
@@ -192,6 +205,11 @@ func (d *Dashboard) Stop(ctx context.Context) error {
 
 	// Stop model monitor
 	d.modelMonitor.Stop()
+
+	// Stop telemetry bridge
+	if d.telemetry != nil {
+		d.telemetry.Stop()
+	}
 
 	// Shutdown HTTP server
 	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

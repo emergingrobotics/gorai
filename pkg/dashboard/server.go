@@ -54,6 +54,16 @@ func (d *Dashboard) setupRoutes() {
 		r.Post("/pwm/{name}/pulse", d.handlePWMSetPulse)
 		r.Post("/pwm/{name}/enable", d.handlePWMEnable)
 		r.Post("/pwm/{name}/arm", d.handlePWMArm)
+		r.Get("/drive", d.handleDriveList)
+		r.Post("/drive/{name}/intent", d.handleDriveIntent)
+		r.Post("/drive/{name}/stop", d.handleDriveStop)
+		r.Post("/drive/{name}/arm", d.handleDriveArm)
+		r.Get("/imu", d.handleImuList)
+		r.Post("/imu/{name}/calibrate", d.handleImuCalibrate)
+		r.Post("/imu/{name}/clear", d.handleImuClear)
+		r.Post("/imu/{name}/mounting", d.handleImuMounting)
+		r.Post("/imu/{name}/offset", d.handleImuOffset)
+		r.Get("/telemetry", d.handleTelemetry)
 	})
 
 	// WebSocket for general updates
