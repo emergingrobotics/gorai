@@ -12,6 +12,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/spf13/cobra"
 
+	"github.com/emergingrobotics/gorai/pkg/agent"
 	"github.com/emergingrobotics/gorai/pkg/mesh"
 )
 
@@ -34,6 +35,7 @@ Requires a running NATS server with JetStream enabled.`,
 		newMeshServicesCmd(),
 		newMeshChannelsCmd(),
 		newMeshSchemasCmd(),
+		newMeshAgentsCmd(),
 		newMeshWatchCmd(),
 		newMeshSummaryCmd(),
 		newMeshRobotsCmd(),
@@ -151,6 +153,60 @@ func runMeshServices(cmd *cobra.Command, args []string) error {
 	}
 	w.Flush()
 
+	return nil
+}
+
+// agents subcommand
+func newMeshAgentsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "agents",
+		Short: "List AI agents on the bus (Synadia Agent Protocol)",
+		Long: `List AI agents registered on the NATS bus per the Synadia Agent
+Protocol for NATS (v0.3). These are NATS micro services named "agents"
+that expose prompt/status endpoints and a heartbeat.
+
+This is the on-bus agent dialect adopted by Gorai: AI agents sit on
+the mesh as first-class services (see VISION.md, "Agents on the Bus"),
+discovered via $SRV.INFO rather than MCP.`,
+		Example: `  gorai mesh agents
+  gorai mesh agents --json`,
+		RunE: runMeshAgents,
+	}
+	cmd.Flags().BoolP("json", "j", false, "Output as JSON")
+	return cmd
+}
+
+func runMeshAgents(cmd *cobra.Command, args []string) error {
+	url := getNATSURL(cmd)
+	nc, err := nats.Connect(url)
+	if err != nil {
+		return fmt.Errorf("failed to connect to NATS at %s: %w", url, err)
+	}
+	defer nc.Close()
+
+	insts, err := agent.Discover(nc, 2*time.Second)
+	if err != nil {
+		if err == agent.ErrNoAgents {
+			fmt.Println("No agents registered on the bus.")
+			return nil
+		}
+		return err
+	}
+
+	if asJSON, _ := cmd.Flags().GetBool("json"); asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(insts)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "AGENT\tOWNER\tNAME\tSESSION\tPROTOCOL\tPROMPT ENDPOINT")
+	for _, inst := range insts {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			inst.Agent, inst.Owner, inst.Name, inst.Session,
+			inst.ProtocolVersion, inst.PromptSubject)
+	}
+	w.Flush()
 	return nil
 }
 

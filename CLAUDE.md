@@ -4,7 +4,7 @@
 
 Gorai is a Go-based robotics framework designed for makers, citizen scientists, students, and small organizations who need real autonomy without ROS 2's complexity. Build a robot in under an hour with a single binary and NATS messaging.
 
-> **North star: [VISION.md](VISION.md)** — capabilities over NATS (NCP) and the Composite Robot. Gorai gives AI agents the capability model MCP defines — **resources (sensors) to read, tools (actuators) to call**, events, and live discovery — natively over NATS, with no MCP server in the path. A robot is a logical scope over a set of capabilities on the mesh, not a chassis: one robot can span many physical platforms. The core packages below (`pkg/mesh`, `pkg/proxy`, `pkg/topics`, `pkg/resource`) are the machinery that makes this real.
+> **North star: [VISION.md](VISION.md)** — capabilities over NATS (NCP) and the Composite Robot. Gorai gives AI agents the capability model MCP defines — **resources (sensors) to read, tools (actuators) to call**, events, and live discovery — natively over NATS, with no MCP server in the path. AI agents on the mesh itself speak the **Synadia Agent Protocol for NATS** (`pkg/agent`): they register as NATS micro services named `agents`, discovered via `$SRV.INFO` — see VISION.md, "Agents on the Bus". `gorai-mcp` remains only as an optional adapter for MCP-only clients. A robot is a logical scope over a set of capabilities on the mesh, not a chassis: one robot can span many physical platforms. The core packages below (`pkg/mesh`, `pkg/proxy`, `pkg/topics`, `pkg/resource`) are the machinery that makes this real.
 
 > **Documentation has moved to [../gorai-docs](https://github.com/emergingrobotics/gorai-docs)** — all strategy, specifications, architecture docs, book content, plans, and guides are in the gorai-docs repository. This repo focuses on design and implementation of the core gorai system.
 
@@ -89,6 +89,7 @@ gorai component add       # Add component to project
 # Mesh service discovery
 gorai mesh services       # List running services in the mesh
 gorai mesh channels       # List registered NATS channels
+gorai mesh agents         # List AI agents on the bus (Synadia Agent Protocol)
 gorai mesh schemas        # List or show message schemas
 gorai mesh watch          # Watch for services joining/leaving
 gorai mesh summary        # Show mesh state summary
@@ -149,6 +150,7 @@ gorai/
 ├── nws/                    # NATS WebSocket bridge
 ├── pkg/                    # Core libraries
 │   ├── accel/              # ML acceleration
+│   ├── agent/              # Synadia Agent Protocol for NATS (AI agents on the bus)
 │   ├── componentregistry/  # JSON registry client (search, add, mainfile editor)
 │   ├── config/             # RDL parsing and validation
 │   ├── dashboard/          # Web dashboard
@@ -195,9 +197,10 @@ gorai/
 ## Design Principles
 
 1. **Capabilities over NATS (NCP)** — Sensors are resources, actuators are tools; agents read and act over NATS subjects, discovered through the mesh. The capability model MCP gives AI agents, with no MCP server in the path. See [VISION.md](VISION.md).
-2. **A robot is a logical scope, not a chassis (Composite Robot)** — One `robot_id` can span many physical platforms sharing the mesh; capabilities are addressed by name, not by location.
-3. **Single binary deployment** — Embedded NATS, no external services
-4. **NATS-based messaging** — All component communication via embedded NATS pub/sub
+2. **AI agents speak the Synadia Agent Protocol for NATS on the bus** — `pkg/agent` is the native agent dialect (shared `agents` service, `$SRV` discovery, chunked prompt streams, heartbeats). MCP is an optional edge adapter via `gorai-mcp`, not the preferred path.
+3. **A robot is a logical scope, not a chassis (Composite Robot)** — One `robot_id` can span many physical platforms sharing the mesh; capabilities are addressed by name, not by location.
+4. **Single binary deployment** — Embedded NATS, no external services
+5. **NATS-based messaging** — All component communication via embedded NATS pub/sub
 5. **Caddy model component ecosystem** — Components are Go modules, blank imports in main.go are the manifest, `go build` produces the binary
 6. **Go-first, pragmatic polyglot** — Go core, Python/C++ as external services via NATS (future)
 7. **Cloud-native patterns** — NATS, Prometheus, JetStream (event sourcing)

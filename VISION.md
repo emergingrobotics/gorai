@@ -48,6 +48,8 @@ Two primitives carry the weight, and they map onto the two halves of every robot
 
 Read the world. Reason. Act on the world. Verify. Repeat. That loop is the entire job, and NCP is the contract that makes every step a typed NATS message.
 
+---
+
 ### What this looks like on the wire
 
 NCP rides the Gorai subject convention already used across the platform:
@@ -77,6 +79,62 @@ The earlier `mcp-over-nats.md` sketch kept a single MCP server as a bridge: the 
 - **Physical reach.** A robot on a boat connects to the hub through a NATS leaf node; local control stays local even when the link drops.
 - **Built-in audit.** A JetStream stream on `gorai.>` is a complete, replayable record of every command and every reading — who acted, when, and why.
 - **One substrate.** Discovery, invocation, streaming, persistence, and audit are all the same technology. There is no second system to learn or operate.
+
+## Agents on the Bus: the Synadia Agent Protocol
+
+NCP tells a robot's capabilities how to be addressed by an agent. This section fixes the
+other half of the conversation: **what the agent itself looks like on the bus.**
+
+We adopt the **Synadia Agent Protocol for NATS (v0.3)** as the native on-bus dialect for
+AI agents. It is deliberately small — "anything NATS already provides is used as-is" — and
+sits directly on top of the machinery NCP is built from: NATS micro services, the `$SRV`
+discovery verbs, request/reply, and pub/sub.
+
+**The shape.** Every AI agent on the mesh registers as a NATS micro service under one
+shared service name — `agents` — with:
+
+- a **`prompt` endpoint** (subject convention `agents.prompt.{agent}.{owner}.{name}`, queue
+  group `agents`), whose response is a **typed chunk stream**: `{type, data}` chunks —
+  `ack` first (before any latency-inducing work), `response` content, optional `query`
+  (the agent asks the caller a question mid-stream on a fresh reply subject), and an
+  empty-payload **terminator**. Errors are `Nats-Service-Error-Code` headers, then the
+  terminator.
+- a **`status` endpoint** — request/reply, replying with the heartbeat payload so callers
+  can bootstrap liveness without waiting a beat;
+- a **fixed-subject heartbeat** (`agents.hb.{agent}.{owner}.{name}`, pub/sub, 30s default,
+  dead at 3× missed) so liveness is observable without polling;
+- discovery via **`$SRV.INFO.agents`**: callers read each instance's endpoint subjects and
+  capability metadata (`max_payload`, `attachments_ok`, `protocol_version`) from the
+  record — **never constructing subjects from identity**.
+
+This is the same discipline as NCP's capability catalog, applied to agents: *announce your
+surface, and let callers find it.* Cancellation is interest-based (drop the reply
+subscription); inactivity timeouts guard against lost terminators; forward compatibility
+comes from ignoring unknown chunk types and envelope fields.
+
+**Implementation.** Gorai ships the protocol as `pkg/agent` (service side:
+`Agent.Start`, `Stream` chunk writer, heartbeat; client side: `Discover`, `Prompt`,
+`Liveness`), and `gorai mesh agents` lists the agents on the bus. A gorai
+`behavior` service of type `ai_agent`/`llm_agent` exposes itself through this protocol;
+external agents (coding agents, LLM harnesses, fleet coordinators) join the same way —
+zero robot-specific integration, enumerable with plain `nats` tooling.
+
+**What we adopt and what we don't:**
+
+| Adopt | Don't adopt (and why) |
+|---|---|
+| `agents` service name + `$SRV` discovery | "Security delegated to the broker" — gorai's trust model lives at the capability node (NCP: clamp, interlock, audit); on Gorai Loom, security is the filamesh crypto ladder. The agent protocol rides whatever transport already authenticates the bus. |
+| Verb-first subjects, capability metadata | KV/JetStream-backed agent registries on constrained nodes — `$SRV` discovery is enough on the bus; mesh KV stays for the channel/schema catalog |
+| Chunked, typed streams + mid-stream queries | Anything that presumes an always-reachable broker on every node — on the Gorai Loom mesh, agent traffic rides filamesh frames at gateways, and `pkg/agent` remains pure-NATS above the transport |
+| Fixed heartbeat + 3× missed threshold | — |
+
+**MCP stays, demoted.** The capability model MCP gave agents is now NCP on the bus, and
+the agent dialect is now this protocol — so the preferred path for an AI agent to reach a
+gorai robot is: **join the bus, discover capabilities (NCP catalog), prompt and read agents
+(this protocol).** `gorai-mcp` remains as an optional adapter for the many off-the-shelf
+MCP clients that still only speak MCP — it bridges the mesh to an MCP surface, nothing
+more.
+
 
 ---
 
